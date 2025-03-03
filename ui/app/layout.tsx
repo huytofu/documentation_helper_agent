@@ -19,7 +19,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CopilotKit url={process.env.NEXT_PUBLIC_COPILOT_URL || "/api/copilotkit"}>
+        <CopilotKit runtimeUrl={process.env.NEXT_PUBLIC_COPILOT_URL || "/api/copilotkit"}>
           {children}
         </CopilotKit>
       </body>
