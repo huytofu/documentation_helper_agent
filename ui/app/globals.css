@@ -54,7 +54,7 @@
     @apply border-[hsl(var(--border))];
   }
   body {
-    @apply bg-[hsl(var(--background))] text-foreground;
+    @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -70,15 +70,15 @@
   }
 
   .copilotkit-chat-message {
-    @apply rounded-lg p-4 text-foreground;
+    @apply rounded-lg p-4 text-[hsl(var(--foreground))];
   }
 
   .copilotkit-chat-message-user {
-    @apply bg-primary/10 text-foreground;
+    @apply bg-[hsl(var(--primary))]/10 text-[hsl(var(--foreground))];
   }
 
   .copilotkit-chat-message-assistant {
-    @apply bg-muted text-foreground;
+    @apply bg-[hsl(var(--muted))] text-[hsl(var(--foreground))];
   }
 
   .copilotkit-chat-input-container {
@@ -86,23 +86,23 @@
   }
 
   .copilotkit-chat-input {
-    @apply w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply w-full rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm ring-offset-[hsl(var(--background))] placeholder:text-[hsl(var(--muted-foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2;
   }
 
   .copilotkit-chat-send-button {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 ml-2;
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-[hsl(var(--background))] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary))]/90 h-10 px-4 py-2 ml-2;
   }
 
   /* Code block styling */
   .copilotkit-code-block {
-    @apply relative rounded-lg bg-muted/50 p-4 my-2 overflow-x-auto;
+    @apply relative rounded-lg bg-[hsl(var(--muted))]/50 p-4 my-2 overflow-x-auto;
   }
 
   .copilotkit-code-block pre {
-    @apply m-0 font-mono text-sm text-foreground;
+    @apply m-0 font-mono text-sm text-[hsl(var(--foreground))];
   }
 
   .copilotkit-code-block code {
-    @apply block text-sm font-mono text-foreground;
+    @apply block text-sm font-mono text-[hsl(var(--foreground))];
   }
 } 
