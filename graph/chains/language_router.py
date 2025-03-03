@@ -17,7 +17,7 @@ structured_llm_router = llm.with_structured_output(RouteLanguage)
 system = """You are an expert at routing a user query to a the most relevant language.
 Languages are coding languages like Python and Javascript.
 Pick the most relevant language to route the user query to.
-Your answer should be "python" or "javascript" only.
+Your answer should be "python" or "javascript" or "other" only.
 """
 route_prompt = ChatPromptTemplate.from_messages(
     [

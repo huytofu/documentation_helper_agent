@@ -15,7 +15,8 @@ class RouteQuery(BaseModel):
 structured_llm_router = llm.with_structured_output(RouteQuery)
 
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
-Current vectorstores contain information about the Langchain, Langgraph, and Copilokit frameworks.
+Current vectorstores contain information about the Langchain, Langgraph, and Copilokit frameworks. 
+Knowledge about Coagents is related to CopilotKit andis also available in the vectorstores.
 If these topics are not relevant to the user query, route it to a websearch.
 Your answer should be "vectorstore" or "websearch" only.
 """

@@ -59,7 +59,16 @@ def route_query(state: GraphState) -> str:
         print("---ROUTE QUERY TO VECTORSTORE ROUTER---")
         return DECIDE_LANGUAGE
     
-
+def to_vectorstore_or_websearch(state: GraphState) -> str:
+    print("---TO VECTORSTORE OR WEBSEARCH---")
+    decide_language = state["language"]
+    if decide_language in ["python", "javascript"]:
+        print("---ROUTE QUERY TO VECTORSTORE---")
+        return DECIDE_VECTORSTORE
+    else:
+        print("---ROUTE QUERY TO WEB SEARCH---")
+        return WEBSEARCH
+    
 workflow = StateGraph(GraphState)
 workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
@@ -77,7 +86,11 @@ workflow.set_conditional_entry_point(
         DECIDE_LANGUAGE: DECIDE_LANGUAGE
     },
 )
-workflow.add_edge(DECIDE_LANGUAGE, DECIDE_VECTORSTORE)
+workflow.add_conditional_edges(
+    DECIDE_LANGUAGE, to_vectorstore_or_websearch, {
+    "vectorstore": DECIDE_VECTORSTORE,
+    "websearch": WEBSEARCH
+})
 workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
 
