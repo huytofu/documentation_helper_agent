@@ -13,6 +13,7 @@
     "@copilotkit/react-textarea": "^1.6.0",
     "@copilotkit/react-ui": "^1.6.0",
     "@copilotkit/runtime": "^1.6.0",
+    "@langchain/core": "^0.3.42",
     "@langchain/ollama": "^0.0.1",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",

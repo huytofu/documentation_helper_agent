@@ -5,6 +5,7 @@ import {
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
 import { ChatOllama } from "@langchain/ollama";
+import { AIMessage } from "@langchain/core/messages";
 
 const model = new ChatOllama({
   model: "llama3.3:70b",
@@ -12,8 +13,14 @@ const model = new ChatOllama({
 });
 
 const serviceAdapter = new LangChainAdapter({
-  chainFn: async ({ messages, tools }) => {
-    return model.bindTools(tools).stream(messages);
+  chainFn: async ({ messages }) => {
+    const formattedMessages = messages.map(msg => ({
+      content: msg.content,
+      role: msg instanceof AIMessage ? "assistant" : "user"
+    }));
+    const result = await model.generate([formattedMessages]);
+    const content = result.generations[0][0].text;
+    return new AIMessage({ content });
   }
 });
 
