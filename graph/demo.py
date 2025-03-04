@@ -51,7 +51,7 @@ sdk = CopilotKitRemoteEndpoint(
 )
 
 # Add the CopilotKit info endpoint
-@app.get("/copilotkit/info")
+@app.post("/copilotkit/info")
 async def copilotkit_info():
     """Provide information about available agents."""
     logger.info("Received CopilotKit info request")
