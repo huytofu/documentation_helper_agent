@@ -9,7 +9,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 import uvicorn
-from copilotkit.integrations.fastapi import add_fastapi_endpoint
+# from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from graph.graph import app as graph
 
@@ -24,23 +24,44 @@ logging.basicConfig(
 logging.getLogger("graph.graph").setLevel(logging.DEBUG)
 logging.getLogger("uvicorn").setLevel(logging.DEBUG)
 logging.getLogger("fastapi").setLevel(logging.DEBUG)
+logging.getLogger("copilotkit").setLevel(logging.DEBUG)  # Add CopilotKit logger
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
 logger.info("Starting application...")
 
 app = FastAPI()
+
+# Configure the CopilotKit endpoint with proper logging
 sdk = CopilotKitRemoteEndpoint(
     agents=[
         LangGraphAgent(
             name="documentation_helper",
             description="Documentation helper agent that assists with code documentation and implementation.",
             graph=graph,
+            config={
+                "configurable": {
+                    "thread_id": "default-thread",
+                    "checkpoint_ns": "default-ns",
+                    "checkpoint_id": "default-checkpoint"
+                }
+            }
         )
     ],
 )
 
-add_fastapi_endpoint(app, sdk, "/copilotkit")
+# Add the CopilotKit endpoint with logging
+@app.post("/copilotkit")
+async def copilotkit_endpoint(request: dict):
+    """Handle CopilotKit requests."""
+    logger.info("Received CopilotKit request")
+    try:
+        response = await sdk.handle_request(request)
+        logger.info("Successfully processed CopilotKit request")
+        return response
+    except Exception as e:
+        logger.error(f"Error processing CopilotKit request: {str(e)}", exc_info=True)
+        raise
 
 # add new route for health check
 @app.get("/health")
@@ -102,6 +123,12 @@ def main():
     }
     
     log_config["loggers"]["fastapi"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    log_config["loggers"]["copilotkit"] = {
         "handlers": ["default"],
         "level": "DEBUG",
         "propagate": False
