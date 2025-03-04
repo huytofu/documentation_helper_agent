@@ -50,7 +50,8 @@ sdk = CopilotKitRemoteEndpoint(
     ],
 )
 
-# Add the CopilotKit info endpoint
+# Add the CopilotKit info endpoint with both GET and POST methods
+@app.get("/copilotkit/info")
 @app.post("/copilotkit/info")
 async def copilotkit_info():
     """Provide information about available agents."""
@@ -63,7 +64,20 @@ async def copilotkit_info():
         logger.error(f"Error getting CopilotKit info: {str(e)}", exc_info=True)
         raise
 
-# Add the CopilotKit endpoint with logging
+# Add the CopilotKit GET endpoint for actions
+@app.get("/copilotkit")
+async def copilotkit_actions():
+    """Handle CopilotKit action fetching."""
+    logger.info("Received CopilotKit actions request")
+    try:
+        actions = sdk.get_actions()
+        logger.info("Successfully retrieved CopilotKit actions")
+        return actions
+    except Exception as e:
+        logger.error(f"Error getting CopilotKit actions: {str(e)}", exc_info=True)
+        raise
+
+# Add the CopilotKit POST endpoint for requests
 @app.post("/copilotkit")
 async def copilotkit_endpoint(request: dict):
     """Handle CopilotKit requests."""
