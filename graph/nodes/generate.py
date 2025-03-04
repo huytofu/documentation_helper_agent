@@ -14,12 +14,12 @@ def generate(state: GraphState) -> Dict[str, Any]:
     comment = state.get("comment", None)
     retry_count = state.get("retry_count", 0)
 
-    documents = "\n\n".join([doc.page_content for doc in documents])
+    joined_documents = "\n\n".join([doc.page_content for doc in documents])
 
     generation = generation_chain.invoke({
         "language": language,"framework": framework, 
-        "documents": documents, "query": query,
+        "documents": joined_documents, "query": query,
         "generation": generation, "comment": comment
     })
     retry_count += 1
-    return {"documents": documents, "query": query, "generation": generation, "retry_count": retry_count}
+    return {"generation": generation, "retry_count": retry_count}
