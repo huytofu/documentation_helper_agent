@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Code2 } from "lucide-react";
 
 const PROGRAMMING_LANGUAGES = [
@@ -31,16 +31,18 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange }: Languag
           Programming Language
         </span>
       </Label>
-      <Select
-        value={selectedLanguage}
-        onChange={(value) => onLanguageChange(value as ProgrammingLanguage)}
-        options={PROGRAMMING_LANGUAGES.map(lang => ({
-          label: lang,
-          value: lang,
-        }))}
-        placeholder="Select a programming language"
-        className="bg-card/50 backdrop-blur-sm border-blue-500/20"
-      />
+      <Select value={selectedLanguage} onValueChange={(value: string) => onLanguageChange(value as ProgrammingLanguage)}>
+        <SelectTrigger className="bg-card/50 backdrop-blur-sm border-blue-500/20">
+          <SelectValue placeholder="Select a programming language" />
+        </SelectTrigger>
+        <SelectContent>
+          {PROGRAMMING_LANGUAGES.map((lang) => (
+            <SelectItem key={lang} value={lang}>
+              {lang}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 } 
