@@ -79,11 +79,10 @@ async def test():
         # Test the graph workflow with required checkpointer keys
         state = {
             "language": "python",
-            "query": "test query",
+            "query": "Please generate a simple python function that prints 'Hello, World!'",
             "documents": [],
             "generation": "",
             "comment": "",
-            # Add required checkpointer keys
             "retry_count": 0  # Add retry count for the workflow
         }
         logger.info(f"Starting test workflow with state: {state}")
