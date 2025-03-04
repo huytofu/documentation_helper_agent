@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from langgraph.checkpoint.memory import MemorySaver
 # from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
+import logging
 
 from graph.chains.answer_grader import answer_grader, GradeAnswer
 from graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
@@ -10,13 +11,16 @@ from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_
 from graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop
 from graph.state import GraphState
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
-    print("---CHECK HALLUCINATIONS---")
+    logger.info("---CHECK HALLUCINATIONS---")
     query = state["query"]
     documents = state["documents"]
     generation = state["generation"]
@@ -28,40 +32,40 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         )
 
     if hallucination_grade := score.binary_score:
-        print("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
-        print("---GRADE GENERATION vs query---")
+        logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
+        logger.info("---GRADE GENERATION vs query---")
         score = {}
         while not hasattr(score, "binary_score"):
             score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
         
         if answer_grade := score.binary_score:
-            print("---DECISION: GENERATION ADDRESSES query---")
+            logger.info("---DECISION: GENERATION ADDRESSES query---")
             return "useful"
         else:
-            print("---DECISION: GENERATION DOES NOT ADDRESS query---")
+            logger.info("---DECISION: GENERATION DOES NOT ADDRESS query---")
             return "not useful"
     else:
-        print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        logger.info("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         if state["retry_count"] < 3:
             return "not supported"
-        print("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
+        logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         return "end_misery"
 
 
 def route_query(state: GraphState) -> str:
-    print("---ROUTE QUERY---")
+    logger.info("---ROUTE QUERY---")
     query = state["query"]
     source: RouteQuery = query_router.invoke({"query": query})
     if source.datasource == "websearch":
-        print("---ROUTE QUERY TO WEB SEARCH---")
+        logger.info("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
     else:
         language = state["language"]
         if language in ["python", "javascript"]:
-            print("---ROUTE QUERY TO VECTORSTORE ROUTER---")
+            logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
             return DECIDE_VECTORSTORE
         else:
-            print("---ROUTE QUERY TO WEB SEARCH---")
+            logger.info("---ROUTE QUERY TO WEB SEARCH---")
             return WEBSEARCH
         
 workflow = StateGraph(GraphState)

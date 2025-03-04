@@ -1,6 +1,9 @@
 """Demo"""
 
 import os
+import logging
+import logging.config
+import yaml
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -9,6 +12,11 @@ import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from graph.graph import app as graph
+
+# Load logging configuration
+with open('log_conf.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+    logging.config.dictConfig(config)
 
 app = FastAPI()
 sdk = CopilotKitRemoteEndpoint(
