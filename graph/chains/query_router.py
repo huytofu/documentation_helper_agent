@@ -7,7 +7,7 @@ from graph.models.router import llm
 class RouteQuery(BaseModel):
     """Route a user query to a vectorstore or websearch"""
 
-    is_anime: Literal["vectorstore", "websearch"] = Field(
+    datasource: Literal["vectorstore", "websearch"] = Field(
         ...,
         description="Given a user query determine whether to route it to a vector store or websearch.",
     )
@@ -16,7 +16,7 @@ structured_llm_router = llm.with_structured_output(RouteQuery)
 
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
 Current vectorstores contain information about the Langchain, Langgraph, and Copilokit frameworks. 
-Knowledge about Coagents is related to CopilotKit andis also available in the vectorstores.
+Knowledge about Coagents is related to CopilotKit and is also available in the vectorstores.
 If these topics are not relevant to the user query, route it to a websearch.
 Your answer should be "vectorstore" or "websearch" only.
 """
