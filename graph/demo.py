@@ -13,11 +13,17 @@ from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from graph.graph import app as graph
 
-# Configure logging
+# Configure root logger
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s',
+    force=True  # Force reconfiguration of the root logger
 )
+
+# Configure specific loggers
+logging.getLogger("graph.graph").setLevel(logging.DEBUG)
+logging.getLogger("uvicorn").setLevel(logging.DEBUG)
+logging.getLogger("fastapi").setLevel(logging.DEBUG)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -40,6 +46,7 @@ add_fastapi_endpoint(app, sdk, "/copilotkit")
 @app.get("/health")
 def health():
     """Health check."""
+    logger.info("Health check endpoint called")
     return {"status": "ok"}
 
 # Add test endpoint
@@ -48,14 +55,20 @@ async def test():
     """Test endpoint to verify backend is working."""
     logger.info("Test endpoint called")
     try:
-        # Test the graph workflow
+        # Test the graph workflow with required checkpointer keys
         state = {
             "language": "python",
             "query": "test query",
             "documents": [],
             "generation": "",
             "comment": "",
+            # Add required checkpointer keys
+            "thread_id": "test-thread",
+            "checkpoint_ns": "test-ns",
+            "checkpoint_id": "test-checkpoint",
+            "retry_count": 0  # Add retry count for the workflow
         }
+        logger.info(f"Starting test workflow with state: {state}")
         result = await graph.ainvoke(state)
         logger.info(f"Test workflow completed with result: {result}")
         return {"status": "ok", "result": result}
@@ -80,13 +93,28 @@ def main():
         "propagate": False
     }
     
+    # Add more loggers to uvicorn's config
+    log_config["loggers"]["uvicorn"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    log_config["loggers"]["fastapi"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    logger.info("Starting uvicorn server with logging configuration")
     uvicorn.run(
         "graph.demo:app",
         host="0.0.0.0",
         port=port,
         reload=True,
         reload_dirs=["."],
-        log_config=log_config
+        log_config=log_config,
+        log_level="debug"  # Set uvicorn's log level to debug
     )
 
 if __name__ == "__main__":
