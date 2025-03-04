@@ -42,6 +42,27 @@ def health():
     """Health check."""
     return {"status": "ok"}
 
+# Add test endpoint
+@app.post("/test")
+async def test():
+    """Test endpoint to verify backend is working."""
+    logger.info("Test endpoint called")
+    try:
+        # Test the graph workflow
+        state = {
+            "language": "python",
+            "query": "test query",
+            "documents": [],
+            "generation": "",
+            "comment": "",
+        }
+        result = await graph.ainvoke(state)
+        logger.info(f"Test workflow completed with result: {result}")
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        logger.error(f"Error in test endpoint: {str(e)}", exc_info=True)
+        return {"status": "error", "error": str(e)}
+
 def main():
     """Run the uvicorn server."""
     port = int(os.getenv("PORT", "8000"))

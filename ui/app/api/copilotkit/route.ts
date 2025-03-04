@@ -7,6 +7,8 @@ import {
 import { ChatOllama } from "@langchain/ollama";
 import { AIMessage } from "@langchain/core/messages";
 
+console.log("Initializing CopilotKit runtime...");
+
 const model = new ChatOllama({
   model: "llama3.3:70b",
   temperature: 0
@@ -14,6 +16,7 @@ const model = new ChatOllama({
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages }) => {
+    console.log("Processing messages:", messages);
     const formattedMessages = messages.map(msg => ({
       content: msg.content,
       role: msg instanceof AIMessage ? "assistant" : "user"
@@ -33,11 +36,20 @@ const runtime = new CopilotRuntime({
 });
 
 export const POST = async (req: NextRequest) => {
-  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-    runtime,
-    serviceAdapter,
-    endpoint: "/api/copilotkit",
-  });
+  console.log("Received request at /api/copilotkit");
+  try {
+    const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+      runtime,
+      serviceAdapter,
+      endpoint: "/api/copilotkit",
+    });
 
-  return handleRequest(req);
+    console.log("Forwarding request to runtime...");
+    const response = await handleRequest(req);
+    console.log("Received response from runtime");
+    return response;
+  } catch (error) {
+    console.error("Error in /api/copilotkit:", error);
+    throw error;
+  }
 }; 
