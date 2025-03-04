@@ -50,6 +50,19 @@ sdk = CopilotKitRemoteEndpoint(
     ],
 )
 
+# Add the CopilotKit info endpoint
+@app.get("/copilotkit/info")
+async def copilotkit_info():
+    """Provide information about available agents."""
+    logger.info("Received CopilotKit info request")
+    try:
+        info = sdk.get_info()
+        logger.info("Successfully retrieved CopilotKit info")
+        return info
+    except Exception as e:
+        logger.error(f"Error getting CopilotKit info: {str(e)}", exc_info=True)
+        raise
+
 # Add the CopilotKit endpoint with logging
 @app.post("/copilotkit")
 async def copilotkit_endpoint(request: dict):
