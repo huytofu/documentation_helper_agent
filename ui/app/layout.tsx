@@ -20,7 +20,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} min-h-full bg-background`}>
-        <CopilotKit url={process.env.NEXT_PUBLIC_COPILOT_URL || "/api/copilotkit"}>
+        <CopilotKit runtimeUrl={process.env.NEXT_PUBLIC_COPILOT_URL || "/api/copilotkit"}>
           <div className="relative flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
