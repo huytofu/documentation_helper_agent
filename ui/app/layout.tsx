@@ -4,6 +4,7 @@ import "./globals.css";
 import { CopilotKit } from "@copilotkit/react-core";
 import { ReactNode } from "react";
 import { Header } from "@/components/Header";
+import "@copilotkit/react-ui/styles.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
