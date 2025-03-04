@@ -66,7 +66,7 @@ async def test():
             "retry_count": 0  # Add retry count for the workflow
         }
         logger.info(f"Starting test workflow with state: {state}")
-        result = await graph.invoke(state, config={"configurable": {
+        result = await graph.ainvoke(state, config={"configurable": {
             "thread_id": "test-thread", 
             "checkpoint_ns": "test-ns", 
             "checkpoint_id": "test-checkpoint"
