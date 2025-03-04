@@ -13,10 +13,19 @@ from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from graph.graph import app as graph
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Load logging configuration
-with open('log_conf.yaml', 'r') as f:
-    config = yaml.safe_load(f)
-    logging.config.dictConfig(config)
+try:
+    with open('logging_config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+        logging.config.dictConfig(config)
+        logger.info("Logging configuration loaded successfully")
+except Exception as e:
+    logger.error(f"Failed to load logging configuration: {e}")
+    # Fallback to basic configuration
+    logging.basicConfig(level=logging.DEBUG)
 
 app = FastAPI()
 sdk = CopilotKitRemoteEndpoint(
@@ -40,6 +49,7 @@ def health():
 def main():
     """Run the uvicorn server."""
     port = int(os.getenv("PORT", "8000"))
+    logger.info(f"Starting server on port {port}")
     uvicorn.run(
         "graph.demo:app",
         host="0.0.0.0",
