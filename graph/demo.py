@@ -63,13 +63,14 @@ async def test():
             "generation": "",
             "comment": "",
             # Add required checkpointer keys
-            "thread_id": "test-thread",
-            "checkpoint_ns": "test-ns",
-            "checkpoint_id": "test-checkpoint",
             "retry_count": 0  # Add retry count for the workflow
         }
         logger.info(f"Starting test workflow with state: {state}")
-        result = await graph.ainvoke(state)
+        result = await graph.invoke(state, config={"configurable": {
+            "thread_id": "test-thread", 
+            "checkpoint_ns": "test-ns", 
+            "checkpoint_id": "test-checkpoint"
+        }})
         logger.info(f"Test workflow completed with result: {result}")
         return {"status": "ok", "result": result}
     except Exception as e:
