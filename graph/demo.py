@@ -63,7 +63,7 @@ async def copilotkit_info(request: Request):
         )
         name = request.headers.get("x-copilotkit-name", "documentation_helper")
         
-        info = sdk.info(context=context, name=name)
+        info = sdk.info(context=context)
         logger.info("Successfully retrieved CopilotKit info")
         return info
     except Exception as e:
