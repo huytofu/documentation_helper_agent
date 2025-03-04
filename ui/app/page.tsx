@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Sparkles } from "lucide-react";
 
 type ProgrammingLanguage = "Python" | "JavaScript" | "TypeScript" | "Java" | "C++" | "C#" | "Go" | "Rust" | "Ruby" | "PHP";
 
@@ -11,25 +11,34 @@ export default function Home() {
   const [selectedLanguage, setSelectedLanguage] = useState<ProgrammingLanguage | "">("");
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Documentation Helper Agent</h1>
-          <p className="text-muted-foreground">
+    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-[calc(100vh-3.5rem)] flex flex-col justify-center">
+      <div className="space-y-12">
+        <div className="space-y-4 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles className="h-6 w-6 text-blue-500" />
+            <h1 className="text-5xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+              Documentation Helper Agent
+            </h1>
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Your AI-powered assistant for programming documentation and implementation
           </p>
         </div>
 
-        <div className="space-y-6">
-          <LanguageSelector
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-          />
+        <div className="space-y-8">
+          <div className="flex justify-center">
+            <LanguageSelector
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+          </div>
 
-          <div className="relative rounded-lg border bg-card text-card-foreground shadow-sm">
-            <div className="flex items-center gap-2 p-4 border-b">
-              <MessageSquare className="h-4 w-4" />
-              <h2 className="text-lg font-semibold">Chat Interface</h2>
+          <div className="relative rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
+            <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
+              <MessageSquare className="h-5 w-5 text-blue-500" />
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                Chat Interface
+              </h2>
             </div>
             <div className="h-[600px]">
               <CopilotChat

@@ -24,10 +24,12 @@ interface LanguageSelectorProps {
 
 export function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="language" className="flex items-center gap-2">
-        <Code2 className="h-4 w-4" />
-        Programming Language
+    <div className="space-y-2 w-full max-w-md">
+      <Label htmlFor="language" className="flex items-center gap-2 text-lg font-medium">
+        <Code2 className="h-5 w-5 text-blue-500" />
+        <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+          Programming Language
+        </span>
       </Label>
       <Select
         value={selectedLanguage}
@@ -37,6 +39,7 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange }: Languag
           value: lang,
         }))}
         placeholder="Select a programming language"
+        className="bg-card/50 backdrop-blur-sm border-blue-500/20"
       />
     </div>
   );
