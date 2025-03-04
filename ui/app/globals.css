@@ -70,15 +70,15 @@
   }
 
   .copilotkit-chat-message {
-    @apply rounded-lg p-4 text-[hsl(var(--foreground))];
+    @apply rounded-lg p-4 text-[hsl(var(--foreground))] max-w-[85%];
   }
 
   .copilotkit-chat-message-user {
-    @apply bg-[hsl(var(--primary))]/10 text-[hsl(var(--foreground))];
+    @apply bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] mr-auto;
   }
 
   .copilotkit-chat-message-assistant {
-    @apply bg-[hsl(var(--muted))] text-[hsl(var(--foreground))];
+    @apply bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] ml-auto;
   }
 
   .copilotkit-chat-input-container {
