@@ -5,12 +5,10 @@ import logging
 import logging.config
 import yaml
 from dotenv import load_dotenv
-load_dotenv()
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import uvicorn
 # from copilotkit.integrations.fastapi import add_fastapi_endpoint
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
+from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
 from graph.graph import app as graph
 
 # Configure root logger
@@ -53,11 +51,19 @@ sdk = CopilotKitRemoteEndpoint(
 # Add the CopilotKit info endpoint with both GET and POST methods
 @app.get("/copilotkit/info")
 @app.post("/copilotkit/info")
-async def copilotkit_info():
+async def copilotkit_info(request: Request):
     """Provide information about available agents."""
     logger.info("Received CopilotKit info request")
     try:
-        info = sdk.get_info()
+        # Get context from request headers
+        context = CopilotKitContext(
+            thread_id=request.headers.get("x-copilotkit-thread-id", "default-thread"),
+            checkpoint_ns=request.headers.get("x-copilotkit-checkpoint-ns", "default-ns"),
+            checkpoint_id=request.headers.get("x-copilotkit-checkpoint-id", "default-checkpoint")
+        )
+        name = request.headers.get("x-copilotkit-name", "documentation_helper")
+        
+        info = sdk.info(context=context, name=name)
         logger.info("Successfully retrieved CopilotKit info")
         return info
     except Exception as e:
@@ -66,11 +72,19 @@ async def copilotkit_info():
 
 # Add the CopilotKit GET endpoint for actions
 @app.get("/copilotkit")
-async def copilotkit_actions():
+async def copilotkit_actions(request: Request):
     """Handle CopilotKit action fetching."""
     logger.info("Received CopilotKit actions request")
     try:
-        actions = sdk.get_actions()
+        # Get context from request headers
+        context = CopilotKitContext(
+            thread_id=request.headers.get("x-copilotkit-thread-id", "default-thread"),
+            checkpoint_ns=request.headers.get("x-copilotkit-checkpoint-ns", "default-ns"),
+            checkpoint_id=request.headers.get("x-copilotkit-checkpoint-id", "default-checkpoint")
+        )
+        name = request.headers.get("x-copilotkit-name", "documentation_helper")
+        
+        actions = sdk._get_action(context=context, name=name)
         logger.info("Successfully retrieved CopilotKit actions")
         return actions
     except Exception as e:
@@ -79,11 +93,26 @@ async def copilotkit_actions():
 
 # Add the CopilotKit POST endpoint for requests
 @app.post("/copilotkit")
-async def copilotkit_endpoint(request: dict):
+async def copilotkit_endpoint(request: Request):
     """Handle CopilotKit requests."""
     logger.info("Received CopilotKit request")
     try:
-        response = await sdk.handle_request(request)
+        # Get the request body
+        body = await request.json()
+        
+        # Get context from request headers
+        context = CopilotKitContext(
+            thread_id=request.headers.get("x-copilotkit-thread-id", "default-thread"),
+            checkpoint_ns=request.headers.get("x-copilotkit-checkpoint-ns", "default-ns"),
+            checkpoint_id=request.headers.get("x-copilotkit-checkpoint-id", "default-checkpoint")
+        )
+        name = request.headers.get("x-copilotkit-name", "documentation_helper")
+        
+        # Add context and name to the request body
+        body["context"] = context
+        body["name"] = name
+        
+        response = await sdk.handle_request(body)
         logger.info("Successfully processed CopilotKit request")
         return response
     except Exception as e:
