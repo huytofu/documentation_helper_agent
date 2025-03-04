@@ -36,9 +36,11 @@ async def handle_copilotkit_request(request: CopilotKitRequest):
         state = {
             "language": request.input.get("language", "python"),
             "query": request.input.get("request", ""),
+            "framework": "",
             "documents": [],
             "generation": "",
             "comment": "",
+            "retry_count": 0
         }
         logger.info(f"Initialized state: {state}")
         

@@ -94,6 +94,7 @@ async def test():
             "language": "python",
             "query": "Please generate a simple python function that prints 'Hello, World!'",
             "documents": [],
+            "framework": "",
             "generation": "",
             "comment": "",
             "retry_count": 0  # Add retry count for the workflow

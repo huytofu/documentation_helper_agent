@@ -7,6 +7,8 @@ class GraphState(TypedDict):
 
     Attributes:
         question: question
+        framework: framework (vectorstore name)
+        language: coding language
         generation: LLM generation
         web_search: whether to add search
         retry_count: number of retries
