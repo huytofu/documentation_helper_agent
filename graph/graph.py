@@ -6,8 +6,8 @@ from langgraph.graph import END, StateGraph
 from graph.chains.answer_grader import answer_grader, GradeAnswer
 from graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from graph.chains.query_router import query_router, RouteQuery
-from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_LANGUAGE, DECIDE_VECTORSTORE, HUMAN_IN_LOOP
-from graph.nodes import generate, grade_documents, retrieve, decide_language, decide_vectorstore, web_search, human_in_loop
+from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP
+from graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop
 from graph.state import GraphState
 
 load_dotenv()
@@ -56,21 +56,15 @@ def route_query(state: GraphState) -> str:
         print("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
     else:
-        print("---ROUTE QUERY TO VECTORSTORE ROUTER---")
-        return DECIDE_LANGUAGE
-    
-def to_vectorstore_or_websearch(state: GraphState) -> str:
-    print("---TO VECTORSTORE OR WEBSEARCH---")
-    decide_language = state["language"]
-    if decide_language in ["python", "javascript"]:
-        print("---ROUTE QUERY TO VECTORSTORE---")
-        return DECIDE_VECTORSTORE
-    else:
-        print("---ROUTE QUERY TO WEB SEARCH---")
-        return WEBSEARCH
-    
+        language = state["language"]
+        if language in ["python", "javascript"]:
+            print("---ROUTE QUERY TO VECTORSTORE ROUTER---")
+            return DECIDE_VECTORSTORE
+        else:
+            print("---ROUTE QUERY TO WEB SEARCH---")
+            return WEBSEARCH
+        
 workflow = StateGraph(GraphState)
-workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -83,14 +77,9 @@ workflow.set_conditional_entry_point(
     route_query,
     {
         WEBSEARCH: WEBSEARCH,
-        DECIDE_LANGUAGE: DECIDE_LANGUAGE
+        DECIDE_VECTORSTORE: DECIDE_VECTORSTORE
     },
 )
-workflow.add_conditional_edges(
-    DECIDE_LANGUAGE, to_vectorstore_or_websearch, {
-    "vectorstore": DECIDE_VECTORSTORE,
-    "websearch": WEBSEARCH
-})
 workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
 

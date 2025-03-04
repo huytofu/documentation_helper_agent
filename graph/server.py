@@ -27,7 +27,7 @@ async def handle_copilotkit_request(request: CopilotKitRequest):
 
         # Initialize the state for the agent
         state = {
-            "language": request.input.get("language", "Python"),
+            "language": request.input.get("language", "python"),
             "query": request.input.get("request", ""),
             "documents": [],
             "generation": "",
