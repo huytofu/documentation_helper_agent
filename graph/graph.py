@@ -12,16 +12,8 @@ from graph.nodes import generate, grade_documents, retrieve, decide_vectorstore,
 from graph.state import GraphState
 
 # Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Ensure the logger is set to DEBUG level
-
-# Add a stream handler if no handlers are present
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+logger = logging.getLogger("graph.graph")
+logger.debug("Graph module initialized")
 
 load_dotenv()
 # memory = SqliteSaver.from_conn_string(":memory:")
