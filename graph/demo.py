@@ -30,82 +30,8 @@ logger.info("Starting application...")
 
 app = FastAPI()
 
-# Add logging to SDK methods
-class LoggedCopilotKitRemoteEndpoint(CopilotKitRemoteEndpoint):
-    def __init__(self, *args, **kwargs):
-        """Initialize the logged endpoint and inherit from parent."""
-        super().__init__(*args, **kwargs)
-        logger.info("SDK: Initializing LoggedCopilotKitRemoteEndpoint")
-
-    def handle_request(self, *, request: dict):
-        """Handle a CopilotKit request with logging."""
-        logger.info("SDK: Starting request handling")
-        logger.debug(f"SDK: Request details: {request}")
-        
-        try:
-            # Log the start of request processing
-            logger.info("SDK: Processing request")
-            
-            # Get the agent name and context from the request
-            agent_name = request.get("name", "documentation_helper")
-            context = request.get("context", {})
-            
-            logger.info(f"SDK: Using agent: {agent_name}")
-            logger.debug(f"SDK: Request context: {context}")
-            
-            # Process the request
-            response = super().handle_request(request)
-            
-            # Log successful response
-            logger.info("SDK: Request processed successfully")
-            logger.debug(f"SDK: Response details: {response}")
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"SDK: Error processing request: {str(e)}", exc_info=True)
-            raise
-
-    def _get_action(self, *, context: CopilotKitContext, name: str):
-        """Get available actions with logging."""
-        logger.info(f"SDK: Retrieving actions for agent: {name}")
-        logger.debug(f"SDK: Action context: {context}")
-        
-        try:
-            # Get the actions
-            actions = super()._get_action(context, name)
-            
-            # Log the retrieved actions
-            logger.info(f"SDK: Successfully retrieved {len(actions)} actions")
-            logger.debug(f"SDK: Available actions: {actions}")
-            
-            return actions
-            
-        except Exception as e:
-            logger.error(f"SDK: Error retrieving actions: {str(e)}", exc_info=True)
-            raise
-
-    def info(self, *, context: CopilotKitContext):
-        """Get agent information with logging."""
-        logger.info("SDK: Retrieving agent information")
-        logger.debug(f"SDK: Info context: {context}")
-        
-        try:
-            # Get the agent info
-            info = super().info(context)
-            
-            # Log the retrieved info
-            logger.info("SDK: Successfully retrieved agent information")
-            logger.debug(f"SDK: Agent info: {info}")
-            
-            return info
-            
-        except Exception as e:
-            logger.error(f"SDK: Error retrieving agent info: {str(e)}", exc_info=True)
-            raise
-
-# Create a logged instance of the SDK
-logged_sdk = LoggedCopilotKitRemoteEndpoint(
+# Create SDK instance
+sdk = CopilotKitRemoteEndpoint(
     agents=[
         LangGraphAgent(
             name="documentation_helper",
@@ -122,7 +48,7 @@ logged_sdk = LoggedCopilotKitRemoteEndpoint(
     ],
 )
 
-add_fastapi_endpoint(app, logged_sdk, "/copilotkit")
+add_fastapi_endpoint(app, sdk, "/copilotkit")
 
 # # Add the CopilotKit info endpoint with both GET and POST methods
 # @app.get("/copilotkit/info")
