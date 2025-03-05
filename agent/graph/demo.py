@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
-from graph.graph import app as graph
+from graph.graph import graph
 
 # Configure root logger
 logging.basicConfig(
