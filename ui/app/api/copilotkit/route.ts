@@ -16,13 +16,15 @@ const model = new ChatOllama({
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages }) => {
-    console.log("Processing messages:", messages);
+    console.log("Processing messages through LangGraph agent:", messages);
     const formattedMessages = messages.map(msg => ({
       content: msg.content,
       role: msg instanceof AIMessage ? "assistant" : "user",
       metadata: {
         requiresBackend: true,
-        timestamp: new Date().toISOString()
+        requiresLangGraph: true,
+        timestamp: new Date().toISOString(),
+        agent: "documentation_helper"
       }
     }));
     const result = await model.generate([formattedMessages]);
@@ -30,7 +32,9 @@ const serviceAdapter = new LangChainAdapter({
     return new AIMessage({ 
       content,
       additional_kwargs: {
-        processed_by_backend: true
+        processed_by_backend: true,
+        processed_by_langgraph: true,
+        agent: "documentation_helper"
       }
     });
   }
@@ -39,9 +43,9 @@ const serviceAdapter = new LangChainAdapter({
 const runtime = new CopilotRuntime({
   remoteEndpoints: [
     {
-      url: process.env.REMOTE_ACTION_URL || "http://localhost:8000/copilotkit",
-    },
-  ],
+      url: process.env.REMOTE_ACTION_URL || "http://localhost:8000/copilotkit"
+    }
+  ]
 });
 
 export const POST = async (req: NextRequest) => {

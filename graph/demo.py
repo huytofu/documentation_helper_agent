@@ -42,6 +42,12 @@ sdk = CopilotKitRemoteEndpoint(
                     "thread_id": "default-thread",
                     "checkpoint_ns": "default-ns",
                     "checkpoint_id": "default-checkpoint"
+                },
+                "force_use": True,  # Force using the LangGraph agent
+                "priority": 1,  # Highest priority
+                "metadata": {
+                    "requires_langgraph": True,
+                    "timestamp": "auto"
                 }
             }
         )
@@ -155,6 +161,9 @@ async def test():
     except Exception as e:
         logger.error(f"Error in test endpoint: {str(e)}", exc_info=True)
         return {"status": "error", "error": str(e)}
+
+# Add logging for agent initialization
+logger.info("Initialized LangGraph agent with force_use=True")
 
 def main():
     """Run the uvicorn server."""
