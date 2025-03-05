@@ -54,7 +54,7 @@ sdk = CopilotKitRemoteEndpoint(
     ],
 )
 
-add_fastapi_endpoint(app, sdk, "/copilotkit")
+add_fastapi_endpoint(app, sdk, "/copilotkitagent")
 
 # # Add the CopilotKit info endpoint with both GET and POST methods
 # @app.get("/copilotkit/info")

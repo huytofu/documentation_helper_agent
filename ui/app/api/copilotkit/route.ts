@@ -43,7 +43,7 @@ const serviceAdapter = new LangChainAdapter({
 const runtime = new CopilotRuntime({
   remoteEndpoints: [
     {
-      url: process.env.REMOTE_ACTION_URL || "http://localhost:8000/copilotkit"
+      url: process.env.REMOTE_ACTION_URL || "http://localhost:8000/copilotkitagent"
     }
   ]
 });
