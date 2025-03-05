@@ -19,11 +19,20 @@ const serviceAdapter = new LangChainAdapter({
     console.log("Processing messages:", messages);
     const formattedMessages = messages.map(msg => ({
       content: msg.content,
-      role: msg instanceof AIMessage ? "assistant" : "user"
+      role: msg instanceof AIMessage ? "assistant" : "user",
+      metadata: {
+        requiresBackend: true,
+        timestamp: new Date().toISOString()
+      }
     }));
     const result = await model.generate([formattedMessages]);
     const content = result.generations[0][0].text;
-    return new AIMessage({ content });
+    return new AIMessage({ 
+      content,
+      additional_kwargs: {
+        processed_by_backend: true
+      }
+    });
   }
 });
 
