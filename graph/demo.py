@@ -32,7 +32,12 @@ app = FastAPI()
 
 # Add logging to SDK methods
 class LoggedCopilotKitRemoteEndpoint(CopilotKitRemoteEndpoint):
-    async def handle_request(self, request: dict):
+    def __init__(self, *args, **kwargs):
+        """Initialize the logged endpoint and inherit from parent."""
+        super().__init__(*args, **kwargs)
+        logger.info("SDK: Initializing LoggedCopilotKitRemoteEndpoint")
+
+    def handle_request(self, *, request: dict):
         """Handle a CopilotKit request with logging."""
         logger.info("SDK: Starting request handling")
         logger.debug(f"SDK: Request details: {request}")
@@ -49,7 +54,7 @@ class LoggedCopilotKitRemoteEndpoint(CopilotKitRemoteEndpoint):
             logger.debug(f"SDK: Request context: {context}")
             
             # Process the request
-            response = await super().handle_request(request)
+            response = super().handle_request(request)
             
             # Log successful response
             logger.info("SDK: Request processed successfully")
@@ -61,7 +66,7 @@ class LoggedCopilotKitRemoteEndpoint(CopilotKitRemoteEndpoint):
             logger.error(f"SDK: Error processing request: {str(e)}", exc_info=True)
             raise
 
-    def _get_action(self, context: CopilotKitContext, name: str):
+    def _get_action(self, *, context: CopilotKitContext, name: str):
         """Get available actions with logging."""
         logger.info(f"SDK: Retrieving actions for agent: {name}")
         logger.debug(f"SDK: Action context: {context}")
@@ -80,7 +85,7 @@ class LoggedCopilotKitRemoteEndpoint(CopilotKitRemoteEndpoint):
             logger.error(f"SDK: Error retrieving actions: {str(e)}", exc_info=True)
             raise
 
-    def info(self, context: CopilotKitContext):
+    def info(self, *, context: CopilotKitContext):
         """Get agent information with logging."""
         logger.info("SDK: Retrieving agent information")
         logger.debug(f"SDK: Info context: {context}")
