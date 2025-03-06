@@ -46,8 +46,8 @@ app.add_middleware(
 sdk = CopilotKitRemoteEndpoint(
     agents=[
         LangGraphAgent(
-            name="documentation_helper",
-            description="Documentation helper agent that assists with code documentation and implementation.",
+            name="coding_helper",
+            description="Coding helper agent that assists with answering coding questions, implementating code, developing features and understanding code documentation.",
             graph=agent_app,
             config={
                 "configurable": {
@@ -155,7 +155,7 @@ async def test():
         # Test the graph workflow with required checkpointer keys
         state = {
             "language": "python",
-            "query": "Please generate a simple python function that prints 'Hello, World!'",
+            "query": "Please generate a simple joke about Copilokit",
             "documents": [],
             "framework": "",
             "generation": "",

@@ -24,7 +24,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent -z-10" />
         <div className="absolute inset-0 border-4 border-blue-500/20 rounded-3xl m-4 -z-10" />
-        <CopilotKit {...{ runtimeUrl: "/api/copilotkit" } as any}>
+        <CopilotKit {...{ runtimeUrl: "/api/copilotkit", agent: "coding_helper" } as any}>
           <div className="relative flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>

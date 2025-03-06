@@ -44,8 +44,8 @@ export default function Home() {
               <CopilotChat
                 className="h-full"
                 makeSystemMessage={() => 
-                  `You are a helpful assistant focusing on ${selectedLanguage || "programming"} development. Help users with their coding questions and documentation needs. 
-                  When providing code examples or implementation guidance, use ${selectedLanguage || "programming"} as the primary language. 
+                  `You are a helpful assistant focusing on helping users with their coding questions, 
+                  as well as assisting them with features development, code implementation and documentation understanding. 
                   You must always route user queries to the backend agent first for processing. 
                   Do not attempt to answer questions directly without consulting the backend agent first.`
                 }
