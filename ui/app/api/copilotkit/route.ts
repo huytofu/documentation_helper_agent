@@ -59,40 +59,11 @@ export const POST = async (req: NextRequest) => {
     const body = await clonedReq.json();
     console.log("\nOriginal request body:", JSON.stringify(body, null, 2));
     
-    // Extract language from system message
-    const messages = body.messages || [];
-    const systemMessage = messages.find((msg: { content: string }) => 
-      typeof msg.content === 'string' && 
-      msg.content.includes('The selected programming language is:')
-    );
-    const systemContent = typeof systemMessage?.content === 'string' ? systemMessage.content : '';
-    const languageMatch = systemContent.match(/The selected programming language is: (.*?)\./);
-    const selectedLanguage = languageMatch ? languageMatch[1].toLowerCase() : 'python';
-    
-    // Get the last user message
-    const lastMessage = messages[messages.length - 1];
-    const messageContent = typeof lastMessage?.content === 'string' ? lastMessage.content : '';
-    
-    // Format the request body according to backend expectations
-    const formattedBody = {
-      state: {
-        language: selectedLanguage,
-        query: messageContent,
-        framework: "default",
-        documents: [],
-        generation: "",
-        comments: "",
-        retry_count: 0
-      },
-    };
-    
-    console.log("\nFormatted request body:", JSON.stringify(formattedBody, null, 2));
-    
-    // Create a new request with the formatted body
+    // Create a new request with the original body
     const formattedReq = new NextRequest(req.url, {
       method: req.method,
       headers: req.headers,
-      body: JSON.stringify(formattedBody)
+      body: JSON.stringify(body)
     });
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
