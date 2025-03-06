@@ -54,7 +54,9 @@ export const POST = async (req: NextRequest) => {
   console.log("Request headers:", Object.fromEntries(req.headers));
   
   try {
-    const body = await req.json();
+    // Clone the request before reading its body
+    const clonedReq = req.clone();
+    const body = await clonedReq.json();
     console.log("\nRequest body:", JSON.stringify(body, null, 2));
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
