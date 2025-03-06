@@ -5,7 +5,7 @@ import {
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
 import { ChatOllama } from "@langchain/ollama";
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 console.log("Initializing CopilotKit runtime...");
 
@@ -17,34 +17,16 @@ const model = new ChatOllama({
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages }) => {
     console.log("Processing messages through LangGraph agent:", messages);
-    const lastMessage = messages[messages.length - 1];
-    const messageContent = typeof lastMessage.content === 'string' ? lastMessage.content : '';
     
-    // Extract language from system message
-    const systemMessage = messages.find(msg => 
-      typeof msg.content === 'string' && 
-      msg.content.includes('The selected programming language is:')
-    );
-    const systemContent = typeof systemMessage?.content === 'string' ? systemMessage.content : '';
-    const languageMatch = systemContent.match(/The selected programming language is: (.*?)\./);
-    const selectedLanguage = languageMatch ? languageMatch[1].toLowerCase() : 'python';
+    // Format messages for the model
+    const formattedMessages = messages.map(msg => ({
+      role: msg instanceof HumanMessage ? 'user' : 'assistant',
+      content: typeof msg.content === 'string' ? msg.content : ''
+    }));
+
+    const result = await model.generate([formattedMessages]);
+    const content = result.generations[0][0].text;
     
-    const state = {
-      language: selectedLanguage,
-      query: messageContent,
-      documents: [],
-      framework: "default",
-      generation: "",
-      comments: "",
-      retry_count: 0
-    };
-    const result = await model.invoke([
-      {
-        role: "user",
-        content: JSON.stringify(state)
-      }
-    ]);
-    const content = result.content;
     return new AIMessage({ 
       content,
       additional_kwargs: {
@@ -66,7 +48,14 @@ const runtime = new CopilotRuntime({
 
 export const POST = async (req: NextRequest) => {
   console.log("Received request at /api/copilotkit");
+  console.log("Request URL:", req.url);
+  console.log("Request method:", req.method);
+  console.log("Request headers:", Object.fromEntries(req.headers));
+  
   try {
+    const body = await req.json();
+    console.log("Request body:", JSON.stringify(body, null, 2));
+    
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
       serviceAdapter,
