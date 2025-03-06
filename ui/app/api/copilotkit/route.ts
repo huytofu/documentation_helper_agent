@@ -75,7 +75,6 @@ export const POST = async (req: NextRequest) => {
     
     // Format the request body according to backend expectations
     const formattedBody = {
-      name: "coding_agent",
       state: {
         language: selectedLanguage,
         query: messageContent,
