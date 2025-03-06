@@ -47,6 +47,7 @@ const runtime = new CopilotRuntime({
 });
 
 export const POST = async (req: NextRequest) => {
+  console.log("\n=== Frontend Request Processing ===");
   console.log("Received request at /api/copilotkit");
   console.log("Request URL:", req.url);
   console.log("Request method:", req.method);
@@ -54,7 +55,7 @@ export const POST = async (req: NextRequest) => {
   
   try {
     const body = await req.json();
-    console.log("Request body:", JSON.stringify(body, null, 2));
+    console.log("\nRequest body:", JSON.stringify(body, null, 2));
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
@@ -62,12 +63,22 @@ export const POST = async (req: NextRequest) => {
       endpoint: "/api/copilotkit",
     });
 
-    console.log("Forwarding request to runtime...");
+    console.log("\nForwarding request to runtime...");
     const response = await handleRequest(req);
-    console.log("Received response from runtime");
+    console.log("Response status:", response.status);
+    console.log("Response headers:", Object.fromEntries(response.headers));
+    
+    const responseBody = await response.text();
+    console.log("Response body:", responseBody);
+    
+    console.log("=== End Frontend Request Processing ===\n");
     return response;
   } catch (error) {
-    console.error("Error in /api/copilotkit:", error);
+    console.error("\n=== Error in /api/copilotkit ===");
+    console.error("Error details:", error);
+    if (error instanceof Error) {
+      console.error("Error stack:", error.stack);
+    }
     throw error;
   }
 }; 
