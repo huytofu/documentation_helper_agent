@@ -32,7 +32,7 @@ const serviceAdapter = new LangChainAdapter({
       additional_kwargs: {
         processed_by_backend: true,
         processed_by_langgraph: true,
-        agent: "coding_agent"
+        agent: "frontend_agent"
       }
     });
   }
@@ -75,14 +75,16 @@ export const POST = async (req: NextRequest) => {
     
     // Format the request body according to backend expectations
     const formattedBody = {
-      // action: "agent",
-      language: selectedLanguage,
-      query: messageContent,
-      framework: "default",
-      documents: [],
-      generation: "",
-      comments: "",
-      retry_count: 0
+      name: "coding_agent",
+      state: {
+        language: selectedLanguage,
+        query: messageContent,
+        framework: "default",
+        documents: [],
+        generation: "",
+        comments: "",
+        retry_count: 0
+      },
     };
     
     console.log("\nFormatted request body:", JSON.stringify(formattedBody, null, 2));
