@@ -50,11 +50,11 @@ sdk = CopilotKitRemoteEndpoint(
             description="Coding agent that assists with answering coding questions and helping with code documentation and implementation.",
             graph=agent_app,
             config={
-                "configurable": {
-                    "thread_id": "default-thread",
-                    "checkpoint_ns": "default-ns",
-                    "checkpoint_id": "default-checkpoint"
-                },
+                # "configurable": {
+                #     "thread_id": "default-thread",
+                #     "checkpoint_ns": "test-ns",
+                #     "checkpoint_id": "test-checkpoint"
+                # },
                 "force_use": True,  # Force using the LangGraph agent
                 "priority": 1,  # Highest priority
                 "metadata": {
