@@ -2,12 +2,12 @@ from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
-from graph.models.embeddings import embeddings
+from agent.graph.models.embeddings import embeddings
 
 load_dotenv()
 
 urls1 = [
-    
+
 ]
 
 urls2 = [
