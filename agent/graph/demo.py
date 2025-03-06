@@ -1,15 +1,17 @@
 """Demo"""
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 import logging.config
 import yaml
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
-from graph.graph import graph
+from agent.graph.graph import graph
 
 # Configure root logger
 logging.basicConfig(
@@ -212,5 +214,5 @@ def main():
         log_level="debug"  # Set uvicorn's log level to debug
     )
 
-if __name__ == "__main__":
-    main() 
+# if __name__ == "__main__":
+#     main() 

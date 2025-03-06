@@ -1,21 +1,21 @@
 from dotenv import load_dotenv
+load_dotenv()
 from langgraph.checkpoint.memory import MemorySaver
 # from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 import logging
 
-from graph.chains.answer_grader import answer_grader, GradeAnswer
-from graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
-from graph.chains.query_router import query_router, RouteQuery
-from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP
-from graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop
-from graph.state import GraphState
+from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
+from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
+from agent.graph.chains.query_router import query_router, RouteQuery
+from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP
+from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop
+from agent.graph.state import GraphState
 
 # Configure logging
 logger = logging.getLogger("graph.graph")
 logger.debug("Graph module initialized")
 
-load_dotenv()
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
