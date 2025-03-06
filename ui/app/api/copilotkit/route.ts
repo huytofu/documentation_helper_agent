@@ -75,15 +75,14 @@ export const POST = async (req: NextRequest) => {
     
     // Format the request body according to backend expectations
     const formattedBody = {
-      input: {
-        language: selectedLanguage,
-        query: messageContent,
-        framework: "default",
-        documents: [],
-        generation: "",
-        comments: "",
-        retry_count: 0
-      }
+      // action: "agent",
+      language: selectedLanguage,
+      query: messageContent,
+      framework: "default",
+      documents: [],
+      generation: "",
+      comments: "",
+      retry_count: 0
     };
     
     console.log("\nFormatted request body:", JSON.stringify(formattedBody, null, 2));
