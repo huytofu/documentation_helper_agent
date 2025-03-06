@@ -46,8 +46,8 @@ app.add_middleware(
 sdk = CopilotKitRemoteEndpoint(
     agents=[
         LangGraphAgent(
-            name="coding_helper",
-            description="Coding helper agent that assists with answering coding questions, implementating code, developing features and understanding code documentation.",
+            name="coding_agent",
+            description="Coding agent that assists with answering coding questions and helping with code documentation and implementation.",
             graph=agent_app,
             config={
                 "configurable": {

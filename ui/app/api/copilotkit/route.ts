@@ -24,7 +24,7 @@ const serviceAdapter = new LangChainAdapter({
         requiresBackend: true,
         requiresLangGraph: true,
         timestamp: new Date().toISOString(),
-        agent: "coding_helper"
+        agent: "coding_agent"
       }
     }));
     const result = await model.generate([formattedMessages]);
@@ -34,7 +34,7 @@ const serviceAdapter = new LangChainAdapter({
       additional_kwargs: {
         processed_by_backend: true,
         processed_by_langgraph: true,
-        agent: "coding_helper"
+        agent: "coding_agent"
       }
     });
   }
