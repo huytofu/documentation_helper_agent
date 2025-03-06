@@ -103,6 +103,6 @@ workflow.add_conditional_edges(
 workflow.add_edge(HUMAN_IN_LOOP, GENERATE)
 
 
-graph = workflow.compile(checkpointer=memory)
+app = workflow.compile(checkpointer=memory)
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")

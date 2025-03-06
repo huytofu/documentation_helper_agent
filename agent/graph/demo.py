@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
-from agent.graph.graph import graph
+from agent.graph.graph import app as agent_app
 from fastapi.middleware.cors import CORSMiddleware
 
 # Configure root logger
@@ -48,7 +48,7 @@ sdk = CopilotKitRemoteEndpoint(
         LangGraphAgent(
             name="documentation_helper",
             description="Documentation helper agent that assists with code documentation and implementation.",
-            graph=graph,
+            graph=agent_app,
             config={
                 "configurable": {
                     "thread_id": "default-thread",
@@ -163,7 +163,7 @@ async def test():
             "retry_count": 0  # Add retry count for the workflow
         }
         logger.info(f"Starting test workflow with state: {state}")
-        result = await graph.ainvoke(state, config={"configurable": {
+        result = await agent_app.ainvoke(state, config={"configurable": {
             "thread_id": "test-thread", 
             "checkpoint_ns": "test-ns", 
             "checkpoint_id": "test-checkpoint"
@@ -215,7 +215,7 @@ def main():
     
     logger.info("Starting uvicorn server with logging configuration")
     uvicorn.run(
-        "graph.demo:app",
+        "agent.graph.demo:app",
         host="0.0.0.0",
         port=port,
         reload=True,
@@ -224,5 +224,5 @@ def main():
         log_level="debug"  # Set uvicorn's log level to debug
     )
 
-# if __name__ == "__main__":
-#     main() 
+if __name__ == "__main__":
+    main() 
