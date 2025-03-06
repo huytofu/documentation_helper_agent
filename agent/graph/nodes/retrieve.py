@@ -10,7 +10,7 @@ def retrieve(state: GraphState) -> Dict[str, Any]:
     language = state["language"]
     retriever = get_retriever(vectorstore, language)
     if retriever is None:
-        return {"documents": [], "query": query}
+        return {"documents": []}
     else:
         documents = retriever.invoke(query)
-        return {"documents": documents, "query": query}
+        return {"documents": documents}

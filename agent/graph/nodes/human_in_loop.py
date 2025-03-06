@@ -7,4 +7,4 @@ def human_in_loop(state: GraphState) -> Dict[str, Any]:
     human_in_loop = interrupt(
         "Please provide a response to the user's question.",
     )
-    return {"comment": human_in_loop}
+    return {"comments": human_in_loop}
