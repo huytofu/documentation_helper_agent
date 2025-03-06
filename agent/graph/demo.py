@@ -157,10 +157,10 @@ async def test():
             "language": "python",
             "query": "Please generate a simple joke about Copilokit",
             "documents": [],
-            "framework": "",
+            "framework": "default",
             "generation": "",
-            "comment": "",
-            "retry_count": 0  # Add retry count for the workflow
+            "comments": "",
+            "retry_count": 0
         }
         logger.info(f"Starting test workflow with state: {state}")
         result = await agent_app.ainvoke(state, config={"configurable": {
