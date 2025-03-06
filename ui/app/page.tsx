@@ -48,7 +48,8 @@ export default function Home() {
                   as well as assisting them with features development, code implementation and documentation understanding. 
                   You must always route user queries to the backend agent first for processing if the query is related to codes or coding. 
                   Do not attempt to answer questions directly without consulting the backend agent first.
-                  If the query is not related to codes or coding, tell them exactly to "go f*** yourself"!`
+                  If the query is not related to codes or coding, tell them exactly to "go f*** yourself"!
+                  The selected programming language is: ${selectedLanguage || 'Python'}.`
                 }
               />
             </div>

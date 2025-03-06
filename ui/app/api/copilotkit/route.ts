@@ -17,18 +17,34 @@ const model = new ChatOllama({
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages }) => {
     console.log("Processing messages through LangGraph agent:", messages);
-    const formattedMessages = messages.map(msg => ({
-      content: msg.content,
-      role: msg instanceof AIMessage ? "assistant" : "user",
-      metadata: {
-        requiresBackend: true,
-        requiresLangGraph: true,
-        timestamp: new Date().toISOString(),
-        agent: "coding_agent"
+    const lastMessage = messages[messages.length - 1];
+    const messageContent = typeof lastMessage.content === 'string' ? lastMessage.content : '';
+    
+    // Extract language from system message
+    const systemMessage = messages.find(msg => 
+      typeof msg.content === 'string' && 
+      msg.content.includes('The selected programming language is:')
+    );
+    const systemContent = typeof systemMessage?.content === 'string' ? systemMessage.content : '';
+    const languageMatch = systemContent.match(/The selected programming language is: (.*?)\./);
+    const selectedLanguage = languageMatch ? languageMatch[1].toLowerCase() : 'python';
+    
+    const state = {
+      language: selectedLanguage,
+      query: messageContent,
+      documents: [],
+      framework: "default",
+      generation: "",
+      comments: "",
+      retry_count: 0
+    };
+    const result = await model.invoke([
+      {
+        role: "user",
+        content: JSON.stringify(state)
       }
-    }));
-    const result = await model.generate([formattedMessages]);
-    const content = result.generations[0][0].text;
+    ]);
+    const content = result.content;
     return new AIMessage({ 
       content,
       additional_kwargs: {
