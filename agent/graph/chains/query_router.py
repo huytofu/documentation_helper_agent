@@ -2,7 +2,7 @@ from typing import Literal
 
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from graph.models.router import llm
+from agent.graph.models.router import llm
 
 class RouteQuery(BaseModel):
     """Route a user query to a vectorstore or websearch"""

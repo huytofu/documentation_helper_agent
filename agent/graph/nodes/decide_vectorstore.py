@@ -1,6 +1,6 @@
 from typing import Any, Dict
-from graph.state import GraphState
-from graph.chains.vectorstore_router import vectorstore_router
+from agent.graph.state import GraphState
+from agent.graph.chains.vectorstore_router import vectorstore_router
 
 def decide_vectorstore(state: GraphState) -> Dict[str, Any]:
     print("---DECIDE VECTORSTORE---")

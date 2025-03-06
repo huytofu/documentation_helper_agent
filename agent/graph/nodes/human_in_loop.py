@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from graph.state import GraphState
+from agent.graph.state import GraphState
 from langgraph.types import interrupt
 
 def human_in_loop(state: GraphState) -> Dict[str, Any]:

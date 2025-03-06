@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
-from graph.graph import app as agent_app
+from agent.graph.graph import graph as agent_app
 import logging
 
 # Configure logging

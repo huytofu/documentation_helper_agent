@@ -3,7 +3,7 @@ from typing import Any, Dict
 from langchain.schema import Document
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-from graph.state import GraphState
+from agent.graph.state import GraphState
 
 web_search_tool = TavilySearchResults(k=3)
 

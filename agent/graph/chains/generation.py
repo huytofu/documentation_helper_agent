@@ -1,6 +1,6 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
-from graph.models.generator import llm
+from agent.graph.models.generator import llm
 
 system = """
     You are a master coder who is very good at coding in {language} language and is expert at the {framework} framework. 

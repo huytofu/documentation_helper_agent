@@ -1,6 +1,6 @@
 from typing import Any, Dict
-from graph.state import GraphState
-from graph.retrievers import get_retriever
+from agent.graph.state import GraphState
+from agent.graph.retrievers import get_retriever
 
 
 def retrieve(state: GraphState) -> Dict[str, Any]:

@@ -1,6 +1,6 @@
 from langchain_core.prompts.chat import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from graph.models.grader import llm
+from agent.graph.models.grader import llm
 
 
 class GradeDocuments(BaseModel):

@@ -1,5 +1,5 @@
 from langchain_chroma import Chroma
-from graph.models.embeddings import embeddings
+from agent.graph.models.embeddings import embeddings
 
 
 def get_retriever(collection_name, language):
