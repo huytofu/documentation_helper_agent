@@ -12,6 +12,7 @@ import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
 from agent.graph.graph import graph
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure root logger
 logging.basicConfig(
@@ -31,6 +32,15 @@ logger = logging.getLogger(__name__)
 logger.info("Starting application...")
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create SDK instance
 sdk = CopilotKitRemoteEndpoint(
