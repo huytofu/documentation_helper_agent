@@ -13,6 +13,7 @@ from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
 from agent.graph.graph import app as agent_app
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 # Configure root logger
 logging.basicConfig(
@@ -50,11 +51,6 @@ sdk = CopilotKitRemoteEndpoint(
             description="Coding agent that assists with answering coding questions and helping with code documentation and implementation.",
             graph=agent_app,
             config={
-                # "configurable": {
-                #     "thread_id": "default-thread",
-                #     "checkpoint_ns": "test-ns",
-                #     "checkpoint_id": "test-checkpoint"
-                # },
                 "force_use": True,  # Force using the LangGraph agent
                 "priority": 1,  # Highest priority
                 "metadata": {
@@ -65,6 +61,29 @@ sdk = CopilotKitRemoteEndpoint(
         )
     ],
 )
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("\n=== Incoming Request ===")
+    logger.info(f"URL: {request.url}")
+    logger.info(f"Method: {request.method}")
+    logger.info("Headers:")
+    for header, value in request.headers.items():
+        logger.info(f"  {header}: {value}")
+    
+    body = await request.body()
+    if body:
+        try:
+            body_json = json.loads(body)
+            logger.info("Body:")
+            logger.info(json.dumps(body_json, indent=2))
+        except:
+            logger.info(f"Raw body: {body}")
+    
+    response = await call_next(request)
+    logger.info("=== End Request ===\n")
+    return response
 
 add_fastapi_endpoint(app, sdk, "/copilotkitagent")
 
