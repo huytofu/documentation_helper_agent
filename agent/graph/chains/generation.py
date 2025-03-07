@@ -8,12 +8,12 @@ system = """
     Please help write code snippet(s) using the documentations and your general coding knowledge
     to produce the feature or solve the problem described in the user's query.
 
-    Please also consider previous generation and user's comment on it to improve the quality of your anwer
+    Please also consider previous generation and user's comments on it to improve the quality of your anwer
 """
 generation_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Set of documents: \n\n {documents} \n\n query: {query} \n\n Previous Generation: {generation} \n\n Comment: {comment}"),
+        ("human", "Set of documents: \n\n {documents} \n\n query: {query} \n\n Previous Generation: {generation} \n\n Comments: {comments}"),
     ]
 )
 
