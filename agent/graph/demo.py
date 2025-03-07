@@ -48,7 +48,7 @@ sdk = CopilotKitRemoteEndpoint(
     agents=[
         LangGraphAgent(
             name="coding_agent",
-            description="Coding agent that assists with answering coding questions and helping with code documentation and implementation.",
+            description="Expert coding agent that assists users with answering coding-related questions, code documentation, code completion and implementation.",
             graph=agent_app,
             config={
                 "force_use": True,  # Force using the LangGraph agent
