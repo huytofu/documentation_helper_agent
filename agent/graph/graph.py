@@ -8,8 +8,8 @@ import logging
 from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
-from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP
-from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop
+from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE
+from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop, initialize
 from agent.graph.state import GraphState
 
 # Configure logging
@@ -18,7 +18,6 @@ logger.debug("Graph module initialized")
 
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
-
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     logger.info("---CHECK HALLUCINATIONS---")
@@ -61,7 +60,7 @@ def route_query(state: GraphState) -> str:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
     else:
-        language = state["language"]
+        language = state.get("language", "")
         if language in ["python", "javascript"]:
             logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
             return DECIDE_VECTORSTORE
@@ -70,6 +69,10 @@ def route_query(state: GraphState) -> str:
             return WEBSEARCH
         
 workflow = StateGraph(GraphState)
+
+# Add the initialize node
+workflow.add_node(INITIALIZE, initialize)
+# Add other nodes
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -77,8 +80,11 @@ workflow.add_node(GENERATE, generate)
 workflow.add_node(WEBSEARCH, web_search)
 workflow.add_node(HUMAN_IN_LOOP, human_in_loop)
 
+# Set the entry point to initialize
+workflow.set_entry_point(INITIALIZE)
 
-workflow.set_conditional_entry_point(
+workflow.add_conditional_edges(
+    INITIALIZE,
     route_query,
     {
         WEBSEARCH: WEBSEARCH,
@@ -87,7 +93,6 @@ workflow.set_conditional_entry_point(
 )
 workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
-
 workflow.add_edge(GRADE_DOCUMENTS, GENERATE)
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(

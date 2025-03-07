@@ -76,8 +76,20 @@ async def log_requests(request: Request, call_next):
     if body:
         try:
             body_json = json.loads(body)
-            logger.info("Body:")
+            logger.info("Original Body:")
             logger.info(json.dumps(body_json, indent=2))
+            
+            # Extract properties and assign to state if they exist
+            if "properties" in body_json:
+                properties = body_json["properties"]
+                if "state" not in body_json:
+                    body_json["state"] = {}
+                body_json["state"].update(properties)
+                logger.info("Updated Body with properties in state:")
+                logger.info(json.dumps(body_json, indent=2))
+                
+                # Create a new request with the modified body
+                request._body = json.dumps(body_json).encode()
         except:
             logger.info(f"Raw body: {body}")
     
