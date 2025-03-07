@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, TypedDict, Dict, Any
 
 
 class GraphState(TypedDict):
@@ -15,10 +15,12 @@ class GraphState(TypedDict):
         documents: list of documents
     """
 
-    query: str
-    framework: str
-    language: str
-    generation: str
-    comments: str
-    retry_count: int
-    documents: List[str]
+    query: str = ""
+    framework: str = ""
+    language: str = ""
+    generation: str = ""
+    comments: str = ""
+    retry_count: int = 0
+    documents: List[str] = []
+    messages: List[Dict[str, Any]] = []
+    copilotkit: Dict[str, Any] = {}
