@@ -9,17 +9,18 @@ class RouteQuery(BaseModel):
 
     datasource: Literal["vectorstore", "websearch", None] = Field(
         ...,
-        description="Given a user query determine whether to route it to a vectorstore or websearch only.",
+        description="""Given a user query determine whether to route it to a vectorstore or websearch. 
+        Answer must be either 'vectorstore' or 'websearch' only.""",
     )
 
 structured_llm_router = llm.with_structured_output(RouteQuery)
 
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
 Current vectorstores contain information about the Langchain, Langgraph, 
-and Copilokit frameworks which includes knowledge about Coagents.
-If these topics are not relevant to the user query, route it to a websearch.
-Your answer must be a string that is either "vectorstore" or "websearch" only.
-You must not return any other text or characters.
+and Copilokit framework which also includes knowledge about Coagents.
+If the user query is not related to these topics, route it to a websearch.
+(IMPORTANT!) Your answer must be either "vectorstore" or "websearch" only.
+You must not return any answers other than these two.
 """
 route_prompt = ChatPromptTemplate.from_messages(
     [

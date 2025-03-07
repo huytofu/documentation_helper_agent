@@ -9,7 +9,8 @@ class RouteVectorstore(BaseModel):
 
     datasource: Literal["langchain", "langgraph", "copilokit", None] = Field(
         ...,
-        description="Given a user query choose to route it to the most relevant vectorstore.",
+        description="""Given a user query choose to route it to the most relevant vectorstore.
+        Answer must be either 'langchain' or 'langgraph' or 'copilokit' only.""",
     )
 
 structured_llm_router = llm.with_structured_output(RouteVectorstore)
@@ -17,8 +18,8 @@ structured_llm_router = llm.with_structured_output(RouteVectorstore)
 system = """You are an expert at routing a user query to a the most relevant vectorstore.
 There are 3 vectorstores, each contains relevant documents about the Langchain, Langgraph, and Copilokit framework respectively.
 Pick the most relevant vectorstore to route the user query to.
-Your answer must be a string that is either "langchain" or "langgraph" or "copilokit" only.
-You must not return any other text or characters.
+(IMPORTANT!) Your answer must be either "langchain" or "langgraph" or "copilokit" only.
+You must not return any other values besides these three.
 """
 route_prompt = ChatPromptTemplate.from_messages(
     [
