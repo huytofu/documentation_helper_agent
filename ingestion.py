@@ -132,9 +132,11 @@ for framework, urls in zip(
     )
     doc_splits = text_splitter.split_documents(docs_list)
 
-    vectorstore = Chroma.from_documents(
-        documents=doc_splits,
-        collection_name="f{framework}",
-        embedding=embeddings,
-        persist_directory="./.chroma",
-    )
+    if len(doc_splits
+    ) > 0:
+        vectorstore = Chroma.from_documents(
+            documents=doc_splits,
+            collection_name="f{framework}",
+            embedding=embeddings,
+            persist_directory="./.chroma",
+        )
