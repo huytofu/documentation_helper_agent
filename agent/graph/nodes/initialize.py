@@ -1,5 +1,6 @@
 import logging
 from agent.graph.state import GraphState
+from langchain_core.messages import HumanMessage, AIMessage
 
 logger = logging.getLogger("graph.graph")
 
@@ -12,7 +13,15 @@ def initialize(state: GraphState) -> GraphState:
     
     # Get the last message from the state
     last_message = state_copy["messages"][-1]
-    query = last_message["content"]
+    
+    # Handle different message types
+    if isinstance(last_message, HumanMessage):
+        query = last_message.content
+    elif isinstance(last_message, AIMessage):
+        query = last_message.content
+    else:
+        # If it's a dict, try to get content
+        query = last_message.get("content", "")
     
     # Update state with query
     state_copy["query"] = query
