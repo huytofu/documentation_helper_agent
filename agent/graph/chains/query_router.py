@@ -1,32 +1,38 @@
-from typing import Literal, Any
-
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Literal
 from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
 from agent.graph.models.router import llm
 
 class RouteQuery(BaseModel):
     """Route a user query to a vectorstore or websearch"""
-
-    datasource: Literal["vectorstore", "websearch", None] = Field(
+    datasource: Literal["vectorstore", "websearch"] = Field(
         ...,
         description="""Given a user query determine whether to route it to a vectorstore or websearch. 
         Answer must be either 'vectorstore' or 'websearch' only.""",
     )
 
-structured_llm_router = llm.with_structured_output(RouteQuery)
+# Create the output parser
+parser = PydanticOutputParser(pydantic_object=RouteQuery)
 
+# Create the prompt template
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
 Current vectorstores contain information about the Langchain, Langgraph, 
 and Copilokit framework which also includes knowledge about Coagents.
-If the user query is not related to these topics, route it to a websearch.
+
+You must choose between:
+- "vectorstore": ONLY for queries specifically about LangChain, LangGraph, or CopilotKit (which includes Coagents) frameworks and their features
+- "websearch": For all other queries, including general programming questions, new technologies, or any other topics
+
 (IMPORTANT!) Your answer must be either "vectorstore" or "websearch" only.
 You must not return any answers other than these two.
-"""
-route_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system),
-        ("human", "{query}"),
-    ]
-)
 
-query_router = route_prompt | structured_llm_router
+{format_instructions}"""
+
+route_prompt = ChatPromptTemplate.from_messages([
+    ("system", system),
+    ("human", "{query}"),
+])
+
+# Create the chain
+query_router = route_prompt | llm.with_structured_output(RouteQuery)
