@@ -1,48 +1,93 @@
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Code2 } from "lucide-react";
+"use client";
 
-const PROGRAMMING_LANGUAGES = [
-  "Python",
-  "JavaScript",
-  "TypeScript",
-  "Java",
-  "C++",
-  "C#",
-  "Go",
-  "Rust",
-  "Ruby",
-  "PHP",
-] as const;
-
-type ProgrammingLanguage = typeof PROGRAMMING_LANGUAGES[number];
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import { ProgrammingLanguage } from "@/types";
+import { LanguageContext } from "@/app/layout";
+import { useContext } from "react";
 
 interface LanguageSelectorProps {
   selectedLanguage: ProgrammingLanguage | "";
-  onLanguageChange: (language: ProgrammingLanguage) => void;
+  onLanguageChange: (language: ProgrammingLanguage | "") => void;
 }
 
 export function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
+  const { setSelectedLanguage } = useContext(LanguageContext);
+
+  const languages: ProgrammingLanguage[] = [
+    "python",
+    "javascript",
+    "typescript",
+    "java",
+    "cpp",
+    "csharp",
+    "go",
+    "rust",
+    "swift",
+    "kotlin",
+    "php",
+    "ruby",
+    "scala",
+    "r",
+    "matlab",
+    "sql",
+    "html",
+    "css",
+    "shell",
+    "powershell",
+    "bash",
+    "markdown",
+    "yaml",
+    "json",
+    "xml",
+    "ini",
+    "toml",
+    "dockerfile",
+    "plaintext"
+  ];
+
   return (
-    <div className="space-y-2 w-full max-w-md">
-      <Label htmlFor="language" className="flex items-center gap-2 text-lg font-medium">
-        <Code2 className="h-5 w-5 text-blue-500" />
-        <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Programming Language
-        </span>
-      </Label>
-      <Select value={selectedLanguage} onValueChange={(value: string) => onLanguageChange(value as ProgrammingLanguage)}>
-        <SelectTrigger className="bg-card/50 backdrop-blur-sm border-blue-500/20">
-          <SelectValue placeholder="Select a programming language" />
-        </SelectTrigger>
-        <SelectContent>
-          {PROGRAMMING_LANGUAGES.map((lang) => (
-            <SelectItem key={lang} value={lang}>
-              {lang}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-[200px] justify-between bg-white/50 backdrop-blur-sm hover:bg-white/80"
+        >
+          {selectedLanguage ? (
+            <span className="capitalize">{selectedLanguage}</span>
+          ) : (
+            "Select Language"
+          )}
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[200px] bg-white/80 backdrop-blur-sm">
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedLanguage("");
+            onLanguageChange("");
+          }}
+        >
+          <span className="text-muted-foreground">Clear Selection</span>
+        </DropdownMenuItem>
+        {languages.map((lang) => (
+          <DropdownMenuItem
+            key={lang}
+            onClick={() => {
+              setSelectedLanguage(lang);
+              onLanguageChange(lang);
+            }}
+          >
+            <span className="capitalize">{lang}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 } 
