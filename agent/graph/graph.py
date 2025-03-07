@@ -56,7 +56,7 @@ def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")
     query = state["query"]
     source: RouteQuery = query_router.invoke({"query": query})
-    if source.datasource == "websearch":
+    if source.datasource in ["websearch", None]:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
     else:

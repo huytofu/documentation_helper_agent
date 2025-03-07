@@ -8,6 +8,8 @@ def retrieve(state: GraphState) -> Dict[str, Any]:
     query = state["query"]
     vectorstore = state["framework"]
     language = state["language"]
+    if vectorstore is None:
+        return {"documents": []}
     retriever = get_retriever(vectorstore, language)
     if retriever is None:
         return {"documents": []}
