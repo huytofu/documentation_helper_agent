@@ -1,10 +1,11 @@
 import logging
+from typing import Any, Dict
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
 
 logger = logging.getLogger("graph.graph")
 
-def initialize(state: GraphState) -> GraphState:
+def initialize(state: GraphState) -> Dict[str, Any]:
     """Initialize the state with properties from the request."""
     logger.info("---INITIALIZING STATE---")
     
