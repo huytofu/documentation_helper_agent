@@ -1,6 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { CopilotKit } from "@copilotkit/react-core";
@@ -9,11 +8,6 @@ import { Header } from "@/components/Header";
 import "@copilotkit/react-ui/styles.css";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Documentation Helper Agent",
-  description: "AI-powered documentation and coding assistant",
-};
 
 interface RootLayoutProps {
   children: ReactNode;
