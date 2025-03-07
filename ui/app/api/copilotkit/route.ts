@@ -31,8 +31,7 @@ const serviceAdapter = new LangChainAdapter({
       content,
       additional_kwargs: {
         processed_by_backend: true,
-        processed_by_langgraph: true,
-        agent: "frontend_agent"
+        processed_by_langgraph: true
       }
     });
   }
