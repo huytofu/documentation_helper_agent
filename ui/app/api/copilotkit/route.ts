@@ -16,23 +16,18 @@ const model = new ChatOllama({
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages }) => {
-    console.log("Processing messages through LangGraph agent:", messages);
-    
-    // Format messages for the model
+    // Format messages to ensure they have the correct structure
     const formattedMessages = messages.map(msg => ({
       role: msg instanceof HumanMessage ? 'user' : 'assistant',
-      content: typeof msg.content === 'string' ? msg.content : ''
+      content: msg.content
     }));
 
+    // Generate response using the model
     const result = await model.generate([formattedMessages]);
     const content = result.generations[0][0].text;
     
     return new AIMessage({ 
-      content,
-      additional_kwargs: {
-        processed_by_backend: true,
-        processed_by_langgraph: true
-      }
+      content
     });
   }
 });
