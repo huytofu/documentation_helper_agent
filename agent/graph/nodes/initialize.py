@@ -37,4 +37,10 @@ def initialize(state: GraphState) -> GraphState:
         state_copy["retry_count"] = 0
     
     logger.info(f"Initialized state with query: {query}")
-    return state_copy 
+    return {
+        "query": state_copy["query"],
+        "documents": state_copy["documents"],
+        "generation": state_copy["generation"],
+        "comments": state_copy["comments"],
+        "retry_count": state_copy["retry_count"]
+    }
