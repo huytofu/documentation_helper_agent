@@ -136,7 +136,7 @@ for framework, urls in zip(
     ) > 0:
         vectorstore = Chroma.from_documents(
             documents=doc_splits,
-            collection_name="f{framework}",
+            collection_name=framework,
             embedding=embeddings,
             persist_directory="./.chroma",
         )
