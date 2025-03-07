@@ -77,7 +77,9 @@ export const POST = async (req: NextRequest) => {
     console.log("Response status:", response.status);
     console.log("Response headers:", Object.fromEntries(response.headers));
     
-    const responseBody = await response.text();
+    // Clone the response before reading it for logging
+    const clonedResponse = response.clone();
+    const responseBody = await clonedResponse.text();
     console.log("Response body:", responseBody);
     
     console.log("=== End Frontend Request Processing ===\n");
