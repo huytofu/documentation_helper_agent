@@ -14,7 +14,7 @@ def generate(state: GraphState) -> Dict[str, Any]:
     comments = state.get("comments", None)
     retry_count = state.get("retry_count", 0)
 
-    joined_documents = "\n\n".join([doc.page_content for doc in documents])
+    joined_documents = "\n\n".join([doc.page_content[:500] for doc in documents[:3]])
 
     if framework and (framework not in ["none", ""]):
         extra_info = f"and is expert at the {framework} framework"

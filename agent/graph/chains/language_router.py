@@ -21,10 +21,11 @@ system = """You are an expert at identifying which programming language a user's
 You must choose between:
 - "python": For queries specifically about Python programming language, its libraries, frameworks, implementations
 - "javascript": For queries specifically about JavaScript programming language, its libraries, frameworks, implementations
-- "others": For queries about other programming languages besides Python and JavaScript
-- "none": When the language is not specified or cannot be determined
+- "none": When the language is not specified or mentioned in query
+- "others": When the language is specified or mentioned in query, but it is not Python or JavaScript
 
-(IMPORTANT!) Your answer must be either "python", "javascript", "others" or "none" only!
+
+(IMPORTANT!) Your answer must be either "python", "javascript", "none" or "others" only!
 
 {format_instructions}"""
 

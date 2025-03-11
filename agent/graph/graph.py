@@ -34,7 +34,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         )
         hallucination_counter += 1
 
-    if score.binary_score:
+    if score and score.binary_score:
         logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.info("---GRADE GENERATION vs query---")
         score = {}
@@ -43,7 +43,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
             score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
             answer_counter += 1
         
-        if score.binary_score:
+        if score and score.binary_score:
             logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
             return "useful"
         else:
@@ -86,7 +86,7 @@ def to_search_web_or_not(state: GraphState) -> str:
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
     sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
-    if sentiment.binary_score:
+    if sentiment and sentiment.binary_score:
         return "good"
     else:
         return "bad"

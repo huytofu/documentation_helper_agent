@@ -7,16 +7,16 @@ class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
 
     binary_score: bool = Field(
-        description="Answer is grounded in the facts, 'yes' or 'no'"
+        description="Answer is grounded in retrieved facts, 'yes' or 'no'"
     )
 
 
 structured_llm_grader = llm.with_structured_output(GradeHallucinations)
 
-system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
+system = """You are a grader assessing whether an LLM generation is grounded in a set of retrieved facts. \n 
     You must choose between:
-    - 'yes' means that the answer is grounded in / supported by the set of facts.
-    - 'no' means that the answer is not grounded in / supported by the set of facts.
+    - 'yes' means that the answer is grounded in the set of facts.
+    - 'no' means that the answer is not grounded in the set of facts.
 
     (IMPORTANT!) Your answer must be either 'yes' or 'no' only!
     """
