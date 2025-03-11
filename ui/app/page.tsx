@@ -1,6 +1,6 @@
 "use client";
 
-// import { useState } from "react";
+import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { useLangGraphInterrupt, useCoAgentStateRender } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 
 // Define the agent state type
 type AgentState = {
-  final_generation: string;
+  final_generation?: string;
+  current_node?: string;
 }
 
 export default function Home() {
@@ -56,7 +57,7 @@ export default function Home() {
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      if (!state.final_generation || state.final_generation === "") return null;
+      if (!state) return null;
       
       return (
         <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200">
@@ -67,8 +68,15 @@ export default function Home() {
               "bg-gray-500"
             }`} />
             <span className="text-sm font-medium capitalize">{status}</span>
+            {state.current_node && (
+              <span className="text-xs text-gray-500 ml-2">
+                Current Node: {state.current_node}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-gray-600">Final Generation Done</p>
+          {state.final_generation && (
+            <p className="text-sm text-gray-600 mt-2">{state.final_generation.slice(0, 100)}</p>
+          )}
         </div>
       );
     },
