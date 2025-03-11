@@ -27,4 +27,4 @@ def generate(state: GraphState) -> Dict[str, Any]:
         "generation": generation, "comments": comments
     })
     retry_count += 1
-    return {"generation": generation, "retry_count": retry_count}
+    return {"generation": generation, "retry_count": retry_count, "current_node": "GENERATE"}

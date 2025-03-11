@@ -5,7 +5,8 @@ import {
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
 import { ChatOllama } from "@langchain/ollama";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
+import { ChainValues } from "@langchain/core/utils/types";
 
 console.log("Initializing CopilotKit runtime...");
 
@@ -14,15 +15,26 @@ const model = new ChatOllama({
   temperature: 0
 });
 
+interface ChainFnParameters {
+  messages: BaseMessage[];
+  state?: ChainValues;
+}
+
 const serviceAdapter = new LangChainAdapter({
-  chainFn: async ({ messages }) => {
-    // Format messages to ensure they have the correct structure
-    const formattedMessages = messages.map(msg => ({
+  chainFn: async ({ messages, state }: ChainFnParameters) => {
+    // If we have a generation from the agent state, use that
+    if (state?.final_generation) {
+      return new AIMessage({ 
+        content: state.final_generation as string
+      });
+    }
+
+    // Fallback to direct model response if no agent generation
+    const formattedMessages = messages.map((msg: BaseMessage) => ({
       role: msg instanceof HumanMessage ? 'user' : 'assistant',
       content: msg.content
     }));
 
-    // Generate response using the model
     const result = await model.generate([formattedMessages]);
     const content = result.generations[0][0].text;
     

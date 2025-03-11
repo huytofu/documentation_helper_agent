@@ -16,12 +16,12 @@ class LanguageRoute(BaseModel):
 parser = PydanticOutputParser(pydantic_object=LanguageRoute)
 
 # Create the prompt template
-system = """You are an expert at identifying which programming language a user's query is about.
+system = """Identify which programming language is mentioned in the user's query.
 
 You must choose between:
-- "python": For queries specifically about Python programming language, its libraries, frameworks, implementations
-- "javascript": For queries specifically about JavaScript programming language, its libraries, frameworks, implementations
-- "others": When the language is not mentioned in query, or it is not Python or JavaScript
+- "python": For queries mentioning Python programming language
+- "javascript": For queries mentioning JavaScript programming language
+- "others": When the programming language is not mentioned in query, or mentioned but is not Python or JavaScript
 
 
 (IMPORTANT!) Your answer must be either "python", "javascript" or "others" only!

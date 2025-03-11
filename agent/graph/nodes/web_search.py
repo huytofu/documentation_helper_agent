@@ -20,4 +20,4 @@ def web_search(state: GraphState) -> Dict[str, Any]:
         documents.append(web_results)
     else:
         documents = [web_results]
-    return {"documents": documents}
+    return {"documents": documents, "current_node": "WEB_SEARCH"}

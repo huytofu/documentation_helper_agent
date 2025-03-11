@@ -25,3 +25,4 @@ class GraphState(TypedDict):
     documents: List[str] = []
     messages: List[Dict[str, Any]] = []
     copilotkit: Dict[str, Any] = {}
+    current_node: str = ""

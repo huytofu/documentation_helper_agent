@@ -43,5 +43,6 @@ def initialize(state: GraphState) -> Dict[str, Any]:
         "documents": state_copy["documents"],
         "generation": state_copy["generation"],
         "comments": state_copy["comments"],
-        "retry_count": state_copy["retry_count"]
+        "retry_count": state_copy["retry_count"],
+        "current_node": "INITIALIZE"
     }

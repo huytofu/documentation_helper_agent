@@ -31,4 +31,4 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         else:
             print("---GRADE: DOCUMENT NOT RELEVANT---")
             continue
-    return {"documents": filtered_docs, "query": query}
+    return {"documents": filtered_docs, "query": query, "current_node": "GRADE_DOCUMENTS"}

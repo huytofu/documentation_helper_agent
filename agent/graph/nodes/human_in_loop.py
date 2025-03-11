@@ -10,4 +10,4 @@ def human_in_loop(state: GraphState) -> Dict[str, Any]:
         "But it may not answer your question.<br>" + 
         "Please provide a critical feedback on the generation.",
     )
-    return {"comments": human_in_loop}
+    return {"comments": human_in_loop, "current_node": "HUMAN_IN_LOOP"}

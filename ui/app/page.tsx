@@ -68,7 +68,7 @@ export default function Home() {
             }`} />
             <span className="text-sm font-medium capitalize">{status}</span>
           </div>
-          <p className="text-sm text-gray-600">{state.final_generation}</p>
+          <p className="text-sm text-gray-600">Final Generation Done</p>
         </div>
       );
     },
