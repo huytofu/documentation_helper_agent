@@ -19,6 +19,7 @@ class GraphState(TypedDict):
     framework: str = ""
     language: str = ""
     generation: str = ""
+    final_generation: str = ""
     comments: str = ""
     retry_count: int = 0
     documents: List[str] = []
