@@ -6,6 +6,7 @@ from langgraph.graph import END, StateGraph
 import logging
 
 from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
+from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE
@@ -82,6 +83,14 @@ def to_search_web_or_not(state: GraphState) -> str:
     else:
         return WEBSEARCH
     
+def determine_user_sentiment(state: GraphState) -> str:
+    logger.info("---DETERMINE USER SENTIMENT---")
+    sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
+    if sentiment.binary_score:
+        return "good"
+    else:
+        return "bad"
+    
 workflow = StateGraph(GraphState)
 
 # Add the initialize node
@@ -129,7 +138,14 @@ workflow.add_conditional_edges(
         "not useful": HUMAN_IN_LOOP,
     },
 )
-workflow.add_edge(HUMAN_IN_LOOP, GENERATE)
+workflow.add_conditional_edges(
+    HUMAN_IN_LOOP,
+    determine_user_sentiment,
+    {
+        "good": END,
+        "bad": GENERATE,
+    }
+)
 
 
 app = workflow.compile(checkpointer=memory)
