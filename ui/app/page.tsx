@@ -54,7 +54,7 @@ export default function Home() {
 
   // Add the agent state renderer
   useCoAgentStateRender<AgentState>({
-    name: "documentation_agent",
+    name: "coding_agent",
     render: ({ status, state }) => {
       if (!state.generation || state.generation === "") return null;
       
