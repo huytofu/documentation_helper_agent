@@ -8,8 +8,8 @@ import logging
 from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
-from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE
-from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, web_search, human_in_loop, initialize
+from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE
+from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize
 from agent.graph.state import GraphState
 
 # Configure logging
@@ -68,11 +68,20 @@ def route_query(state: GraphState) -> str:
             logger.info("---ROUTE QUERY TO WEB SEARCH---")
             return WEBSEARCH
         
+def to_search_web_or_not(state: GraphState) -> str:
+    logger.info("---TO SEARCH WEB OR NOT---")
+    documents = state["documents"]
+    if len(documents) > 0:
+        return GENERATE
+    else:
+        return WEBSEARCH
+    
 workflow = StateGraph(GraphState)
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
-# Add other nodes
+# Add other 
+workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -82,18 +91,26 @@ workflow.add_node(HUMAN_IN_LOOP, human_in_loop)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
-
+workflow.add_edge(INITIALIZE, DECIDE_LANGUAGE)
 workflow.add_conditional_edges(
-    INITIALIZE,
+    DECIDE_LANGUAGE,
     route_query,
     {
         WEBSEARCH: WEBSEARCH,
         DECIDE_VECTORSTORE: DECIDE_VECTORSTORE
     },
 )
+
 workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
-workflow.add_edge(GRADE_DOCUMENTS, GENERATE)
+workflow.add_conditional_edges(
+    GRADE_DOCUMENTS,
+    to_search_web_or_not,
+    {
+        WEBSEARCH: WEBSEARCH,
+        GENERATE: GENERATE
+    }
+)
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
