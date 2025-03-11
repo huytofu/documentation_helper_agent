@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 
 // Define the agent state type
 type AgentState = {
-  generation: string;
+  final_generation: string;
 }
 
 export default function Home() {
@@ -56,7 +56,7 @@ export default function Home() {
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      if (!state.generation || state.generation === "") return null;
+      if (!state.final_generation || state.final_generation === "") return null;
       
       return (
         <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200">
@@ -68,7 +68,7 @@ export default function Home() {
             }`} />
             <span className="text-sm font-medium capitalize">{status}</span>
           </div>
-          <p className="text-sm text-gray-600">{state.generation}</p>
+          <p className="text-sm text-gray-600">{state.final_generation}</p>
         </div>
       );
     },
