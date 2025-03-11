@@ -1,14 +1,51 @@
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
+import { useLangGraphInterrupt } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { MessageSquare, Sparkles } from "lucide-react";
 import { LanguageContext } from "./layout";
 import { useContext } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Home() {
   const { selectedLanguage } = useContext(LanguageContext);
+
+  // Add the LangGraph interrupt handler
+  useLangGraphInterrupt<string>({
+    render: ({ event, resolve }) => (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
+          <h3 className="text-lg font-semibold">Human Input Required</h3>
+          <p className="text-sm text-gray-600">{event.value}</p>
+          <form 
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              resolve(form.response.value);
+              form.reset();
+            }}
+          >
+            <Input 
+              type="text" 
+              name="response" 
+              placeholder="Enter your response" 
+              className="w-full"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="submit">
+                Submit
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl min-h-[calc(100vh-3.5rem)] flex flex-col justify-center">
