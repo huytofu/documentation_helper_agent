@@ -2,13 +2,18 @@
 
 // import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
-import { useLangGraphInterrupt } from "@copilotkit/react-core";
+import { useLangGraphInterrupt, useCoAgentStateRender } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { MessageSquare, Sparkles } from "lucide-react";
 import { LanguageContext } from "./layout";
 import { useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+// Define the agent state type
+type AgentState = {
+  generation: string;
+}
 
 export default function Home() {
   const { selectedLanguage } = useContext(LanguageContext);
@@ -45,6 +50,28 @@ export default function Home() {
         </div>
       </div>
     )
+  });
+
+  // Add the agent state renderer
+  useCoAgentStateRender<AgentState>({
+    name: "documentation_agent",
+    render: ({ status, state }) => {
+      if (!state.generation || state.generation === "") return null;
+      
+      return (
+        <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200">
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`w-2 h-2 rounded-full ${
+              status === "inProgress" ? "bg-blue-500 animate-pulse" : 
+              status === "complete" ? "bg-green-500" : 
+              "bg-gray-500"
+            }`} />
+            <span className="text-sm font-medium capitalize">{status}</span>
+          </div>
+          <p className="text-sm text-gray-600">{state.generation}</p>
+        </div>
+      );
+    },
   });
 
   return (
