@@ -26,19 +26,23 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     generation = state["generation"]
     score = {}
 
-    while not hasattr(score, "binary_score"):
+    hallucination_counter = 0
+    while not hasattr(score, "binary_score") and hallucination_counter < 2:
         score: GradeHallucinations = hallucination_grader.invoke(
             {"documents": "\n\n".join([doc.page_content for doc in documents]) , "generation": generation}
         )
+        hallucination_counter += 1
 
-    if hallucination_grade := score.binary_score:
+    if score.binary_score:
         logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.info("---GRADE GENERATION vs query---")
         score = {}
-        while not hasattr(score, "binary_score"):
+        answer_counter = 0
+        while not hasattr(score, "binary_score") and answer_counter < 2:
             score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
+            answer_counter += 1
         
-        if answer_grade := score.binary_score:
+        if score.binary_score:
             logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
             return "useful"
         else:

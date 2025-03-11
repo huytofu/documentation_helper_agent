@@ -12,7 +12,12 @@ class GradeAnswer(BaseModel):
 structured_llm_grader = llm.with_structured_output(GradeAnswer)
 
 system = """You are a grader assessing whether an answer addresses / resolves a query \n 
-     Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the query."""
+    You must choose between:
+    - 'yes' means that the answer resolves the query.
+    - 'no' means that the answer does not resolve the query.
+
+    (IMPORTANT!) Your answer must be either 'yes' or 'no' only!
+    """
 answer_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),

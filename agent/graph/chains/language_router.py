@@ -19,13 +19,12 @@ parser = PydanticOutputParser(pydantic_object=LanguageRoute)
 system = """You are an expert at identifying which programming language a user's query is about.
 
 You must choose between:
-- "python": For queries specifically about Python programming language, its libraries, frameworks, or Python-specific implementations
-- "javascript": For queries specifically about JavaScript programming language, its libraries, frameworks, or JavaScript-specific implementations
+- "python": For queries specifically about Python programming language, its libraries, frameworks, implementations
+- "javascript": For queries specifically about JavaScript programming language, its libraries, frameworks, implementations
 - "others": For queries about other programming languages besides Python and JavaScript
-- "none": When the language is not specified/relevant or cannot be determined
+- "none": When the language is not specified or cannot be determined
 
-(IMPORTANT!) Your answer must be either "python", "javascript", "others" or "none" only.
-You must not return any answers other than these four.
+(IMPORTANT!) Your answer must be either "python", "javascript", "others" or "none" only!
 
 {format_instructions}"""
 
