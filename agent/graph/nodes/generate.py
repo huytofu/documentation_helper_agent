@@ -8,16 +8,21 @@ def generate(state: GraphState) -> Dict[str, Any]:
     print("---GENERATE---")
     query = state["query"]
     documents = state["documents"]
-    framework = state["framework"]
-    language = state["language"]
+    framework = state.get("framework", "")
+    language = state.get("language", "")
     generation = state.get("generation", None)
     comments = state.get("comments", None)
     retry_count = state.get("retry_count", 0)
 
     joined_documents = "\n\n".join([doc.page_content for doc in documents])
 
+    if framework and (framework not in ["none", ""]):
+        extra_info = f"and is expert at the {framework} framework"
+    else:
+        extra_info = ""
+
     generation = generation_chain.invoke({
-        "language": language,"framework": framework, 
+        "language": language, "extra_info": extra_info, 
         "documents": joined_documents, "query": query,
         "generation": generation, "comments": comments
     })

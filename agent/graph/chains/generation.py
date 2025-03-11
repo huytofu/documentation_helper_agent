@@ -3,7 +3,7 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.generator import llm
 
 system = """
-    You are a master coder who is very good at coding in {language} language and is expert at the {framework} framework. 
+    You are a master coder who is very good at coding in {language} language {extra_info}. 
     You are given the following documents by the human user as parts of the documentation for the framework
     Please help write code snippet(s) using the documentations and your general coding knowledge
     to produce the feature or solve the problem described in the user's query.

@@ -6,10 +6,10 @@ from agent.graph.models.router import llm
 
 class LanguageRoute(BaseModel):
     """Route a query to the appropriate programming language"""
-    datasource: Literal["python", "javascript", "others"] = Field(
+    datasource: Literal["python", "javascript", "others", "none"] = Field(
         ...,
         description="""Given a user query determine which programming language is being discussed. 
-        Answer must be either 'python', 'javascript', or 'others' only.""",
+        Answer must be either 'python', 'javascript', or 'others' or 'none' only.""",
     )
 
 # Create the output parser
@@ -21,10 +21,11 @@ system = """You are an expert at identifying which programming language a user's
 You must choose between:
 - "python": For queries specifically about Python programming language, its libraries, frameworks, or Python-specific implementations
 - "javascript": For queries specifically about JavaScript programming language, its libraries, frameworks, or JavaScript-specific implementations
-- "others": For queries about other programming languages or when the language is not specified/relevant
+- "others": For queries about other programming languages besides Python and JavaScript
+- "none": When the language is not specified/relevant or cannot be determined
 
-(IMPORTANT!) Your answer must be either "python", "javascript", or "others" only.
-You must not return any answers other than these three.
+(IMPORTANT!) Your answer must be either "python", "javascript", "others" or "none" only.
+You must not return any answers other than these four.
 
 {format_instructions}"""
 
