@@ -9,8 +9,8 @@ from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
 from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
-from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE
-from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize
+from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
+from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
 from agent.graph.state import GraphState
 
 # Configure logging
@@ -28,7 +28,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     score = {}
 
     hallucination_counter = 0
-    while not hasattr(score, "binary_score") and hallucination_counter < 2:
+    while not hasattr(score, "binary_score") and hallucination_counter < 1:
         score: GradeHallucinations = hallucination_grader.invoke(
             {"documents": "\n\n".join([doc.page_content for doc in documents]) , "generation": generation}
         )
@@ -103,6 +103,8 @@ workflow.add_node(GRADE_DOCUMENTS, grade_documents)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(WEBSEARCH, web_search)
 workflow.add_node(HUMAN_IN_LOOP, human_in_loop)
+workflow.add_node(PRE_HUMAN_IN_LOOP, pre_human_in_loop)
+workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
@@ -133,11 +135,12 @@ workflow.add_conditional_edges(
     {
         "not supported": GENERATE,
         "need search web": WEBSEARCH,
-        "end_misery": END,
-        "useful": END,
-        "not useful": HUMAN_IN_LOOP,
+        "end_misery": POST_HUMAN_IN_LOOP,
+        "useful": POST_HUMAN_IN_LOOP,
+        "not useful": PRE_HUMAN_IN_LOOP,
     },
 )
+workflow.add_edge(PRE_HUMAN_IN_LOOP, HUMAN_IN_LOOP)
 workflow.add_conditional_edges(
     HUMAN_IN_LOOP,
     determine_user_sentiment,
@@ -146,7 +149,7 @@ workflow.add_conditional_edges(
         "bad": GENERATE,
     }
 )
-
+workflow.add_edge(POST_HUMAN_IN_LOOP, END)
 
 app = workflow.compile(checkpointer=memory)
 
