@@ -39,15 +39,17 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
             score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
         
         if answer_grade := score.binary_score:
-            logger.info("---DECISION: GENERATION ADDRESSES query---")
+            logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
             return "useful"
         else:
-            logger.info("---DECISION: GENERATION DOES NOT ADDRESS query---")
+            logger.info("---DECISION: GENERATION DOES NOT ADDRESS QUERY, RE-TRY---")
             return "not useful"
     else:
         logger.info("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
-        if state["retry_count"] < 3:
+        if state["retry_count"] == 0:
             return "not supported"
+        elif state["retry_count"] < 2:
+            return "need search web"
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         return "end_misery"
 
@@ -116,10 +118,11 @@ workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_documents_and_query,
     {
-        "not supported": HUMAN_IN_LOOP,
+        "not supported": GENERATE,
+        "need search web": WEBSEARCH,
         "end_misery": END,
         "useful": END,
-        "not useful": WEBSEARCH,
+        "not useful": HUMAN_IN_LOOP,
     },
 )
 workflow.add_edge(HUMAN_IN_LOOP, GENERATE)
