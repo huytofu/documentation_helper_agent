@@ -27,32 +27,32 @@ const serviceAdapter = new LangChainAdapter({
     console.log("Service Adapter Messages:", messages);
     
     // If we have a final generation, return it with state
-    if (state?.final_generation) {
-      return new AIMessage({
-        content: state.final_generation as string,
-        additional_kwargs: {
-          state_update: {
-            current_node: state.current_node,
-            final_generation: state.final_generation
-          },
-          display_in_chat: true // Show final generation in chat
-        }
-      });
-    }
+    // if (state?.final_generation) {
+    //   return new AIMessage({
+    //     content: state.final_generation as string,
+    //     additional_kwargs: {
+    //       state_update: {
+    //         current_node: state.current_node,
+    //         final_generation: state.final_generation
+    //       },
+    //       display_in_chat: false // Show final generation in chat
+    //     }
+    //   });
+    // }
 
-    // If we have a state update but no final generation, send state update
-    if (state?.current_node) {
-      return new AIMessage({
-        content: "", // Empty content for state updates
-        additional_kwargs: {
-          state_update: {
-            current_node: state.current_node,
-            final_generation: ""
-          },
-          display_in_chat: false // Don't show intermediate updates in chat
-        }
-      });
-    }
+    // // If we have a state update but no final generation, send state update
+    // if (state?.current_node) {
+    //   return new AIMessage({
+    //     content: "", // Empty content for state updates
+    //     additional_kwargs: {
+    //       state_update: {
+    //         current_node: state.current_node,
+    //         final_generation: ""
+    //       },
+    //       display_in_chat: false // Don't show intermediate updates in chat
+    //     }
+    //   });
+    // }
 
     // For direct model responses
     const formattedMessages = messages.map((msg: BaseMessage) => ({
