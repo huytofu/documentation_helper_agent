@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useCoAgent } from "@copilotkit/react-core";
+// import { useCoAgent } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { LanguageContext } from "./layout";
 import { useContext } from "react";
@@ -20,25 +20,28 @@ export type AgentState = {
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
-  // Add the CoAgent state management
-  const { state, setState } = useCoAgent<AgentState>({
-    name: "coding_agent",
-    initialState: {
-      language: "python",
-      comments: "",
-      current_node: "",
-      generation: ""
-    }
-  });
+  // Temporarily disabled coAgent state management
+  // const { state, setState } = useCoAgent<{
+  //   language: ProgrammingLanguage | "";
+  //   current_node: string;
+  //   final_generation: string;
+  // }>({
+  //   name: "coding_agent",
+  //   initialState: {
+  //     language: "python",
+  //     current_node: "",
+  //     final_generation: ""
+  //   }
+  // });
 
   // Handler for language changes
   const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
     console.log("Language changed to:", lang);
     setSelectedLanguage(lang);
-    setState({
-      ...state,
-      language: lang
-    });
+    // setState({
+    //   ...state,
+    //   language: lang
+    // });
   };
 
   return (
@@ -58,7 +61,7 @@ export default function Home() {
 
         <div className="flex justify-center">
           <LanguageSelector
-            selectedLanguage={state.language}
+            selectedLanguage={selectedLanguage}
             onLanguageChange={handleLanguageChange}
           />
         </div>
