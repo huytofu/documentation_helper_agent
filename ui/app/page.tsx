@@ -20,10 +20,7 @@ type AgentState = {
 }
 
 // Custom AgentStatePanel component
-const AgentStatePanel: React.FC<{
-  status?: string;
-  state?: AgentState;
-}> = ({ status, state }) => {
+function AgentStatePanel({ status, state }: { status?: string; state?: AgentState }) {
   // Add more detailed logging to debug state updates
   console.log("Agent State Update - Full Details:", {
     status,
@@ -33,8 +30,16 @@ const AgentStatePanel: React.FC<{
     stateKeys: state ? Object.keys(state) : []
   });
   
+  if (!state && !status) {
+    return (
+      <div className="text-sm text-gray-500 p-4">
+        Waiting for agent state...
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {/* Status Indicator */}
       <div className="flex items-center gap-2">
         <div className={`w-2 h-2 rounded-full ${
@@ -66,21 +71,12 @@ const AgentStatePanel: React.FC<{
       </div>
     </div>
   );
-};
-
-// Wrapper component for the state renderer
-const AgentStateRenderer: React.FC = () => {
-  useCoAgentStateRender<AgentState>({
-    name: "coding_agent",
-    render: ({ status, state }) => (
-      <AgentStatePanel status={status} state={state} />
-    ),
-  });
-  return null;
-};
+}
 
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
+  const [agentStatus, setAgentStatus] = useState<string>();
+  const [agentState, setAgentState] = useState<AgentState>();
 
   // Add the CoAgent state management
   const { state, setState } = useCoAgent<AgentState>({
@@ -89,6 +85,17 @@ export default function Home() {
       language: "python",
       current_node: "",
       final_generation: ""
+    },
+  });
+
+  // Add the state renderer
+  useCoAgentStateRender<AgentState>({
+    name: "coding_agent",
+    render: ({ status, state }) => {
+      // Update the local state instead of rendering
+      setAgentStatus(status);
+      setAgentState(state);
+      return null; // Don't render anything in the chat
     },
   });
 
@@ -185,7 +192,7 @@ export default function Home() {
                 Agent Status
               </h2>
             </div>
-            <AgentStateRenderer />
+            <AgentStatePanel status={agentStatus} state={agentState} />
           </div>
         </div>
       </div>
