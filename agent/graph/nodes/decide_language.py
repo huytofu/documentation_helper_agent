@@ -8,6 +8,6 @@ def decide_language(state: GraphState) -> Dict[str, Any]:
     language = state.get("language", "")
     result = language_router.invoke({"query": query})
     if result.datasource == "others":
-        return {"language": language}
+        return {"language": language, "current_node": "DECIDE_LANGUAGE"}
     else:
-        return {"language": result.datasource or language}
+        return {"language": result.datasource or language, "current_node": "DECIDE_LANGUAGE"}

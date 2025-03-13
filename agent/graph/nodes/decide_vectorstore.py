@@ -7,4 +7,4 @@ def decide_vectorstore(state: GraphState) -> Dict[str, Any]:
     query = state["query"]
     result = vectorstore_router.invoke({"query": query})
     framework = result.datasource or "none"
-    return {"framework": framework}
+    return {"framework": framework, "current_node": "DECIDE_VECTORSTORE"}

@@ -69,14 +69,16 @@ export default function Home() {
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      // Add logging to debug state updates
-      console.log("Agent State Update:", { status, state });
+      // Add more detailed logging to debug state updates
+      console.log("Agent State Update - Full Details:", {
+        status,
+        state,
+        hasState: !!state,
+        currentNode: state?.current_node,
+        stateKeys: state ? Object.keys(state) : []
+      });
       
-      if (!state) {
-        console.log("No state received");
-        return null;
-      }
-      
+      // Remove the null check since we want to show status even without state
       return (
         <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200 z-50">
           <div className="flex flex-col gap-2">
@@ -89,13 +91,23 @@ export default function Home() {
               <span className="text-sm font-medium capitalize">{status}</span>
             </div>
             
-            {state.current_node && (
-              <div className="text-xs bg-gray-100 rounded px-2 py-1">
+            {/* Always show state object for debugging */}
+            <div className="text-xs bg-gray-100 rounded px-2 py-1">
+              <span className="font-medium">Debug Info:</span>
+              <pre className="mt-1 overflow-auto">
+                {JSON.stringify({ status, hasState: !!state, node: state?.current_node }, null, 2)}
+              </pre>
+            </div>
+
+            {/* Show current node if available */}
+            {state?.current_node && (
+              <div className="text-xs bg-blue-50 rounded px-2 py-1">
                 <span className="font-medium">Current Node:</span> {state.current_node}
               </div>
             )}
             
-            {state.final_generation && (
+            {/* Show generation if available */}
+            {state?.final_generation && (
               <div className="text-sm text-gray-600 mt-2 border-t pt-2">
                 {state.final_generation.slice(0, 100)}
                 {state.final_generation.length > 100 && "..."}

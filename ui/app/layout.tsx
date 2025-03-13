@@ -33,7 +33,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent -z-10" />
         <div className="absolute inset-0 border-4 border-blue-500/20 rounded-3xl m-4 -z-10" />
         <LanguageContext.Provider value={{ selectedLanguage, setSelectedLanguage }}>
-          <CopilotKit {...{ runtimeUrl: "/api/copilotkit", agent: "coding_agent", properties: { language: selectedLanguage } } as any}>
+          <CopilotKit {...{ runtimeUrl: "/api/copilotkit", agent: "coding_agent"} as any}>
             <div className="relative flex min-h-screen flex-col">
               <Header />
               <main className="flex-1">{children}</main>
