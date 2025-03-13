@@ -5,7 +5,7 @@ from agent.graph.chains.hallucination_grader import hallucination_grader, GradeH
 from agent.graph.chains.query_router import query_router, RouteQuery
 from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.state import GraphState
-
+from langchain_core.messages import AIMessage
 from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState
@@ -13,6 +13,13 @@ from agent.graph.state import GraphState, InputGraphState, OutputGraphState
 import logging
 
 logger = logging.getLogger("graph.real_flow")
+
+def get_last_ai_message_content(messages):
+    # Reverse through messages to find the last AI message
+    for message in reversed(messages):
+        if message.type == "ai" or isinstance(message, AIMessage):  # Assuming AI messages have type "ai"
+            return message.content
+    return ""
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     logger.info("---CHECK HALLUCINATIONS---")
@@ -52,6 +59,10 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         return "end_misery"
 
+def grade_generation_grounded_in_query(state: GraphState) -> str:
+    logger.info("---GRADE GENERATION GROUNDED IN QUERY---")
+    generation = get_last_ai_message_content(state["messages"])
+    # Rest of the function...
 
 def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")

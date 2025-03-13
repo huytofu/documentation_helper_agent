@@ -30,7 +30,6 @@ class OutputGraphState(CopilotKitState):
         generation: LLM generation
     """
     current_node: str = ""
-    generation: Optional[str] = None
 
 class GraphState(InputGraphState, OutputGraphState):
     query: str
