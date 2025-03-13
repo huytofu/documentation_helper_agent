@@ -22,14 +22,37 @@ interface ChainFnParameters {
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages, state }: ChainFnParameters) => {
-    // If we have a generation from the agent state, use that
-    if (state?.final_generation) {
+    // Log state updates for debugging
+    console.log("Service Adapter State Update:", state);
+
+    // Handle intermediate state updates (current_node changes)
+    if (state?.current_node && !state?.final_generation) {
+      console.log("Emitting intermediate state for node:", state.current_node);
+      // Return a special AIMessage that won't be displayed in chat
       return new AIMessage({ 
-        content: state.final_generation as string
+        content: "__STATE_UPDATE__", // Special marker that can be filtered out by chat
+        additional_kwargs: {
+          _type: "state_update",
+          current_node: state.current_node,
+          display_in_chat: false // Flag to tell frontend not to display this message
+        }
       });
     }
 
-    // Fallback to direct model response if no agent generation
+    // Handle final generation
+    if (state?.final_generation) {
+      console.log("Emitting final generation with node:", state.current_node);
+      return new AIMessage({ 
+        content: state.final_generation as string,
+        additional_kwargs: {
+          current_node: state.current_node,
+          is_final: true,
+          display_in_chat: true
+        }
+      });
+    }
+
+    // Fallback to direct model response if no state or generation
     const formattedMessages = messages.map((msg: BaseMessage) => ({
       role: msg instanceof HumanMessage ? 'user' : 'assistant',
       content: msg.content
@@ -39,7 +62,11 @@ const serviceAdapter = new LangChainAdapter({
     const content = result.generations[0][0].text;
     
     return new AIMessage({ 
-      content
+      content,
+      additional_kwargs: {
+        is_direct_response: true,
+        display_in_chat: true
+      }
     });
   }
 });
