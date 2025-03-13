@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { useLangGraphInterrupt, useCoAgentStateRender, useCoAgent } from "@copilotkit/react-core";
@@ -17,6 +18,66 @@ type AgentState = {
   current_node: string;
   final_generation: string;
 }
+
+// Custom AgentStatePanel component
+const AgentStatePanel: React.FC<{
+  status?: string;
+  state?: AgentState;
+}> = ({ status, state }) => {
+  // Add more detailed logging to debug state updates
+  console.log("Agent State Update - Full Details:", {
+    status,
+    state,
+    hasState: !!state,
+    currentNode: state?.current_node,
+    stateKeys: state ? Object.keys(state) : []
+  });
+  
+  return (
+    <div className="space-y-4">
+      {/* Status Indicator */}
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${
+          status === "inProgress" ? "bg-blue-500 animate-pulse" : 
+          status === "complete" ? "bg-green-500" : 
+          "bg-gray-500"
+        }`} />
+        <span className="text-sm font-medium capitalize">{status}</span>
+      </div>
+      
+      {/* Current Node */}
+      {state?.current_node && (
+        <div className="text-sm bg-blue-50 rounded px-3 py-2">
+          <span className="font-medium">Current Node:</span>
+          <div className="mt-1">{state.current_node}</div>
+        </div>
+      )}
+
+      {/* Debug Information */}
+      <div className="text-xs bg-gray-100 rounded px-3 py-2">
+        <span className="font-medium">Debug Info:</span>
+        <pre className="mt-1 overflow-auto">
+          {JSON.stringify({ 
+            status, 
+            hasState: !!state, 
+            node: state?.current_node 
+          }, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+};
+
+// Wrapper component for the state renderer
+const AgentStateRenderer: React.FC = () => {
+  useCoAgentStateRender<AgentState>({
+    name: "coding_agent",
+    render: ({ status, state }) => (
+      <AgentStatePanel status={status} state={state} />
+    ),
+  });
+  return null;
+};
 
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
@@ -63,52 +124,6 @@ export default function Home() {
         </div>
       </div>
     )
-  });
-
-  // Add the agent state renderer
-  useCoAgentStateRender<AgentState>({
-    name: "coding_agent",
-    render: ({ status, state }) => {
-      // Add more detailed logging to debug state updates
-      console.log("Agent State Update - Full Details:", {
-        status,
-        state,
-        hasState: !!state,
-        currentNode: state?.current_node,
-        stateKeys: state ? Object.keys(state) : []
-      });
-      
-      // Remove the null check since we want to show status even without state
-      return (
-        <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200 z-50">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                status === "inProgress" ? "bg-blue-500 animate-pulse" : 
-                status === "complete" ? "bg-green-500" : 
-                "bg-gray-500"
-              }`} />
-              <span className="text-sm font-medium capitalize">{status}</span>
-            </div>
-            
-            {/* Always show state object for debugging */}
-            <div className="text-xs bg-gray-100 rounded px-2 py-1">
-              <span className="font-medium">Debug Info:</span>
-              <pre className="mt-1 overflow-auto">
-                {JSON.stringify({ status, hasState: !!state, node: state?.current_node }, null, 2)}
-              </pre>
-            </div>
-
-            {/* Show current node if available */}
-            {state?.current_node && (
-              <div className="text-xs bg-blue-50 rounded px-2 py-1">
-                <span className="font-medium">Current Node:</span> {state.current_node}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    },
   });
 
   return (
@@ -170,37 +185,7 @@ export default function Home() {
                 Agent Status
               </h2>
             </div>
-            <div className="p-4 space-y-4">
-              {/* Status Indicator */}
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  status === "inProgress" ? "bg-blue-500 animate-pulse" : 
-                  status === "complete" ? "bg-green-500" : 
-                  "bg-gray-500"
-                }`} />
-                <span className="text-sm font-medium capitalize">{status}</span>
-              </div>
-              
-              {/* Current Node */}
-              {state?.current_node && (
-                <div className="text-sm bg-blue-50 rounded px-3 py-2">
-                  <span className="font-medium">Current Node:</span>
-                  <div className="mt-1">{state.current_node}</div>
-                </div>
-              )}
-
-              {/* Debug Information */}
-              <div className="text-xs bg-gray-100 rounded px-3 py-2">
-                <span className="font-medium">Debug Info:</span>
-                <pre className="mt-1 overflow-auto">
-                  {JSON.stringify({ 
-                    status, 
-                    hasState: !!state, 
-                    node: state?.current_node 
-                  }, null, 2)}
-                </pre>
-              </div>
-            </div>
+            <AgentStateRenderer />
           </div>
         </div>
       </div>
