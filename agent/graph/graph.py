@@ -6,6 +6,8 @@ import logging
 import os
 if os.environ.get("FLOW") == "test":
     from agent.graph.test_flow import workflow
+elif os.environ.get("FLOW") == "simple":
+    from agent.graph.simple_flow import workflow
 else:
     from agent.graph.real_flow import workflow
 
