@@ -3,7 +3,7 @@ from agent.graph.state import GraphState
 from langgraph.types import interrupt
 
 def human_in_loop(state: GraphState) -> Dict[str, Any]:
-    print("---RETRIEVE---")
+    print("---HUMAN IN LOOP---")
     final_generation = state["final_generation"]
     human_in_loop = interrupt(
         "This is our generation: " + final_generation + 
