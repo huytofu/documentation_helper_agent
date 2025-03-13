@@ -6,10 +6,10 @@ from agent.graph.models.router import llm
 
 class LanguageRoute(BaseModel):
     """Route a query to the appropriate programming language"""
-    datasource: Literal["python", "javascript", "others"] = Field(
+    language: Literal["python", "javascript", "none"] = Field(
         ...,
-        description="""Given a user query determine which programming language is being discussed. 
-        Answer must be either 'python', 'javascript' or 'others' only.""",
+        description="""Given a user query determine which programming language is mentioned. 
+        Answer must be either 'python', 'javascript' or 'none' only.""",
     )
 
 # Create the output parser
@@ -19,12 +19,12 @@ parser = PydanticOutputParser(pydantic_object=LanguageRoute)
 system = """Identify which programming language is mentioned in the user's query.
 
 You must choose between:
-- "python": For queries mentioning Python programming language
-- "javascript": For queries mentioning JavaScript programming language
-- "others": When the programming language is not mentioned in query, or mentioned but is not Python or JavaScript
+- "python": if the query mentions Python programming language
+- "javascript": if the query mentions JavaScript programming language
+- "none": if the programming language is not mentioned in query
 
 
-(IMPORTANT!) Your answer must be either "python", "javascript" or "others" only!
+(IMPORTANT!) Your answer must be either "python", "javascript" or "none" only!
 
 {format_instructions}"""
 
