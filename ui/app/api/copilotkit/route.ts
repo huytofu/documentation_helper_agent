@@ -22,14 +22,10 @@ interface ChainFnParameters {
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages, state }: ChainFnParameters) => {
-    // Log all state updates for debugging
-    if (state) {
-      console.log("Service Adapter State:", {
-        current_node: state.current_node,
-        has_final_generation: !!state.final_generation
-      });
-    }
-
+    console.log("Chain Function Called");
+    console.log("Service Adapter State:", state);
+    console.log("Service Adapter Messages:", messages);
+    
     // If we have a final generation, return it with state
     if (state?.final_generation) {
       return new AIMessage({

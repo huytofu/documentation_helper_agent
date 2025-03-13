@@ -67,7 +67,7 @@ export default function Home() {
           <ChatInterface />
 
           {/* Agent State Side Panel */}
-          <AgentStatePanel />
+          {/* <AgentStatePanel /> */}
         </div>
       </div>
     </div>
