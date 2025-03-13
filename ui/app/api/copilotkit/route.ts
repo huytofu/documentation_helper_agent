@@ -22,51 +22,30 @@ interface ChainFnParameters {
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages, state }: ChainFnParameters) => {
-    // Log state updates for debugging
-    console.log("Service Adapter State Update:", state);
-
-    // Handle intermediate state updates (current_node changes)
-    if (state?.current_node && !state?.final_generation) {
-      console.log("Emitting intermediate state for node:", state.current_node);
-      // Return a special AIMessage that won't be displayed in chat
-      return new AIMessage({ 
-        content: "__STATE_UPDATE__", // Special marker that can be filtered out by chat
-        additional_kwargs: {
-          _type: "state_update",
-          current_node: state.current_node,
-          display_in_chat: false // Flag to tell frontend not to display this message
-        }
+    // Log all state updates for debugging
+    if (state) {
+      console.log("Service Adapter State:", {
+        current_node: state.current_node,
+        has_final_generation: !!state.final_generation
       });
     }
 
-    // Handle final generation
+    // If we have a final generation, return it
     if (state?.final_generation) {
-      console.log("Emitting final generation with node:", state.current_node);
-      return new AIMessage({ 
-        content: state.final_generation as string,
-        additional_kwargs: {
-          current_node: state.current_node,
-          is_final: true,
-          display_in_chat: true
-        }
+      return new AIMessage({
+        content: state.final_generation as string
       });
     }
 
-    // Fallback to direct model response if no state or generation
+    // For all other cases, return a direct model response
     const formattedMessages = messages.map((msg: BaseMessage) => ({
       role: msg instanceof HumanMessage ? 'user' : 'assistant',
       content: msg.content
     }));
 
     const result = await model.generate([formattedMessages]);
-    const content = result.generations[0][0].text;
-    
-    return new AIMessage({ 
-      content,
-      additional_kwargs: {
-        is_direct_response: true,
-        display_in_chat: true
-      }
+    return new AIMessage({
+      content: result.generations[0][0].text
     });
   }
 });
