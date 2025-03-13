@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,61 +11,56 @@ type AgentState = {
   final_generation: string;
 }
 
+// Status content component
+function StatusContent({ status, state }: { status?: string; state?: AgentState }) {
+  return (
+    <div className="space-y-4 p-4">
+      {/* Status Indicator */}
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${
+          status === "inProgress" ? "bg-blue-500 animate-pulse" : 
+          status === "complete" ? "bg-green-500" : 
+          "bg-gray-500"
+        }`} />
+        <span className="text-sm font-medium capitalize">{status}</span>
+      </div>
+      
+      {/* Current Node */}
+      {state?.current_node && (
+        <div className="text-sm bg-blue-50 rounded px-3 py-2">
+          <span className="font-medium">Current Node:</span>
+          <div className="mt-1">{state.current_node}</div>
+        </div>
+      )}
+
+      {/* Debug Information */}
+      <div className="text-xs bg-gray-100 rounded px-3 py-2">
+        <span className="font-medium">Debug Info:</span>
+        <pre className="mt-1 overflow-auto">
+          {JSON.stringify({ 
+            status, 
+            hasState: !!state, 
+            node: state?.current_node 
+          }, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 export function AgentStatePanel() {
+  const [currentStatus, setCurrentStatus] = useState<string>();
+  const [currentState, setCurrentState] = useState<AgentState>();
+
   // Add the state renderer hook
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      // Add more detailed logging to debug state updates
-      console.log("Agent State Update - Full Details:", {
-        status,
-        state,
-        hasState: !!state,
-        currentNode: state?.current_node,
-        stateKeys: state ? Object.keys(state) : []
-      });
-
-      if (!state && !status) {
-        return (
-          <div className="text-sm text-gray-500 p-4">
-            Waiting for agent state...
-          </div>
-        );
-      }
-
-      return (
-        <div className="space-y-4 p-4">
-          {/* Status Indicator */}
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              status === "inProgress" ? "bg-blue-500 animate-pulse" : 
-              status === "complete" ? "bg-green-500" : 
-              "bg-gray-500"
-            }`} />
-            <span className="text-sm font-medium capitalize">{status}</span>
-          </div>
-          
-          {/* Current Node */}
-          {state?.current_node && (
-            <div className="text-sm bg-blue-50 rounded px-3 py-2">
-              <span className="font-medium">Current Node:</span>
-              <div className="mt-1">{state.current_node}</div>
-            </div>
-          )}
-
-          {/* Debug Information */}
-          <div className="text-xs bg-gray-100 rounded px-3 py-2">
-            <span className="font-medium">Debug Info:</span>
-            <pre className="mt-1 overflow-auto">
-              {JSON.stringify({ 
-                status, 
-                hasState: !!state, 
-                node: state?.current_node 
-              }, null, 2)}
-            </pre>
-          </div>
-        </div>
-      );
+      // Update local state
+      setCurrentStatus(status);
+      setCurrentState(state);
+      // Return null to prevent rendering in chat
+      return null;
     },
   });
 
@@ -103,7 +98,6 @@ export function AgentStatePanel() {
     )
   });
 
-  // The component itself just renders a container
   return (
     <div className="w-80 shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
       <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
@@ -111,7 +105,13 @@ export function AgentStatePanel() {
           Agent Status
         </h2>
       </div>
-      {/* The actual content will be rendered by the useCoAgentStateRender hook */}
+      {(!currentState && !currentStatus) ? (
+        <div className="text-sm text-gray-500 p-4">
+          Waiting for agent state...
+        </div>
+      ) : (
+        <StatusContent status={currentStatus} state={currentState} />
+      )}
     </div>
   );
 } 
