@@ -2,22 +2,34 @@
 
 import { useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
-import { useLangGraphInterrupt, useCoAgentStateRender } from "@copilotkit/react-core";
+import { useLangGraphInterrupt, useCoAgentStateRender, useCoAgent } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { MessageSquare, Sparkles } from "lucide-react";
 import { LanguageContext } from "./layout";
 import { useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ProgrammingLanguage } from "@/types";
 
 // Define the agent state type
 type AgentState = {
-  final_generation?: string;
-  current_node?: string;
+  language: ProgrammingLanguage | "";
+  current_node: string;
+  final_generation: string;
 }
 
 export default function Home() {
-  const { selectedLanguage } = useContext(LanguageContext);
+  const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
+
+  // Add the CoAgent state management
+  const { state, setState } = useCoAgent<AgentState>({
+    name: "coding_agent",
+    initialState: {
+      language: "python",
+      current_node: "",
+      final_generation: ""
+    },
+  });
 
   // Add the LangGraph interrupt handler
   useLangGraphInterrupt<string>({
@@ -57,26 +69,39 @@ export default function Home() {
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      if (!state) return null;
+      // Add logging to debug state updates
+      console.log("Agent State Update:", { status, state });
+      
+      if (!state) {
+        console.log("No state received");
+        return null;
+      }
       
       return (
-        <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200">
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`w-2 h-2 rounded-full ${
-              status === "inProgress" ? "bg-blue-500 animate-pulse" : 
-              status === "complete" ? "bg-green-500" : 
-              "bg-gray-500"
-            }`} />
-            <span className="text-sm font-medium capitalize">{status}</span>
+        <div className="fixed bottom-4 right-4 max-w-md bg-white rounded-lg shadow-lg p-4 border border-gray-200 z-50">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                status === "inProgress" ? "bg-blue-500 animate-pulse" : 
+                status === "complete" ? "bg-green-500" : 
+                "bg-gray-500"
+              }`} />
+              <span className="text-sm font-medium capitalize">{status}</span>
+            </div>
+            
             {state.current_node && (
-              <span className="text-xs text-gray-500 ml-2">
-                Current Node: {state.current_node}
-              </span>
+              <div className="text-xs bg-gray-100 rounded px-2 py-1">
+                <span className="font-medium">Current Node:</span> {state.current_node}
+              </div>
+            )}
+            
+            {state.final_generation && (
+              <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+                {state.final_generation.slice(0, 100)}
+                {state.final_generation.length > 100 && "..."}
+              </div>
             )}
           </div>
-          {state.final_generation && (
-            <p className="text-sm text-gray-600 mt-2">{state.final_generation.slice(0, 100)}</p>
-          )}
         </div>
       );
     },
@@ -100,10 +125,14 @@ export default function Home() {
         <div className="space-y-8">
           <div className="flex justify-center">
             <LanguageSelector
-              selectedLanguage={selectedLanguage}
+              selectedLanguage={state.language}
               onLanguageChange={(lang) => {
-                // This will be handled by the context
-                console.log("Language changed:", lang);
+                // Update both the context and agent state
+                setSelectedLanguage(lang);
+                setState({ 
+                  ...state, 
+                  language: lang as AgentState["language"]
+                });
               }}
             />
           </div>
