@@ -11,6 +11,7 @@ from agent.graph.nodes import generate, grade_documents, retrieve, decide_vector
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState
 
 import logging
+import random
 
 logger = logging.getLogger("graph.test_flow")
 
@@ -32,8 +33,8 @@ def determine_user_sentiment(state: GraphState) -> str:
     
 def grade_generation_grounded_in_query(state: GraphState) -> str:
     logger.info("---GRADE GENERATION GROUNDED IN QUERY---")
-    random = random.randint(0, 1)
-    if random == 0:
+    random_number = random.randint(0, 1)
+    if random_number == 0:
         return "useful"
     else:
         return "not useful"
