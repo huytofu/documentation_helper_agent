@@ -28,14 +28,10 @@ def initialize(state: GraphState) -> Dict[str, Any]:
     state_copy["query"] = query
     
     # Initialize other required fields if they don't exist
-    if "documents" not in state_copy:
-        state_copy["documents"] = []
-    if "generation" not in state_copy:
-        state_copy["generation"] = ""
-    if "comments" not in state_copy:
-        state_copy["comments"] = ""
-    if "retry_count" not in state_copy:
-        state_copy["retry_count"] = 0
+    state_copy["documents"] = []
+    state_copy["generation"] = ""
+    state_copy["comments"] = ""
+    state_copy["retry_count"] = 0
     
     logger.info(f"Initialized state with query: {query}")
     return {

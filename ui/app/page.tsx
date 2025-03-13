@@ -9,22 +9,35 @@ import { ProgrammingLanguage } from "@/types";
 import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
 
+// Define shared agent state type
+export type AgentState = {
+  language: ProgrammingLanguage | "";
+  current_node: string;
+  final_generation: string;
+}
+
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
   // Add the CoAgent state management
-  const { state, setState } = useCoAgent<{
-    language: ProgrammingLanguage | "";
-    current_node: string;
-    final_generation: string;
-  }>({
+  const { state, setState } = useCoAgent<AgentState>({
     name: "coding_agent",
     initialState: {
       language: "python",
       current_node: "",
       final_generation: ""
-    },
+    }
   });
+
+  // Handler for language changes
+  const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
+    console.log("Language changed to:", lang);
+    setSelectedLanguage(lang);
+    setState({
+      ...state,
+      language: lang
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-[1400px] min-h-[calc(100vh-3.5rem)]">
@@ -44,13 +57,7 @@ export default function Home() {
         <div className="flex justify-center">
           <LanguageSelector
             selectedLanguage={state.language}
-            onLanguageChange={(lang) => {
-              setSelectedLanguage(lang);
-              setState({ 
-                ...state, 
-                language: lang as ProgrammingLanguage | ""
-              });
-            }}
+            onLanguageChange={handleLanguageChange}
           />
         </div>
 
