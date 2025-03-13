@@ -17,6 +17,8 @@ class InputGraphState(CopilotKitState):
     """
 
     language: str = ""
+    messages: List[Dict[str, Any]] = []
+    copilotkit: Dict[str, Any] = {}
 
 class OutputGraphState(CopilotKitState):
     """
@@ -35,7 +37,5 @@ class GraphState(InputGraphState, OutputGraphState):
     comments: List[str] = []
     retry_count: int = 0
     documents: List[str] = []
-    messages: List[Dict[str, Any]] = []
-    copilotkit: Dict[str, Any] = {}
     
 
