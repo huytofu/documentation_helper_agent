@@ -8,7 +8,7 @@ from agent.graph.state import GraphState
 
 from agent.graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
-from agent.graph.state import GraphState
+from agent.graph.state import GraphState, InputGraphState, OutputGraphState
 
 import logging
 
@@ -38,7 +38,7 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
     else:
         return "not useful"
     
-workflow = StateGraph(GraphState)
+workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)

@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 from copilotkit import CopilotKitState
 
 
-class GraphState(CopilotKitState):
+class InputGraphState(CopilotKitState):
     """
     Represents the state of our graph.
 
@@ -16,14 +16,26 @@ class GraphState(CopilotKitState):
         documents: list of documents
     """
 
+    language: str = ""
+
+class OutputGraphState(CopilotKitState):
+    """
+    Represents the state of our graph.
+
+    Attributes:
+        final_generation: Optional[str] = None
+    """
+    final_generation: Optional[str] = None
+    current_node: str = ""
+
+class GraphState(InputGraphState, OutputGraphState):
     query: str
     framework: str = ""
-    language: str = ""
     generation: Optional[str] = None
-    final_generation: Optional[str] = None
     comments: List[str] = []
     retry_count: int = 0
     documents: List[str] = []
     messages: List[Dict[str, Any]] = []
     copilotkit: Dict[str, Any] = {}
-    current_node: str = ""
+    
+
