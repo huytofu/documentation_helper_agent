@@ -105,14 +105,6 @@ export default function Home() {
                 <span className="font-medium">Current Node:</span> {state.current_node}
               </div>
             )}
-            
-            {/* Show generation if available */}
-            {state?.final_generation && (
-              <div className="text-sm text-gray-600 mt-2 border-t pt-2">
-                {state.final_generation.slice(0, 100)}
-                {state.final_generation.length > 100 && "..."}
-              </div>
-            )}
           </div>
         </div>
       );
@@ -120,8 +112,9 @@ export default function Home() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-[calc(100vh-3.5rem)] flex flex-col justify-center">
-      <div className="space-y-12">
+    <div className="container mx-auto px-4 py-8 max-w-[1400px] min-h-[calc(100vh-3.5rem)]">
+      <div className="space-y-8">
+        {/* Header Section */}
         <div className="space-y-4 text-center">
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="h-6 w-6 text-blue-500" />
@@ -134,22 +127,23 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="space-y-8">
-          <div className="flex justify-center">
-            <LanguageSelector
-              selectedLanguage={state.language}
-              onLanguageChange={(lang) => {
-                // Update both the context and agent state
-                setSelectedLanguage(lang);
-                setState({ 
-                  ...state, 
-                  language: lang as AgentState["language"]
-                });
-              }}
-            />
-          </div>
+        <div className="flex justify-center">
+          <LanguageSelector
+            selectedLanguage={state.language}
+            onLanguageChange={(lang) => {
+              setSelectedLanguage(lang);
+              setState({ 
+                ...state, 
+                language: lang as AgentState["language"]
+              });
+            }}
+          />
+        </div>
 
-          <div className="relative rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
+        {/* Main Content with Side Panel Layout */}
+        <div className="flex gap-4">
+          {/* Chat Interface */}
+          <div className="flex-1 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
             <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
               <MessageSquare className="h-5 w-5 text-blue-500" />
               <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
@@ -165,6 +159,47 @@ export default function Home() {
                   Do not attempt to answer questions directly without consulting the backend agents.}`
                 }
               />
+            </div>
+          </div>
+
+          {/* Agent State Side Panel */}
+          <div className="w-80 shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
+            <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
+              <Sparkles className="h-5 w-5 text-blue-500" />
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                Agent Status
+              </h2>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Status Indicator */}
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  status === "inProgress" ? "bg-blue-500 animate-pulse" : 
+                  status === "complete" ? "bg-green-500" : 
+                  "bg-gray-500"
+                }`} />
+                <span className="text-sm font-medium capitalize">{status}</span>
+              </div>
+              
+              {/* Current Node */}
+              {state?.current_node && (
+                <div className="text-sm bg-blue-50 rounded px-3 py-2">
+                  <span className="font-medium">Current Node:</span>
+                  <div className="mt-1">{state.current_node}</div>
+                </div>
+              )}
+
+              {/* Debug Information */}
+              <div className="text-xs bg-gray-100 rounded px-3 py-2">
+                <span className="font-medium">Debug Info:</span>
+                <pre className="mt-1 overflow-auto">
+                  {JSON.stringify({ 
+                    status, 
+                    hasState: !!state, 
+                    node: state?.current_node 
+                  }, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
