@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,15 +52,21 @@ export function AgentStatePanel() {
   const [currentStatus, setCurrentStatus] = useState<string>();
   const [currentState, setCurrentState] = useState<AgentState>();
 
+  // Create a stable callback for state updates
+  const handleStateUpdate = useCallback(({ status, state }: { status: string; state: AgentState }) => {
+    setCurrentStatus(status);
+    setCurrentState(state);
+  }, []);
+
   // Add the state renderer hook
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ status, state }) => {
-      // Update local state
-      setCurrentStatus(status);
-      setCurrentState(state);
-      // Return null to prevent rendering in chat
-      return null;
+      // Schedule state update for next render
+      Promise.resolve().then(() => {
+        handleStateUpdate({ status, state });
+      });
+      return <div style={{ display: 'none' }} />;
     },
   });
 
