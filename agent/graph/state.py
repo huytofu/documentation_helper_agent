@@ -1,7 +1,8 @@
-from typing import List, TypedDict, Dict, Any
+from typing import List, Optional, Dict, Any
+from copilotkit import CopilotKitState
 
 
-class GraphState(TypedDict):
+class GraphState(CopilotKitState):
     """
     Represents the state of our graph.
 
@@ -15,12 +16,12 @@ class GraphState(TypedDict):
         documents: list of documents
     """
 
-    query: str = ""
+    query: str
     framework: str = ""
     language: str = ""
-    generation: str = ""
-    final_generation: str = ""
-    comments: str = ""
+    generation: Optional[str] = None
+    final_generation: Optional[str] = None
+    comments: List[str] = []
     retry_count: int = 0
     documents: List[str] = []
     messages: List[Dict[str, Any]] = []
