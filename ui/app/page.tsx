@@ -12,8 +12,9 @@ import { ChatInterface } from "@/components/ChatInterface";
 // Define shared agent state type
 export type AgentState = {
   language: ProgrammingLanguage | "";
+  comments: string;
   current_node: string;
-  final_generation: string;
+  generation: string;
 }
 
 export default function Home() {
@@ -24,8 +25,9 @@ export default function Home() {
     name: "coding_agent",
     initialState: {
       language: "python",
+      comments: "",
       current_node: "",
-      final_generation: ""
+      generation: ""
     }
   });
 

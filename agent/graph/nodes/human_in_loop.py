@@ -4,9 +4,9 @@ from langgraph.types import interrupt
 
 def human_in_loop(state: GraphState) -> Dict[str, Any]:
     print("---HUMAN IN LOOP---")
-    final_generation = state["final_generation"]
+    generation = state["generation"]
     human_in_loop = interrupt(
-        "This is our generation: " + final_generation + 
+        "This is our generation: " + generation + 
         "But it may not answer your question.<br>" + 
         "Please provide a critical feedback on the generation.",
     )

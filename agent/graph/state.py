@@ -17,24 +17,24 @@ class InputGraphState(CopilotKitState):
     """
 
     language: str = ""
-    messages: List[Dict[str, Any]] = []
-    copilotkit: Dict[str, Any] = {}
+    comments: str = ""
+    # messages: List[Dict[str, Any]] = []
+    # copilotkit: Dict[str, Any] = {}
 
 class OutputGraphState(CopilotKitState):
     """
     Represents the state of our graph.
 
     Attributes:
-        final_generation: Optional[str] = None
+        current_node: current node
+        generation: LLM generation
     """
-    final_generation: Optional[str] = None
     current_node: str = ""
+    generation: Optional[str] = None
 
 class GraphState(InputGraphState, OutputGraphState):
     query: str
     framework: str = ""
-    generation: Optional[str] = None
-    comments: List[str] = []
     retry_count: int = 0
     documents: List[str] = []
     

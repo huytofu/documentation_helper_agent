@@ -7,8 +7,9 @@ import { ProgrammingLanguage } from "@/types";
 // Define the agent state type
 type AgentState = {
   language: ProgrammingLanguage | "";
+  comments: string;
   current_node: string;
-  final_generation: string;
+  generation: string;
 }
 
 // Status content component
