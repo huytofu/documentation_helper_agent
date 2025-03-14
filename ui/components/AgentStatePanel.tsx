@@ -3,117 +3,82 @@ import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
+import { MessageSquareX } from "lucide-react";
+import { AGENT_NAME } from "@/constants";
 
 // Define the agent state interface
 export interface AgentState {
-  language?: ProgrammingLanguage | "";
-  comments?: string;
-  current_node?: string;
+  language: ProgrammingLanguage | "";
+  comments: string;
+  current_node: string;
   test_counter?: number;
 }
 
-// Status content component
-function StatusContent({ state }: { state?: AgentState }) {
-  // Determine status based on current_node
-  let statusDisplay = "idle";
-  let statusColor = "bg-gray-500";
-  
-  if (state?.current_node) {
-    statusDisplay = "inProgress";
-    statusColor = "bg-blue-500 animate-pulse";
-    
-    // Check for specific node states
-    if (state.current_node.includes("STARTED")) {
-      statusDisplay = "started";
-      statusColor = "bg-yellow-500 animate-pulse";
-    } else if (state.current_node.includes("GENERATING")) {
-      statusDisplay = "generating";
-      statusColor = "bg-blue-500 animate-pulse";
-    } else if (state.current_node.includes("COMPLETE")) {
-      statusDisplay = "complete";
-      statusColor = "bg-green-500";
-    }
+// Component to display the content of the agent state
+const StatusContent = ({ currentStatus, currentState }: { 
+  currentStatus: string; 
+  currentState: AgentState | null;
+}) => {
+  if (!currentState) {
+    return <div>No state available</div>;
   }
-  
-  // Check if we're at a final node
-  if (state?.current_node === "END") {
-    statusDisplay = "complete";
-    statusColor = "bg-green-500";
-  }
-  
+
   return (
-    <div className="space-y-4 p-4">
-      {/* Status Indicator */}
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-        <span className="text-sm font-medium capitalize">{statusDisplay}</span>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium mb-1">Current Node:</h3>
+        <div className="bg-secondary/50 p-2 rounded text-sm">
+          {currentStatus || "Waiting for agent to start..."}
+        </div>
       </div>
       
-      {/* Current Node */}
-      {state?.current_node && (
-        <div className="text-sm bg-blue-50 rounded px-3 py-2">
-          <span className="font-medium">Current Node:</span>
-          <div className="mt-1">{state.current_node}</div>
+      <div>
+        <h3 className="text-sm font-medium mb-1">Language:</h3>
+        <div className="bg-secondary/50 p-2 rounded text-sm">
+          {currentState.language || "Not set"}
         </div>
-      )}
-
-      {/* Comments */}
-      {state?.comments && (
-        <div className="text-sm bg-amber-50 rounded px-3 py-2">
-          <span className="font-medium">Comments:</span>
-          <div className="mt-1">{state.comments}</div>
-        </div>
-      )}
-
-      {/* Test Counter */}
-      {state?.test_counter !== undefined && (
-        <div className="text-sm bg-green-50 rounded px-3 py-2">
-          <span className="font-medium">Test Counter:</span>
-          <div className="mt-1">{state.test_counter}</div>
-        </div>
-      )}
-
-      {/* Debug Information */}
-      <div className="text-xs bg-gray-100 rounded px-3 py-2">
-        <span className="font-medium">Debug Info:</span>
-        <pre className="mt-1 overflow-auto">
-          {JSON.stringify({ 
-            status: statusDisplay, 
-            hasState: !!state, 
-            stateKeys: state ? Object.keys(state) : [],
-            timestamp: new Date().toISOString()
-          }, null, 2)}
-        </pre>
       </div>
+      
+      {currentState.comments && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Comments:</h3>
+          <div className="bg-secondary/50 p-2 rounded text-sm whitespace-pre-wrap">
+            {currentState.comments}
+          </div>
+        </div>
+      )}
+      
+      {currentState.test_counter !== undefined && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Test Counter:</h3>
+          <div className="bg-secondary/50 p-2 rounded text-sm">
+            {currentState.test_counter}
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export function AgentStatePanel() {
-  // Local state to track updates
-  const [currentState, setCurrentState] = useState<AgentState | undefined>(undefined);
+  // State for tracking the current status and state
+  const [currentStatus, setCurrentStatus] = useState<string>("");
+  const [currentState, setCurrentState] = useState<AgentState | null>(null);
   const [stateUpdateCount, setStateUpdateCount] = useState(0);
   
-  // Use refs to track the last update and prevent duplicates
-  const lastUpdateRef = useRef<string>("");
-  const renderCountRef = useRef<number>(0);
+  // Reference to track render count for debugging
+  const renderCountRef = useRef(0);
   
-  // Create a stable callback for state updates
+  // Get the interrupt function to allow stopping the agent
+  const interrupt = () => {
+    console.log("Interrupting agent...");
+    // Implement actual interrupt logic if needed
+  };
+  const isInterrupting = false;
+  
+  // Handle state updates in a stable way using useCallback
   const handleStateUpdate = useCallback((newState: AgentState) => {
-    // Create a unique ID for this update based on its content
-    const updateId = JSON.stringify(newState);
-    
-    // Skip if this is a duplicate update
-    if (updateId === lastUpdateRef.current) {
-      console.log("Skipping duplicate state update");
-      return;
-    }
-    
-    // Store this update ID to detect duplicates
-    lastUpdateRef.current = updateId;
-    
-    // Use Promise.resolve().then to schedule the state update for the next tick
-    // This prevents the "Cannot update during render" error
+    // Schedule the state update for the next tick to avoid React warnings
     Promise.resolve().then(() => {
       setCurrentState(prevState => {
         if (!prevState) return newState;
@@ -123,12 +88,17 @@ export function AgentStatePanel() {
         };
       });
       setStateUpdateCount(prev => prev + 1);
+      
+      // Update current status based on the current_node
+      if (newState.current_node) {
+        setCurrentStatus(newState.current_node);
+      }
     });
   }, []);
   
   // Use the useCoAgentStateRender hook for real-time updates
   useCoAgentStateRender<AgentState>({
-    name: "coding_agent",
+    name: AGENT_NAME,
     render: ({ state: renderedState }) => {
       // Track render count for debugging
       renderCountRef.current += 1;
@@ -140,69 +110,36 @@ export function AgentStatePanel() {
         handleStateUpdate(renderedState);
       }
       
-      // Return an invisible div instead of null
+      // Return an invisible div to avoid rendering in the chat
       return <div style={{ display: 'none' }} />;
     }
   });
-
-  // Log state updates for debugging
-  useEffect(() => {
-    console.log("AgentStatePanel: Current state:", currentState);
-    console.log("AgentStatePanel: State update count:", stateUpdateCount);
-  }, [currentState, stateUpdateCount]);
-
-  // Add the LangGraph interrupt handler
-  useLangGraphInterrupt<string>({
-    render: ({ event, resolve }) => (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
-          <h3 className="text-lg font-semibold">Human Input Required</h3>
-          <p className="text-sm text-gray-600">{event.value}</p>
-          <form 
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              resolve(form.response.value);
-              form.reset();
-            }}
-          >
-            <Input 
-              type="text" 
-              name="response" 
-              placeholder="Enter your response" 
-              className="w-full"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="submit">
-                Submit
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  });
-
+  
   return (
-    <div className="w-80 shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
-      <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
-        <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Agent Status
-        </h2>
-        {stateUpdateCount > 0 && (
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-            Updates: {stateUpdateCount}
-          </span>
-        )}
-      </div>
-      {!currentState ? (
-        <div className="text-sm text-gray-500 p-4">
-          Waiting for agent state...
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          Updates: {stateUpdateCount}
         </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={interrupt}
+          disabled={isInterrupting}
+          className="flex items-center gap-1"
+        >
+          <MessageSquareX className="h-4 w-4" />
+          {isInterrupting ? "Stopping..." : "Stop Agent"}
+        </Button>
+      </div>
+      
+      {currentState ? (
+        <StatusContent currentStatus={currentStatus} currentState={currentState} />
       ) : (
-        <StatusContent state={currentState} />
+        <div className="text-center py-8 text-muted-foreground">
+          Waiting for agent to start...
+        </div>
       )}
     </div>
   );

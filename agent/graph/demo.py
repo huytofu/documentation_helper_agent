@@ -57,7 +57,7 @@ sdk = CopilotKitRemoteEndpoint(
                     "requires_langgraph": True,
                     "timestamp": "auto"
                 },
-                "stream_mode": "updates"  # Use stream_mode instead of streaming
+                "stream_mode": "all"  # Stream all updates, including intermediate state
             }
         )
     ],

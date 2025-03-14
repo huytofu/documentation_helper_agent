@@ -7,8 +7,7 @@ import {
 import { ChatOllama } from "@langchain/ollama";
 import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { ChainValues } from "@langchain/core/utils/types";
-
-// console.log("Initializing CopilotKit runtime...");
+import { API_ENDPOINT, BACKEND_ENDPOINT } from "@/constants";
 
 const model = new ChatOllama({
   model: "llama3.3:70b",
@@ -53,7 +52,7 @@ const serviceAdapter = new LangChainAdapter({
     //     }
     //   });
     // }
-
+    
     // For direct model responses
     const formattedMessages = messages.map((msg: BaseMessage) => ({
       role: msg instanceof HumanMessage ? 'user' : 'assistant',
@@ -73,7 +72,7 @@ const serviceAdapter = new LangChainAdapter({
 const runtime = new CopilotRuntime({
   remoteEndpoints: [
     {
-      url: process.env.REMOTE_ACTION_URL || "http://localhost:8000/copilotkitagent"
+      url: BACKEND_ENDPOINT
     }
   ]
 });
@@ -98,11 +97,11 @@ export const POST = async (req: NextRequest) => {
     //   body: JSON.stringify(body)
     // });
     
-    const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-      runtime,
-      serviceAdapter,
-      endpoint: "/api/copilotkit",
-    });
+  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+    runtime,
+    serviceAdapter,
+    endpoint: API_ENDPOINT,
+  });
 
     // console.log("\nForwarding formatted request to runtime...");
     const response = await handleRequest(req);
@@ -124,4 +123,4 @@ export const POST = async (req: NextRequest) => {
     // }
     throw error;
   }
-}; 
+};

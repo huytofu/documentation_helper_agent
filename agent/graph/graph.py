@@ -20,8 +20,8 @@ logger.debug("Graph module initialized")
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
-# Compile the workflow centrally
-app = workflow.compile(checkpointer=memory)
-logger.debug("Graph compiled successfully")
+# Compile the workflow centrally with streaming enabled
+app = workflow.compile(checkpointer=memory, streaming=True)
+logger.debug("Graph compiled successfully with streaming enabled")
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")

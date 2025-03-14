@@ -1,8 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CopilotChat } from "@copilotkit/react-ui";
 import { MessageSquare } from "lucide-react";
+import { useCoAgent } from "@copilotkit/react-core";
+import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
+import { AGENT_NAME } from "@/constants";
+import { AgentState } from "@/app/page";
 
 export function ChatInterface() {
+  // Use the useCoAgent hook to get access to the run function
+  const { state, setState, run } = useCoAgent<AgentState>({
+    name: AGENT_NAME,
+    initialState: {
+      language: "",
+      current_node: "",
+      comments: "",
+    },
+  });
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log("ChatInterface: Agent state updated:", state);
+  }, [state]);
+
   return (
     <div className="flex-1 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
       <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">

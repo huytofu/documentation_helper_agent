@@ -7,6 +7,7 @@ import { ReactNode, useState, createContext, useContext } from "react";
 import { Header } from "@/components/Header";
 import "@copilotkit/react-ui/styles.css";
 import { ProgrammingLanguage } from "@/types";
+import { AGENT_NAME, API_ENDPOINT } from "@/constants";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,8 +35,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <div className="absolute inset-0 border-4 border-blue-500/20 rounded-3xl m-4 -z-10" />
         <LanguageContext.Provider value={{ selectedLanguage, setSelectedLanguage }}>
           <CopilotKit 
-            runtimeUrl="/api/copilotkit"
-            agent="coding_agent"
+            runtimeUrl={API_ENDPOINT}
+            agent={AGENT_NAME}
             // properties={{
             //   language: selectedLanguage,
             // }}
