@@ -10,27 +10,22 @@ import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
 
 // Define shared agent state type
-export type AgentState = {
-  language: ProgrammingLanguage | "";
-  comments: string;
-  current_node: string;
-  generation: string;
-}
+// export type AgentState = {
+//   language: ProgrammingLanguage | "";
+//   comments: string;
+//   current_node: string;
+// }
 
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
   // Temporarily disabled coAgent state management
-  // const { state, setState } = useCoAgent<{
-  //   language: ProgrammingLanguage | "";
-  //   current_node: string;
-  //   final_generation: string;
-  // }>({
+  // const { state, setState } = useCoAgent<AgentState>({
   //   name: "coding_agent",
   //   initialState: {
   //     language: "python",
   //     current_node: "",
-  //     final_generation: ""
+  //     comments: ""
   //   }
   // });
 
