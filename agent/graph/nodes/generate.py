@@ -20,7 +20,7 @@ def generate(state: GraphState) -> Dict[str, Any]:
     if last_message_type == "human":
         generation = ""
     elif last_message_type == "ai":
-        generation = messages[-1].get("content", "")
+        generation = messages[-1].content
     
     comments = state.get("comments", None)
     retry_count = state.get("retry_count", 0)

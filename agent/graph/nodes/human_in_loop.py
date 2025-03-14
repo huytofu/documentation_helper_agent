@@ -15,7 +15,7 @@ def human_in_loop(state: GraphState) -> Dict[str, Any]:
     if last_message_type == "human":
         generation = ""
     elif last_message_type == "ai":
-        generation = messages[-1].get("content", "")
+        generation = messages[-1].content
     
     human_in_loop = interrupt(
         "This is our generation: " + generation + 
