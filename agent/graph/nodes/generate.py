@@ -3,6 +3,7 @@ from typing import Any, Dict
 from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
+from agent.graph.utils.message_utils import get_last_message_type
 
 
 def generate(state: GraphState) -> Dict[str, Any]:
@@ -12,11 +13,11 @@ def generate(state: GraphState) -> Dict[str, Any]:
     framework = state.get("framework", "")
     language = state.get("language", "")
     messages = state["messages"]
-    last_message = messages[-1]
-    if last_message.type == "human" or isinstance(last_message, HumanMessage):
+    last_message_type = get_last_message_type(messages)
+    if last_message_type == "human":
         generation = ""
-    elif last_message.type == "ai" or isinstance(last_message, AIMessage):
-        generation = last_message.get("content", "")
+    elif last_message_type == "ai":
+        generation = messages[-1].get("content", "")
     comments = state.get("comments", None)
     retry_count = state.get("retry_count", 0)
 
