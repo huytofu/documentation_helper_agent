@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useCoAgent, useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
+import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
@@ -7,8 +7,8 @@ import { ProgrammingLanguage } from "@/types";
 // Define the agent state type
 type AgentState = {
   language: ProgrammingLanguage | "";
-  comments: string;
-  current_node: string;
+  comments?: string;
+  current_node?: string;
 }
 
 // Status content component
@@ -90,14 +90,8 @@ function StatusContent({ state }: { state?: AgentState }) {
 
 export function AgentStatePanel() {
   // Local state to track updates
-  const [currentStatus, setCurrentStatus] = useState<string>("");
   const [currentState, setCurrentState] = useState<AgentState | undefined>(undefined);
   const [stateUpdateCount, setStateUpdateCount] = useState(0);
-  
-  // Use the coAgent hook directly for state access
-  const { state } = useCoAgent<AgentState>({
-    name: "coding_agent",
-  });
   
   // Use the useCoAgentStateRender hook for real-time updates
   useCoAgentStateRender<AgentState>({
@@ -107,7 +101,6 @@ export function AgentStatePanel() {
       
       // Update local state
       if (renderedState) {
-        setCurrentStatus(renderedState.current_node || "");
         setCurrentState(prevState => ({
           ...prevState,
           ...renderedState
@@ -122,10 +115,9 @@ export function AgentStatePanel() {
 
   // Log state updates for debugging
   useEffect(() => {
-    console.log("Agent state updated:", state);
     console.log("Current state:", currentState);
     console.log("State update count:", stateUpdateCount);
-  }, [state, currentState, stateUpdateCount]);
+  }, [currentState, stateUpdateCount]);
 
   // Add the LangGraph interrupt handler
   useLangGraphInterrupt<string>({
@@ -161,9 +153,6 @@ export function AgentStatePanel() {
     )
   });
 
-  // Use the combined state (from useCoAgent and useCoAgentStateRender)
-  const displayState = currentState || state;
-
   return (
     <div className="w-80 shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
       <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
@@ -176,12 +165,12 @@ export function AgentStatePanel() {
           </span>
         )}
       </div>
-      {!displayState ? (
+      {!currentState ? (
         <div className="text-sm text-gray-500 p-4">
           Waiting for agent state...
         </div>
       ) : (
-        <StatusContent state={displayState} />
+        <StatusContent state={currentState} />
       )}
     </div>
   );
