@@ -24,10 +24,10 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
         "current_node": "HUMAN_IN_LOOP"
     }
     
-    # Emit state update with only OutputGraphState properties
-    if config:
-        output_properties = extract_output_state_properties(result_state)
-        await copilotkit_emit_state(config, output_properties)
+    # Temporarily disabled explicit state emission
+    # if config:
+    #     output_properties = extract_output_state_properties(result_state)
+    #     await copilotkit_emit_state(config, output_properties)
     
     human_in_loop = interrupt(
         "This is our generation: " + generation + 

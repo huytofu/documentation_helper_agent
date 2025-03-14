@@ -33,9 +33,9 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         "current_node": "GENERATE"
     }
 
-    # Emit state update with only OutputGraphState properties
     if config:
         output_properties = extract_output_state_properties(result_state)
+        output_properties["current_node"] = "GENERATING ANSWER..."
         await copilotkit_emit_state(config, output_properties)
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])

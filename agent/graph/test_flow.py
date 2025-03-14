@@ -72,11 +72,12 @@ def determine_user_sentiment(state: GraphState) -> str:
     else:
         return "bad"
     
-workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
+# Create the graph with async executor for streaming support
+workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState, executor="async")
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
-# Add other 
+# Add other nodes
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GENERATE, generate)

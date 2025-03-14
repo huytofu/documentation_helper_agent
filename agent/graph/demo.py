@@ -56,7 +56,8 @@ sdk = CopilotKitRemoteEndpoint(
                 "metadata": {
                     "requires_langgraph": True,
                     "timestamp": "auto"
-                }
+                },
+                "streaming": True  # Enable streaming for the agent
             }
         )
     ],
@@ -194,11 +195,15 @@ async def test():
             "retry_count": 0
         }
         logger.info(f"Starting test workflow with state: {state}")
-        result = await agent_app.ainvoke(state, config={"configurable": {
-            "thread_id": "test-thread", 
-            "checkpoint_ns": "test-ns", 
-            "checkpoint_id": "test-checkpoint"
-        }})
+        # Enable streaming in the test config
+        result = await agent_app.ainvoke(state, config={
+            "configurable": {
+                "thread_id": "test-thread", 
+                "checkpoint_ns": "test-ns", 
+                "checkpoint_id": "test-checkpoint"
+            },
+            "streaming": True
+        })
         logger.info(f"Test workflow completed with result: {result}")
         return {"status": "ok", "result": result}
     except Exception as e:
@@ -206,7 +211,7 @@ async def test():
         return {"status": "error", "error": str(e)}
 
 # Add logging for agent initialization
-logger.info("Initialized LangGraph agent with force_use=True")
+logger.info("Initialized LangGraph agent with streaming enabled")
 
 def main():
     """Run the uvicorn server."""
@@ -249,10 +254,7 @@ def main():
         "agent.graph.demo:app",
         host="0.0.0.0",
         port=port,
-        reload=True,
-        reload_dirs=["."],
         log_config=log_config,
-        log_level="debug"  # Set uvicorn's log level to debug
     )
 
 if __name__ == "__main__":

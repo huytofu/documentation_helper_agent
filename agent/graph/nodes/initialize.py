@@ -35,10 +35,10 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     state_copy["retry_count"] = 0
     state_copy["current_node"] = "INITIALIZE"
     
-    # Emit state update with only OutputGraphState properties
-    if config:
-        output_properties = extract_output_state_properties(state_copy)
-        await copilotkit_emit_state(config, output_properties)
+    # Temporarily disabled explicit state emission
+    # if config:
+    #     output_properties = extract_output_state_properties(state_copy)
+    #     await copilotkit_emit_state(config, output_properties)
     
     logger.info(f"Initialized state with query: {query}")
     return {

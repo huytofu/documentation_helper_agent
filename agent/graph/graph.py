@@ -13,11 +13,11 @@ else:
 
 # Configure logging
 logger = logging.getLogger("graph.graph")
-logger.debug("Graph module initialized")
+logger.debug("Graph module initialized with streaming enabled")
 
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
-app = workflow.compile(checkpointer=memory)
+app = workflow.compile(checkpointer=memory, streaming=True)
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")
