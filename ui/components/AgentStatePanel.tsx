@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useCoAgentStateRender } from "@copilotkit/react-core";
+import React, { useState, useEffect, useRef } from 'react';
+import { useCoAgentStateRender, useCoAgent } from "@copilotkit/react-core";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
 import { AGENT_NAME } from "@/constants";
@@ -26,45 +26,40 @@ const areStatesEqual = (state1: AgentState | null, state2: AgentState | null): b
 };
 
 // Component to display the content of the agent state
-const StatusContent = ({ currentStatus, currentState, isLoading }: { 
-  currentStatus: string; 
-  currentState: AgentState | null;
+const StatusContent = ({ state, isLoading }: { 
+  state: AgentState;
   isLoading: boolean;
 }) => {
-  if (!currentState) {
-    return <div>No state available</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-medium mb-1">Current Node:</h3>
         <div className="bg-secondary/50 p-2 rounded text-sm">
-          {isLoading ? "Processing..." : (currentStatus || "Waiting for agent to start...")}
+          {isLoading ? "Processing..." : (state.current_node || "Waiting for agent to start...")}
         </div>
       </div>
       
       <div>
         <h3 className="text-sm font-medium mb-1">Language:</h3>
         <div className="bg-secondary/50 p-2 rounded text-sm">
-          {currentState.language || "Not set"}
+          {state.language || "Not set"}
         </div>
       </div>
       
-      {currentState.comments && (
+      {state.comments && (
         <div>
           <h3 className="text-sm font-medium mb-1">Comments:</h3>
           <div className="bg-secondary/50 p-2 rounded text-sm whitespace-pre-wrap">
-            {currentState.comments}
+            {state.comments}
           </div>
         </div>
       )}
       
-      {currentState.test_counter !== undefined && (
+      {state.test_counter !== undefined && (
         <div>
           <h3 className="text-sm font-medium mb-1">Test Counter:</h3>
           <div className="bg-secondary/50 p-2 rounded text-sm">
-            {currentState.test_counter}
+            {state.test_counter}
           </div>
         </div>
       )}
@@ -73,46 +68,29 @@ const StatusContent = ({ currentStatus, currentState, isLoading }: {
 };
 
 export function AgentStatePanel() {
-  // State for tracking the current status and state
-  const [currentStatus, setCurrentStatus] = useState<string>("");
-  const [currentState, setCurrentState] = useState<AgentState | null>(null);
-  const [stateUpdateCount, setStateUpdateCount] = useState(0);
+  // Get state directly from useCoAgent
+  const { state: directState } = useCoAgent<AgentState>({
+    name: AGENT_NAME
+  });
+  
+  // State for tracking loading and updates
   const [isLoading, setIsLoading] = useState(false);
+  const [updateCount, setUpdateCount] = useState(0);
   
   // Reference to track render count for debugging
   const renderCountRef = useRef(0);
   
-  // Reference to track if we're currently updating state
-  const isUpdatingRef = useRef(false);
-  
-  // Reference to store the last state we processed
-  const lastStateRef = useRef<AgentState | null>(null);
-  
-  // Reference to store the latest rendered state from the agent
-  const latestRenderedStateRef = useRef<AgentState | null>(null);
+  // Reference to store the last node we saw
+  const lastNodeRef = useRef<string>("");
   
   // Timer reference for loading state
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Handle state updates in a stable way using useCallback
-  const handleStateUpdate = useCallback((newState: AgentState) => {
-    // Skip if we're already updating to prevent loops
-    if (isUpdatingRef.current) return;
-    
-    // Skip if the new state is the same as the last state we processed
-    if (areStatesEqual(lastStateRef.current, newState)) {
-      console.log("AgentStatePanel: Skipping identical state update");
-      return;
-    }
-    
-    // Set the updating flag
-    isUpdatingRef.current = true;
-    
-    // Update the last state reference
-    lastStateRef.current = { ...newState };
-    
-    // Set loading state when a new node is detected
-    if (newState.current_node && newState.current_node !== currentStatus) {
+  // Handle node changes and loading state
+  useEffect(() => {
+    if (directState?.current_node && directState.current_node !== lastNodeRef.current) {
+      console.log(`AgentStatePanel: New node detected: ${directState.current_node}, setting loading state`);
+      lastNodeRef.current = directState.current_node;
       setIsLoading(true);
       
       // Clear any existing timer
@@ -122,56 +100,14 @@ export function AgentStatePanel() {
       
       // Set a timer to clear the loading state after a delay
       loadingTimerRef.current = setTimeout(() => {
+        console.log("AgentStatePanel: Clearing loading state after timeout");
         setIsLoading(false);
-      }, 1500); // Adjust this delay as needed
+      }, 1500);
+      
+      // Increment update count
+      setUpdateCount(prev => prev + 1);
     }
-    
-    // Schedule the state update for the next tick to avoid React warnings
-    Promise.resolve().then(() => {
-      setCurrentState(prevState => {
-        if (!prevState) return newState;
-        return {
-          ...prevState,
-          ...newState
-        };
-      });
-      setStateUpdateCount(prev => prev + 1);
-      
-      // Update current status based on the current_node
-      if (newState.current_node) {
-        setCurrentStatus(newState.current_node);
-      }
-      
-      // Reset the updating flag
-      isUpdatingRef.current = false;
-    });
-  }, [currentStatus]);
-  
-  // Use the useCoAgentStateRender hook for real-time updates
-  useCoAgentStateRender<AgentState>({
-    name: AGENT_NAME,
-    render: ({ state: renderedState }) => {
-      // Track render count for debugging
-      renderCountRef.current += 1;
-      console.log(`AgentStatePanel: Rendering state update (${renderCountRef.current}):`, renderedState);
-      
-      // Store the latest rendered state in a ref instead of updating state directly
-      if (renderedState) {
-        latestRenderedStateRef.current = renderedState;
-      }
-      
-      // Return an invisible div to avoid rendering in the chat
-      return <div style={{ display: 'none' }} />;
-    }
-  });
-  
-  // Process the latest rendered state after rendering is complete
-  useEffect(() => {
-    // Only process if we have a new state and we're not already updating
-    if (latestRenderedStateRef.current && !isUpdatingRef.current) {
-      handleStateUpdate(latestRenderedStateRef.current);
-    }
-  }, [handleStateUpdate]);
+  }, [directState?.current_node]);
   
   // Cleanup timer on unmount
   useEffect(() => {
@@ -182,19 +118,35 @@ export function AgentStatePanel() {
     };
   }, []);
   
+  // Log state changes
+  useEffect(() => {
+    console.log("AgentStatePanel: directState changed:", directState);
+  }, [directState]);
+  
+  // Render component with state from useCoAgent
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground mb-2">
-        State Updates: {stateUpdateCount}
+        State Updates: {updateCount}
       </div>
       
-      {currentState ? (
-        <StatusContent currentStatus={currentStatus} currentState={currentState} isLoading={isLoading} />
+      {directState ? (
+        <StatusContent state={directState} isLoading={isLoading} />
       ) : (
         <div className="text-center py-8 text-muted-foreground">
-          Waiting for agent to start...
+          Waiting for agent to start... (No state available)
         </div>
       )}
+      
+      {/* Debug information */}
+      <div className="mt-4 p-2 border border-gray-200 rounded bg-gray-50 text-xs">
+        <div>Debug Info:</div>
+        <div>Has Direct State: {directState ? 'Yes' : 'No'}</div>
+        <div>Current Node: {directState?.current_node || 'None'}</div>
+        <div>Language: {directState?.language || 'None'}</div>
+        <div>Has Comments: {directState?.comments ? 'Yes' : 'No'}</div>
+        <div>Is Loading: {isLoading ? 'Yes' : 'No'}</div>
+      </div>
     </div>
   );
 } 
