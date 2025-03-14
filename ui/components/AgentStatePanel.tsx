@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ProgrammingLanguage } from "@/types";
 
 // Define the agent state type
 type AgentState = {
+  language?: ProgrammingLanguage | "";
   comments?: string;
   current_node?: string;
 }
@@ -83,8 +85,24 @@ export function AgentStatePanel() {
   const [currentState, setCurrentState] = useState<AgentState | undefined>(undefined);
   const [stateUpdateCount, setStateUpdateCount] = useState(0);
   
+  // Use refs to track the last update and prevent duplicates
+  const lastUpdateRef = useRef<string>("");
+  const renderCountRef = useRef<number>(0);
+  
   // Create a stable callback for state updates
   const handleStateUpdate = useCallback((newState: AgentState) => {
+    // Create a unique ID for this update based on its content
+    const updateId = JSON.stringify(newState);
+    
+    // Skip if this is a duplicate update
+    if (updateId === lastUpdateRef.current) {
+      console.log("Skipping duplicate state update");
+      return;
+    }
+    
+    // Store this update ID to detect duplicates
+    lastUpdateRef.current = updateId;
+    
     // Use Promise.resolve().then to schedule the state update for the next tick
     // This prevents the "Cannot update during render" error
     Promise.resolve().then(() => {
@@ -103,7 +121,9 @@ export function AgentStatePanel() {
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ state: renderedState }) => {
-      console.log("Rendering state update:", renderedState);
+      // Track render count for debugging
+      renderCountRef.current += 1;
+      console.log(`Rendering state update (${renderCountRef.current}):`, renderedState);
       
       // Only process if we have state
       if (renderedState) {
