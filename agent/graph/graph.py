@@ -5,22 +5,23 @@ from langgraph.checkpoint.memory import MemorySaver
 import logging
 import os
 
-# Import the compiled app with streaming enabled instead of the raw workflow
+# Import the workflows instead of the compiled apps
 if os.environ.get("FLOW") == "test":
-    from agent.graph.test_flow import app
+    from agent.graph.test_flow import workflow
 elif os.environ.get("FLOW") == "simple":
-    from agent.graph.simple_flow import app
+    from agent.graph.simple_flow import workflow
 else:
-    from agent.graph.real_flow import app
+    from agent.graph.real_flow import workflow
 
 # Configure logging
 logger = logging.getLogger("graph.graph")
-logger.debug("Graph module initialized with streaming enabled")
+logger.debug("Graph module initialized")
 
 # memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
-# No need to compile again, the imported apps are already compiled with streaming
-# app = workflow.compile(checkpointer=memory, streaming=True)
+# Compile the workflow centrally
+app = workflow.compile()
+logger.debug("Graph compiled successfully")
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")

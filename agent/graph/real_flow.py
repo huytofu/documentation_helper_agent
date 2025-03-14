@@ -157,5 +157,4 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge(POST_HUMAN_IN_LOOP, END)
 
-# Compile the graph with streaming enabled
-app = workflow.compile(streaming=True)
+# Workflow is compiled in graph.py
