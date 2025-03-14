@@ -2,11 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ProgrammingLanguage } from "@/types";
 
 // Define the agent state type
 type AgentState = {
-  language: ProgrammingLanguage | "";
   comments?: string;
   current_node?: string;
 }
@@ -53,14 +51,6 @@ function StatusContent({ state }: { state?: AgentState }) {
         <div className="text-sm bg-blue-50 rounded px-3 py-2">
           <span className="font-medium">Current Node:</span>
           <div className="mt-1">{state.current_node}</div>
-        </div>
-      )}
-
-      {/* Language */}
-      {state?.language && (
-        <div className="text-sm bg-purple-50 rounded px-3 py-2">
-          <span className="font-medium">Language:</span>
-          <div className="mt-1">{state.language}</div>
         </div>
       )}
 
