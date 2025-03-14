@@ -10,8 +10,8 @@ import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
 import { Button } from "@/components/ui/button";
 
-// Define shared agent state type
-export type AgentState = {
+// Define shared agent state interface
+export interface AgentState {
   language: ProgrammingLanguage | "";
   comments: string;
   current_node: string;

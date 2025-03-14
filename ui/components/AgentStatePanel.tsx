@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
 
-// Define the agent state type
-type AgentState = {
+// Define the agent state interface
+export interface AgentState {
   language?: ProgrammingLanguage | "";
   comments?: string;
   current_node?: string;
