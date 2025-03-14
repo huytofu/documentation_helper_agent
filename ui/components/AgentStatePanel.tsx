@@ -93,23 +93,36 @@ export function AgentStatePanel() {
   const [currentState, setCurrentState] = useState<AgentState | undefined>(undefined);
   const [stateUpdateCount, setStateUpdateCount] = useState(0);
   
+  // Create a stable callback for state updates
+  const handleStateUpdate = useCallback((newState: AgentState) => {
+    // Use Promise.resolve().then to schedule the state update for the next tick
+    // This prevents the "Cannot update during render" error
+    Promise.resolve().then(() => {
+      setCurrentState(prevState => {
+        if (!prevState) return newState;
+        return {
+          ...prevState,
+          ...newState
+        };
+      });
+      setStateUpdateCount(prev => prev + 1);
+    });
+  }, []);
+  
   // Use the useCoAgentStateRender hook for real-time updates
   useCoAgentStateRender<AgentState>({
     name: "coding_agent",
     render: ({ state: renderedState }) => {
       console.log("Rendering state update:", renderedState);
       
-      // Update local state
+      // Only process if we have state
       if (renderedState) {
-        setCurrentState(prevState => ({
-          ...prevState,
-          ...renderedState
-        }));
-        setStateUpdateCount(prev => prev + 1);
+        // Schedule the state update for after rendering is complete
+        handleStateUpdate(renderedState);
       }
       
-      // Return null to prevent rendering in chat
-      return null;
+      // Return an invisible div instead of null
+      return <div style={{ display: 'none' }} />;
     }
   });
 
