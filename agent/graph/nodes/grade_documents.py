@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from agent.graph.chains.retrieval_grader import retrieval_grader
 from agent.graph.state import GraphState
-
+from agent.graph.utils.message_utils import get_page_content
 
 def grade_documents(state: GraphState) -> Dict[str, Any]:
     """
@@ -22,7 +22,7 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
     filtered_docs = []
     for d in documents:
         score = retrieval_grader.invoke(
-            {"query": query, "document": d.page_content}
+            {"query": query, "document": get_page_content(d)}
         )
         grade = score.binary_score
         if grade.lower() == "yes":

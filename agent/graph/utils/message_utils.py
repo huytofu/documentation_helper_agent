@@ -1,5 +1,12 @@
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.documents import Document
 
+def get_page_content(doc: Document) -> str:
+    if doc.metadata.get("source") == "web":
+        return doc.page_content[:500]
+    else:
+        return ""
+    
 def get_last_message_type(messages):
     """Get the type of the last message in a list of messages.
     

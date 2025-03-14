@@ -7,6 +7,11 @@ from agent.graph.state import GraphState
 
 web_search_tool = TavilySearchResults(k=3)
 
+def get_content(doc: Document) -> str:
+    if doc.metadata.get("source") == "web":
+        return doc.page_content[:500]
+    else:
+        return ""
 
 def web_search(state: GraphState) -> Dict[str, Any]:
     print("---WEB SEARCH---")
@@ -14,7 +19,7 @@ def web_search(state: GraphState) -> Dict[str, Any]:
     documents = state["documents"]
 
     docs = web_search_tool.invoke({"query": query})
-    web_results = "\n".join([d["content"][:500] for d in docs[:3]])
+    web_results = "\n".join([get_content(d) for d in docs[:3]])
     web_results = Document(page_content=web_results)
     if documents is not None:
         documents.append(web_results)

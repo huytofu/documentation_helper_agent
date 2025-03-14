@@ -4,6 +4,8 @@ from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
 from agent.graph.utils.message_utils import get_last_message_type
+from langchain_core.documents import Document
+from agent.graph.utils.message_utils import get_page_content
 
 
 def generate(state: GraphState) -> Dict[str, Any]:
@@ -14,14 +16,16 @@ def generate(state: GraphState) -> Dict[str, Any]:
     language = state.get("language", "")
     messages = state["messages"]
     last_message_type = get_last_message_type(messages)
+    
     if last_message_type == "human":
         generation = ""
     elif last_message_type == "ai":
         generation = messages[-1].get("content", "")
+    
     comments = state.get("comments", None)
     retry_count = state.get("retry_count", 0)
 
-    joined_documents = "\n\n".join([doc.page_content[:500] for doc in documents[:3]])
+    joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
     if framework and (framework not in ["none", ""]):
         extra_info = f"and is expert at the {framework} framework"

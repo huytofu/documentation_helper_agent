@@ -11,14 +11,14 @@ def human_in_loop(state: GraphState) -> Dict[str, Any]:
     logger.info("---HUMAN IN LOOP---")
     messages = state["messages"]
     last_message_type = get_last_message_type(messages)
+    
     if last_message_type == "human":
-        comments = messages[-1].content
+        generation = ""
     elif last_message_type == "ai":
-        comments = ""
-    else:
-        comments = ""
+        generation = messages[-1].get("content", "")
+    
     human_in_loop = interrupt(
-        "This is our generation: " + comments + 
+        "This is our generation: " + generation + 
         "But it may not answer your question.<br>" + 
         "Please provide a critical feedback on the generation.",
     )

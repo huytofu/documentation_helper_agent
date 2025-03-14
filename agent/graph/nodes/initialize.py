@@ -11,12 +11,15 @@ def initialize(state: GraphState) -> Dict[str, Any]:
     logger.info("---INITIALIZE---")
     messages = state["messages"]
     last_message_type = get_last_message_type(messages)
+    
+    while last_message_type == "ai":
+        messages.pop()
+        last_message_type = get_last_message_type(messages)
+    
     if last_message_type == "human":
         query = messages[-1].content
-    elif last_message_type == "ai":
-        query = ""
     else:
-        query = ""
+        query = "Tell me about who you are and what you do"
     
     # Create a copy of the state
     state_copy = state.copy()
