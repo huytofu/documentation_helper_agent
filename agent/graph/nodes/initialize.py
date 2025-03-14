@@ -2,11 +2,12 @@ import logging
 from typing import Any, Dict
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
-from agent.graph.utils.message_utils import get_last_message_type
+from agent.graph.utils.message_utils import get_last_message_type, extract_output_state_properties
+from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.graph")
 
-def initialize(state: GraphState) -> Dict[str, Any]:
+async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Initialize the state with properties from the request."""
     logger.info("---INITIALIZE---")
     messages = state["messages"]
@@ -32,6 +33,12 @@ def initialize(state: GraphState) -> Dict[str, Any]:
     state_copy["generation"] = ""
     state_copy["comments"] = ""
     state_copy["retry_count"] = 0
+    state_copy["current_node"] = "INITIALIZE"
+    
+    # Emit state update with only OutputGraphState properties
+    if config:
+        output_properties = extract_output_state_properties(state_copy)
+        await copilotkit_emit_state(config, output_properties)
     
     logger.info(f"Initialized state with query: {query}")
     return {
