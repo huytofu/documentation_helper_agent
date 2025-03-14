@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-// import { useCoAgent } from "@copilotkit/react-core";
+import { useCoAgent } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { LanguageContext } from "./layout";
 import { useContext } from "react";
@@ -10,33 +10,33 @@ import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
 
 // Define shared agent state type
-// export type AgentState = {
-//   language: ProgrammingLanguage | "";
-//   comments: string;
-//   current_node: string;
-// }
+export type AgentState = {
+  language: ProgrammingLanguage | "";
+  comments: string;
+  current_node: string;
+}
 
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
   // Temporarily disabled coAgent state management
-  // const { state, setState } = useCoAgent<AgentState>({
-  //   name: "coding_agent",
-  //   initialState: {
-  //     language: "python",
-  //     current_node: "",
-  //     comments: ""
-  //   }
-  // });
+  const { state, setState } = useCoAgent<AgentState>({
+    name: "coding_agent",
+    initialState: {
+      language: "python",
+      current_node: "",
+      comments: ""
+    }
+  });
 
   // Handler for language changes
   const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
     console.log("Language changed to:", lang);
     setSelectedLanguage(lang);
-    // setState({
-    //   ...state,
-    //   language: lang
-    // });
+    setState({
+      ...state,
+      language: lang
+    });
   };
 
   return (
@@ -67,7 +67,7 @@ export default function Home() {
           <ChatInterface />
 
           {/* Agent State Side Panel */}
-          {/* <AgentStatePanel /> */}
+          <AgentStatePanel />
         </div>
       </div>
     </div>

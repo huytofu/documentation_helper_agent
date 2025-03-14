@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
+import React, { useState, useEffect } from 'react';
+import { useCoAgent, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
@@ -9,21 +9,31 @@ type AgentState = {
   language: ProgrammingLanguage | "";
   comments: string;
   current_node: string;
-  generation: string;
 }
 
 // Status content component
-function StatusContent({ status, state }: { status?: string; state?: AgentState }) {
+function StatusContent({ state }: { state?: AgentState }) {
+  // Determine status based on current_node
+  let statusDisplay = "idle";
+  let statusColor = "bg-gray-500";
+  
+  if (state?.current_node) {
+    statusDisplay = "inProgress";
+    statusColor = "bg-blue-500 animate-pulse";
+  }
+  
+  // Check if we're at a final node
+  if (state?.current_node === "END") {
+    statusDisplay = "complete";
+    statusColor = "bg-green-500";
+  }
+  
   return (
     <div className="space-y-4 p-4">
       {/* Status Indicator */}
       <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${
-          status === "inProgress" ? "bg-blue-500 animate-pulse" : 
-          status === "complete" ? "bg-green-500" : 
-          "bg-gray-500"
-        }`} />
-        <span className="text-sm font-medium capitalize">{status}</span>
+        <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+        <span className="text-sm font-medium capitalize">{statusDisplay}</span>
       </div>
       
       {/* Current Node */}
@@ -34,14 +44,30 @@ function StatusContent({ status, state }: { status?: string; state?: AgentState 
         </div>
       )}
 
+      {/* Language */}
+      {state?.language && (
+        <div className="text-sm bg-purple-50 rounded px-3 py-2">
+          <span className="font-medium">Language:</span>
+          <div className="mt-1">{state.language}</div>
+        </div>
+      )}
+
+      {/* Comments */}
+      {state?.comments && (
+        <div className="text-sm bg-amber-50 rounded px-3 py-2">
+          <span className="font-medium">Comments:</span>
+          <div className="mt-1">{state.comments}</div>
+        </div>
+      )}
+
       {/* Debug Information */}
       <div className="text-xs bg-gray-100 rounded px-3 py-2">
         <span className="font-medium">Debug Info:</span>
         <pre className="mt-1 overflow-auto">
           {JSON.stringify({ 
-            status, 
+            status: statusDisplay, 
             hasState: !!state, 
-            node: state?.current_node 
+            stateKeys: state ? Object.keys(state) : []
           }, null, 2)}
         </pre>
       </div>
@@ -50,26 +76,15 @@ function StatusContent({ status, state }: { status?: string; state?: AgentState 
 }
 
 export function AgentStatePanel() {
-  const [currentStatus, setCurrentStatus] = useState<string>();
-  const [currentState, setCurrentState] = useState<AgentState>();
-
-  // Create a stable callback for state updates
-  const handleStateUpdate = useCallback(({ status, state }: { status: string; state: AgentState }) => {
-    setCurrentStatus(status);
-    setCurrentState(state);
-  }, []);
-
-  // Add the state renderer hook
-  useCoAgentStateRender<AgentState>({
+  // Use the coAgent hook directly for state access
+  const { state } = useCoAgent<AgentState>({
     name: "coding_agent",
-    render: ({ status, state }) => {
-      // Schedule state update for next render
-      Promise.resolve().then(() => {
-        handleStateUpdate({ status, state });
-      });
-      return <div style={{ display: 'none' }} />;
-    },
   });
+
+  // Log state updates for debugging
+  useEffect(() => {
+    console.log("Agent state updated:", state);
+  }, [state]);
 
   // Add the LangGraph interrupt handler
   useLangGraphInterrupt<string>({
@@ -112,12 +127,12 @@ export function AgentStatePanel() {
           Agent Status
         </h2>
       </div>
-      {(!currentState && !currentStatus) ? (
+      {!state ? (
         <div className="text-sm text-gray-500 p-4">
           Waiting for agent state...
         </div>
       ) : (
-        <StatusContent status={currentStatus} state={currentState} />
+        <StatusContent state={state} />
       )}
     </div>
   );
