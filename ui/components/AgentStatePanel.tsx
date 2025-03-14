@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useCoAgent, useLangGraphInterrupt } from "@copilotkit/react-core";
+import React, { useState, useEffect, useCallback } from 'react';
+import { useCoAgent, useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
@@ -20,6 +20,18 @@ function StatusContent({ state }: { state?: AgentState }) {
   if (state?.current_node) {
     statusDisplay = "inProgress";
     statusColor = "bg-blue-500 animate-pulse";
+    
+    // Check for specific node states
+    if (state.current_node.includes("STARTED")) {
+      statusDisplay = "started";
+      statusColor = "bg-yellow-500 animate-pulse";
+    } else if (state.current_node.includes("GENERATING")) {
+      statusDisplay = "generating";
+      statusColor = "bg-blue-500 animate-pulse";
+    } else if (state.current_node.includes("COMPLETE")) {
+      statusDisplay = "complete";
+      statusColor = "bg-green-500";
+    }
   }
   
   // Check if we're at a final node
@@ -67,7 +79,8 @@ function StatusContent({ state }: { state?: AgentState }) {
           {JSON.stringify({ 
             status: statusDisplay, 
             hasState: !!state, 
-            stateKeys: state ? Object.keys(state) : []
+            stateKeys: state ? Object.keys(state) : [],
+            timestamp: new Date().toISOString()
           }, null, 2)}
         </pre>
       </div>
@@ -76,15 +89,43 @@ function StatusContent({ state }: { state?: AgentState }) {
 }
 
 export function AgentStatePanel() {
+  // Local state to track updates
+  const [currentStatus, setCurrentStatus] = useState<string>("");
+  const [currentState, setCurrentState] = useState<AgentState | undefined>(undefined);
+  const [stateUpdateCount, setStateUpdateCount] = useState(0);
+  
   // Use the coAgent hook directly for state access
   const { state } = useCoAgent<AgentState>({
     name: "coding_agent",
+  });
+  
+  // Use the useCoAgentStateRender hook for real-time updates
+  useCoAgentStateRender<AgentState>({
+    name: "coding_agent",
+    render: ({ state: renderedState }) => {
+      console.log("Rendering state update:", renderedState);
+      
+      // Update local state
+      if (renderedState) {
+        setCurrentStatus(renderedState.current_node || "");
+        setCurrentState(prevState => ({
+          ...prevState,
+          ...renderedState
+        }));
+        setStateUpdateCount(prev => prev + 1);
+      }
+      
+      // Return null to prevent rendering in chat
+      return null;
+    }
   });
 
   // Log state updates for debugging
   useEffect(() => {
     console.log("Agent state updated:", state);
-  }, [state]);
+    console.log("Current state:", currentState);
+    console.log("State update count:", stateUpdateCount);
+  }, [state, currentState, stateUpdateCount]);
 
   // Add the LangGraph interrupt handler
   useLangGraphInterrupt<string>({
@@ -120,19 +161,27 @@ export function AgentStatePanel() {
     )
   });
 
+  // Use the combined state (from useCoAgent and useCoAgentStateRender)
+  const displayState = currentState || state;
+
   return (
     <div className="w-80 shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg">
       <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-t-xl">
         <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
           Agent Status
         </h2>
+        {stateUpdateCount > 0 && (
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+            Updates: {stateUpdateCount}
+          </span>
+        )}
       </div>
-      {!state ? (
+      {!displayState ? (
         <div className="text-sm text-gray-500 p-4">
           Waiting for agent state...
         </div>
       ) : (
-        <StatusContent state={state} />
+        <StatusContent state={displayState} />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCoAgent } from "@copilotkit/react-core";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { LanguageContext } from "./layout";
@@ -12,31 +12,43 @@ import { ChatInterface } from "@/components/ChatInterface";
 // Define shared agent state type
 export type AgentState = {
   language: ProgrammingLanguage | "";
-  comments: string;
-  current_node: string;
 }
 
 export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
-  // Temporarily disabled coAgent state management
+  // Use coAgent state management with proper initialization
   const { state, setState } = useCoAgent<AgentState>({
     name: "coding_agent",
     initialState: {
-      language: "python",
+      language: selectedLanguage || "python",
       current_node: "",
       comments: ""
     }
   });
 
+  // Effect to update agent state when selected language changes
+  useEffect(() => {
+    if (selectedLanguage && selectedLanguage !== state?.language) {
+      console.log("Language context changed, updating agent state:", selectedLanguage);
+      setState({
+        language: selectedLanguage
+      });
+    }
+  }, [selectedLanguage, setState, state]);
+
   // Handler for language changes
   const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
     console.log("Language changed to:", lang);
     setSelectedLanguage(lang);
+    
+    // Update agent state directly when language selector changes
     setState({
-      ...state,
       language: lang
     });
+    
+    // Log the update for debugging
+    console.log("Updated agent state with language:", lang);
   };
 
   return (
