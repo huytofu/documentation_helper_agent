@@ -8,7 +8,7 @@ import { ChatOllama } from "@langchain/ollama";
 import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { ChainValues } from "@langchain/core/utils/types";
 
-console.log("Initializing CopilotKit runtime...");
+// console.log("Initializing CopilotKit runtime...");
 
 const model = new ChatOllama({
   model: "llama3.3:70b",
@@ -22,9 +22,9 @@ interface ChainFnParameters {
 
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages, state }: ChainFnParameters) => {
-    console.log("Chain Function Called");
-    console.log("Service Adapter State:", state);
-    console.log("Service Adapter Messages:", messages);
+    // console.log("Chain Function Called");
+    // console.log("Service Adapter State:", state);
+    // console.log("Service Adapter Messages:", messages);
     
     // If we have a final generation, return it with state
     // if (state?.final_generation) {
@@ -79,24 +79,24 @@ const runtime = new CopilotRuntime({
 });
 
 export const POST = async (req: NextRequest) => {
-  console.log("\n=== Frontend Request Processing ===");
-  console.log("Received request at /api/copilotkit");
-  console.log("Request URL:", req.url);
-  console.log("Request method:", req.method);
-  console.log("Request headers:", Object.fromEntries(req.headers));
+  // console.log("\n=== Frontend Request Processing ===");
+  // console.log("Received request at /api/copilotkit");
+  // console.log("Request URL:", req.url);
+  // console.log("Request method:", req.method);
+  // console.log("Request headers:", Object.fromEntries(req.headers));
   
   try {
-    // Clone the request before reading its body
-    const clonedReq = req.clone();
-    const body = await clonedReq.json();
-    console.log("\nOriginal request body:", JSON.stringify(body, null, 2));
+    // Skip cloning and logging the request body
+    // const clonedReq = req.clone();
+    // const body = await clonedReq.json();
+    // console.log("\nOriginal request body:", JSON.stringify(body, null, 2));
     
-    // Create a new request with the original body
-    const formattedReq = new NextRequest(req.url, {
-      method: req.method,
-      headers: req.headers,
-      body: JSON.stringify(body)
-    });
+    // Use the original request directly instead of creating a new one
+    // const formattedReq = new NextRequest(req.url, {
+    //   method: req.method,
+    //   headers: req.headers,
+    //   body: JSON.stringify(body)
+    // });
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
@@ -104,24 +104,24 @@ export const POST = async (req: NextRequest) => {
       endpoint: "/api/copilotkit",
     });
 
-    console.log("\nForwarding formatted request to runtime...");
-    const response = await handleRequest(formattedReq);
-    console.log("Response status:", response.status);
-    console.log("Response headers:", Object.fromEntries(response.headers));
+    // console.log("\nForwarding formatted request to runtime...");
+    const response = await handleRequest(req);
+    // console.log("Response status:", response.status);
+    // console.log("Response headers:", Object.fromEntries(response.headers));
     
-    // Clone the response before reading it for logging
-    const clonedResponse = response.clone();
-    const responseBody = await clonedResponse.text();
-    console.log("Response body:", responseBody);
+    // Skip cloning and logging the response body
+    // const clonedResponse = response.clone();
+    // const responseBody = await clonedResponse.text();
+    // console.log("Response body:", responseBody);
     
-    console.log("=== End Frontend Request Processing ===\n");
+    // console.log("=== End Frontend Request Processing ===\n");
     return response;
   } catch (error) {
-    console.error("\n=== Error in /api/copilotkit ===");
-    console.error("Error details:", error);
-    if (error instanceof Error) {
-      console.error("Error stack:", error.stack);
-    }
+    // console.error("\n=== Error in /api/copilotkit ===");
+    // console.error("Error details:", error);
+    // if (error instanceof Error) {
+    //   console.error("Error stack:", error.stack);
+    // }
     throw error;
   }
 }; 
