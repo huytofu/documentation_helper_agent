@@ -23,20 +23,18 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     elif last_message_type == "ai":
         generation = messages[-1].content
     
-    comments = state.get("comments", None)
+    comments = state.get("comments", "")
     retry_count = state.get("retry_count", 0)
 
-    # Create result state with current_node
-    result_state = {
-        "messages": messages, 
-        "retry_count": retry_count, 
-        "current_node": "GENERATE"
-    }
-
+    # Emit only one "GENERATING" state update before generation
     if config:
-        output_properties = extract_output_state_properties(result_state)
-        output_properties["current_node"] = "GENERATING ANSWER..."
-        await copilotkit_emit_state(config, output_properties)
+        generating_state = {
+            "current_node": "GENERATING",
+            "language": language,
+            "comments": comments
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
@@ -52,5 +50,9 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     })
     messages.append(AIMessage(content=generation))
     retry_count += 1
-    
-    return result_state
+
+    # Return only messages and retry_count
+    return {
+        "messages": messages, 
+        "retry_count": retry_count
+    }

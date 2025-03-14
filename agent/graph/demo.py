@@ -192,7 +192,8 @@ async def test():
             "framework": "default",
             "generation": "",
             "comments": "",
-            "retry_count": 0
+            "retry_count": 0,
+            "messages": []  # Initialize empty messages array
         }
         logger.info(f"Starting test workflow with state: {state}")
         # Enable streaming in the test config
