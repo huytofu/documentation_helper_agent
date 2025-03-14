@@ -21,7 +21,7 @@ logger.debug("Graph module initialized")
 memory = MemorySaver()
 
 # Compile the workflow centrally
-app = workflow.compile()
+app = workflow.compile(checkpointer=memory)
 logger.debug("Graph compiled successfully")
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")
