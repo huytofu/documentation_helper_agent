@@ -11,7 +11,6 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { Button } from "@/components/ui/button";
 import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
 import { AGENT_NAME } from "@/constants";
-import { TestStateUpdates } from "@/components/TestStateUpdates";
 
 // Define shared agent state interface
 export interface AgentState {
@@ -35,24 +34,24 @@ export default function Home() {
   });
 
   // Function to trigger the agent with a message
-  const triggerAgent = (message: string) => {
-    console.log("Triggering agent with message:", message);
+  // const triggerAgent = (message: string) => {
+  //   console.log("Triggering agent with message:", message);
     
-    // Update the comments in the state
-    setState(prevState => ({
-      ...prevState,
-      comments: message,
-      // Ensure required fields are always present
-      language: prevState?.language || selectedLanguage || "python",
-      current_node: prevState?.current_node || "",
-    }));
+  //   // Update the comments in the state
+  //   setState(prevState => ({
+  //     ...prevState,
+  //     comments: message,
+  //     // Ensure required fields are always present
+  //     language: prevState?.language || selectedLanguage || "python",
+  //     current_node: prevState?.current_node || "",
+  //   }));
     
-    // Trigger the agent with the message
-    run(() => new TextMessage({ 
-      role: MessageRole.User, 
-      content: message 
-    }));
-  };
+  //   // Trigger the agent with the message
+  //   run(() => new TextMessage({ 
+  //     role: MessageRole.User, 
+  //     content: message 
+  //   }));
+  // };
 
   // Update agent state when language changes
   useEffect(() => {
@@ -102,9 +101,6 @@ export default function Home() {
           </div>
           <div className="w-full md:w-1/2">
             <AgentStatePanel />
-            <div className="mt-4">
-              <TestStateUpdates />
-            </div>
           </div>
         </div>
       </div>
