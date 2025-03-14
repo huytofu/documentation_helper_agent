@@ -9,6 +9,7 @@ type AgentState = {
   language?: ProgrammingLanguage | "";
   comments?: string;
   current_node?: string;
+  test_counter?: number;
 }
 
 // Status content component
@@ -61,6 +62,14 @@ function StatusContent({ state }: { state?: AgentState }) {
         <div className="text-sm bg-amber-50 rounded px-3 py-2">
           <span className="font-medium">Comments:</span>
           <div className="mt-1">{state.comments}</div>
+        </div>
+      )}
+
+      {/* Test Counter */}
+      {state?.test_counter !== undefined && (
+        <div className="text-sm bg-green-50 rounded px-3 py-2">
+          <span className="font-medium">Test Counter:</span>
+          <div className="mt-1">{state.test_counter}</div>
         </div>
       )}
 
@@ -123,7 +132,7 @@ export function AgentStatePanel() {
     render: ({ state: renderedState }) => {
       // Track render count for debugging
       renderCountRef.current += 1;
-      console.log(`Rendering state update (${renderCountRef.current}):`, renderedState);
+      console.log(`AgentStatePanel: Rendering state update (${renderCountRef.current}):`, renderedState);
       
       // Only process if we have state
       if (renderedState) {
@@ -138,8 +147,8 @@ export function AgentStatePanel() {
 
   // Log state updates for debugging
   useEffect(() => {
-    console.log("Current state:", currentState);
-    console.log("State update count:", stateUpdateCount);
+    console.log("AgentStatePanel: Current state:", currentState);
+    console.log("AgentStatePanel: State update count:", stateUpdateCount);
   }, [currentState, stateUpdateCount]);
 
   // Add the LangGraph interrupt handler

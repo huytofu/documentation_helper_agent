@@ -8,10 +8,14 @@ import { useContext } from "react";
 import { ProgrammingLanguage } from "@/types";
 import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
+import { Button } from "@/components/ui/button";
 
 // Define shared agent state type
 export type AgentState = {
   language: ProgrammingLanguage | "";
+  comments: string;
+  current_node: string;
+  test_counter?: number;
 }
 
 export default function Home() {
@@ -23,7 +27,8 @@ export default function Home() {
     initialState: {
       language: selectedLanguage || "python",
       current_node: "",
-      comments: ""
+      comments: "",
+      test_counter: 0
     }
   });
 
@@ -32,23 +37,50 @@ export default function Home() {
     if (selectedLanguage && selectedLanguage !== state?.language) {
       console.log("Language context changed, updating agent state:", selectedLanguage);
       setState({
-        language: selectedLanguage
+        language: selectedLanguage,
+        comments: state?.comments || "",
+        current_node: state?.current_node || "",
+        test_counter: state?.test_counter || 0
       });
     }
   }, [selectedLanguage, setState, state]);
+
+  // Effect to log state changes for testing bidirectional communication
+  useEffect(() => {
+    console.log("useCoAgent state changed in page.tsx:", {
+      state,
+      timestamp: new Date().toISOString()
+    });
+  }, [state]);
 
   // Handler for language changes
   const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
     console.log("Language changed to:", lang);
     setSelectedLanguage(lang);
     
-    // Update agent state directly when language selector changes
+    // Update state to ensure the agent receives the language
     setState({
-      language: lang
+      language: lang,
+      comments: state?.comments || "",
+      current_node: state?.current_node || "",
+      test_counter: state?.test_counter || 0
     });
     
     // Log the update for debugging
     console.log("Updated agent state with language:", lang);
+  };
+
+  // Test function to increment counter and verify bidirectional communication
+  const testBidirectionalCommunication = () => {
+    const newCounter = (state?.test_counter || 0) + 1;
+    console.log("Testing bidirectional communication, incrementing counter to:", newCounter);
+    
+    setState({
+      language: state?.language || "python",
+      comments: state?.comments || "",
+      current_node: state?.current_node || "",
+      test_counter: newCounter
+    });
   };
 
   return (
@@ -66,11 +98,25 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-4">
           <LanguageSelector
             selectedLanguage={selectedLanguage}
             onLanguageChange={handleLanguageChange}
           />
+          
+          {/* Test button for bidirectional communication */}
+          <Button 
+            variant="outline" 
+            onClick={testBidirectionalCommunication}
+            className="flex items-center gap-2"
+          >
+            Test Bidirectional Comm
+            {state?.test_counter !== undefined && (
+              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                {state.test_counter}
+              </span>
+            )}
+          </Button>
         </div>
 
         {/* Main Content with Side Panel Layout */}
