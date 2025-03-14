@@ -8,7 +8,6 @@ import { useContext } from "react";
 import { ProgrammingLanguage } from "@/types";
 import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
-import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
 import { AGENT_NAME } from "@/constants";
 
 // Define shared agent state interface
@@ -23,7 +22,7 @@ export default function Home() {
   const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
 
   // Use coAgent state management with proper initialization
-  const { state, setState, run } = useCoAgent<AgentState>({
+  const { state, setState } = useCoAgent<AgentState>({
     name: AGENT_NAME,
     initialState: {
       language: selectedLanguage || "python",

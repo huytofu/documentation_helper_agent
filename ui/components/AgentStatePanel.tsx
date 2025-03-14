@@ -88,6 +88,9 @@ export function AgentStatePanel() {
   // Reference to store the last state we processed
   const lastStateRef = useRef<AgentState | null>(null);
   
+  // Reference to store the latest rendered state from the agent
+  const latestRenderedStateRef = useRef<AgentState | null>(null);
+  
   // Timer reference for loading state
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -144,15 +147,6 @@ export function AgentStatePanel() {
     });
   }, [currentStatus]);
   
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
-      }
-    };
-  }, []);
-  
   // Use the useCoAgentStateRender hook for real-time updates
   useCoAgentStateRender<AgentState>({
     name: AGENT_NAME,
@@ -161,16 +155,32 @@ export function AgentStatePanel() {
       renderCountRef.current += 1;
       console.log(`AgentStatePanel: Rendering state update (${renderCountRef.current}):`, renderedState);
       
-      // Only process if we have state and we're not already updating
-      if (renderedState && !isUpdatingRef.current) {
-        // Schedule the state update for after rendering is complete
-        handleStateUpdate(renderedState);
+      // Store the latest rendered state in a ref instead of updating state directly
+      if (renderedState) {
+        latestRenderedStateRef.current = renderedState;
       }
       
       // Return an invisible div to avoid rendering in the chat
       return <div style={{ display: 'none' }} />;
     }
   });
+  
+  // Process the latest rendered state after rendering is complete
+  useEffect(() => {
+    // Only process if we have a new state and we're not already updating
+    if (latestRenderedStateRef.current && !isUpdatingRef.current) {
+      handleStateUpdate(latestRenderedStateRef.current);
+    }
+  }, [handleStateUpdate]);
+  
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, []);
   
   return (
     <div className="space-y-4">
