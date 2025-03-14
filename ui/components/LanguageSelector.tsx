@@ -49,39 +49,44 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange }: Languag
   ];
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-[200px] justify-between bg-white/50 backdrop-blur-sm hover:bg-white/80"
-        >
-          {selectedLanguage ? (
-            <span className="capitalize">{selectedLanguage}</span>
-          ) : (
-            "Select Language"
-          )}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px] bg-white/80 backdrop-blur-sm">
-        <DropdownMenuItem
-          onClick={() => {
-            onLanguageChange("");
-          }}
-        >
-          <span className="text-muted-foreground">Clear Selection</span>
-        </DropdownMenuItem>
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang}
-            onClick={() => {
-              onLanguageChange(lang);
-            }}
+    <div className="mb-4">
+      <h2 className="text-lg font-semibold mb-2">Select Programming Language</h2>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full md:w-[200px] justify-between bg-white/50 backdrop-blur-sm hover:bg-white/80 border border-gray-300 shadow-sm"
           >
-            <span className="capitalize">{lang}</span>
+            {selectedLanguage ? (
+              <span className="capitalize">{selectedLanguage}</span>
+            ) : (
+              "Select Language"
+            )}
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-full md:w-[200px] bg-white/80 backdrop-blur-sm max-h-[300px] overflow-y-auto">
+          <DropdownMenuItem
+            onClick={() => {
+              onLanguageChange("");
+            }}
+            className="hover:bg-blue-50 cursor-pointer"
+          >
+            <span className="text-muted-foreground">Clear Selection</span>
           </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {languages.map((lang) => (
+            <DropdownMenuItem
+              key={lang}
+              onClick={() => {
+                onLanguageChange(lang);
+              }}
+              className={`hover:bg-blue-50 cursor-pointer ${selectedLanguage === lang ? 'bg-blue-100' : ''}`}
+            >
+              <span className="capitalize">{lang}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 } 

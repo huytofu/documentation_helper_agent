@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useCoAgentStateRender, useLangGraphInterrupt } from "@copilotkit/react-core";
-import { Button } from "@/components/ui/button";
+import { useCoAgentStateRender } from "@copilotkit/react-core";
 import { Input } from "@/components/ui/input";
 import { ProgrammingLanguage } from "@/types";
-import { MessageSquareX } from "lucide-react";
 import { AGENT_NAME } from "@/constants";
 
 // Define the agent state interface
@@ -28,9 +26,10 @@ const areStatesEqual = (state1: AgentState | null, state2: AgentState | null): b
 };
 
 // Component to display the content of the agent state
-const StatusContent = ({ currentStatus, currentState }: { 
+const StatusContent = ({ currentStatus, currentState, isLoading }: { 
   currentStatus: string; 
   currentState: AgentState | null;
+  isLoading: boolean;
 }) => {
   if (!currentState) {
     return <div>No state available</div>;
@@ -41,7 +40,7 @@ const StatusContent = ({ currentStatus, currentState }: {
       <div>
         <h3 className="text-sm font-medium mb-1">Current Node:</h3>
         <div className="bg-secondary/50 p-2 rounded text-sm">
-          {currentStatus || "Waiting for agent to start..."}
+          {isLoading ? "Processing..." : (currentStatus || "Waiting for agent to start...")}
         </div>
       </div>
       
@@ -78,6 +77,7 @@ export function AgentStatePanel() {
   const [currentStatus, setCurrentStatus] = useState<string>("");
   const [currentState, setCurrentState] = useState<AgentState | null>(null);
   const [stateUpdateCount, setStateUpdateCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Reference to track render count for debugging
   const renderCountRef = useRef(0);
@@ -88,12 +88,8 @@ export function AgentStatePanel() {
   // Reference to store the last state we processed
   const lastStateRef = useRef<AgentState | null>(null);
   
-  // Get the interrupt function to allow stopping the agent
-  const interrupt = () => {
-    console.log("Interrupting agent...");
-    // Implement actual interrupt logic if needed
-  };
-  const isInterrupting = false;
+  // Timer reference for loading state
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Handle state updates in a stable way using useCallback
   const handleStateUpdate = useCallback((newState: AgentState) => {
@@ -111,6 +107,21 @@ export function AgentStatePanel() {
     
     // Update the last state reference
     lastStateRef.current = { ...newState };
+    
+    // Set loading state when a new node is detected
+    if (newState.current_node && newState.current_node !== currentStatus) {
+      setIsLoading(true);
+      
+      // Clear any existing timer
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+      
+      // Set a timer to clear the loading state after a delay
+      loadingTimerRef.current = setTimeout(() => {
+        setIsLoading(false);
+      }, 1500); // Adjust this delay as needed
+    }
     
     // Schedule the state update for the next tick to avoid React warnings
     Promise.resolve().then(() => {
@@ -131,6 +142,15 @@ export function AgentStatePanel() {
       // Reset the updating flag
       isUpdatingRef.current = false;
     });
+  }, [currentStatus]);
+  
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
   }, []);
   
   // Use the useCoAgentStateRender hook for real-time updates
@@ -154,25 +174,12 @@ export function AgentStatePanel() {
   
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          Updates: {stateUpdateCount}
-        </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={interrupt}
-          disabled={isInterrupting}
-          className="flex items-center gap-1"
-        >
-          <MessageSquareX className="h-4 w-4" />
-          {isInterrupting ? "Stopping..." : "Stop Agent"}
-        </Button>
+      <div className="text-sm text-muted-foreground mb-2">
+        State Updates: {stateUpdateCount}
       </div>
       
       {currentState ? (
-        <StatusContent currentStatus={currentStatus} currentState={currentState} />
+        <StatusContent currentStatus={currentStatus} currentState={currentState} isLoading={isLoading} />
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           Waiting for agent to start...

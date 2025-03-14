@@ -8,7 +8,6 @@ import { useContext } from "react";
 import { ProgrammingLanguage } from "@/types";
 import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
-import { Button } from "@/components/ui/button";
 import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
 import { AGENT_NAME } from "@/constants";
 
@@ -32,26 +31,6 @@ export default function Home() {
       comments: "",
     },
   });
-
-  // Function to trigger the agent with a message
-  // const triggerAgent = (message: string) => {
-  //   console.log("Triggering agent with message:", message);
-    
-  //   // Update the comments in the state
-  //   setState(prevState => ({
-  //     ...prevState,
-  //     comments: message,
-  //     // Ensure required fields are always present
-  //     language: prevState?.language || selectedLanguage || "python",
-  //     current_node: prevState?.current_node || "",
-  //   }));
-    
-  //   // Trigger the agent with the message
-  //   run(() => new TextMessage({ 
-  //     role: MessageRole.User, 
-  //     content: message 
-  //   }));
-  // };
 
   // Update agent state when language changes
   useEffect(() => {
@@ -89,18 +68,29 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm flex flex-col gap-4">
-        <div className="w-full flex flex-col md:flex-row gap-4">
-          <div className="w-full md:w-1/2">
-            <LanguageSelector 
-              selectedLanguage={selectedLanguage} 
-              onLanguageChange={handleLanguageChange} 
-            />
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-8">
+      <div className="w-full max-w-7xl">
+        <h1 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Documentation Helper Agent
+        </h1>
+        
+        <div className="w-full flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-1/2 space-y-4">
+            <div className="bg-white/30 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
+              <LanguageSelector 
+                selectedLanguage={selectedLanguage} 
+                onLanguageChange={handleLanguageChange} 
+              />
+            </div>
+            
             <ChatInterface />
           </div>
+          
           <div className="w-full md:w-1/2">
-            <AgentStatePanel />
+            <div className="bg-white/30 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">Agent Status</h2>
+              <AgentStatePanel />
+            </div>
           </div>
         </div>
       </div>
