@@ -8,8 +8,11 @@ from agent.graph.state import GraphState
 web_search_tool = TavilySearchResults(k=3)
 
 def get_content(doc: Document) -> str:
-    if doc.metadata.get("source") == "web":
-        return doc.page_content[:500]
+    if isinstance(doc, Document):
+        if doc.metadata.get("source") == "web":
+            return doc.page_content[:500]
+        else:
+            return ""
     else:
         return ""
 

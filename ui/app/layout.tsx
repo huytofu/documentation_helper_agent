@@ -37,9 +37,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <CopilotKit 
             runtimeUrl={API_ENDPOINT}
             agent={AGENT_NAME}
-            // properties={{
-            //   language: selectedLanguage,
-            // }}
           >
             <div className="relative flex min-h-screen flex-col">
               <Header />

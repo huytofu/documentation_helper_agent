@@ -11,6 +11,7 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { Button } from "@/components/ui/button";
 import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
 import { AGENT_NAME } from "@/constants";
+import { TestStateUpdates } from "@/components/TestStateUpdates";
 
 // Define shared agent state interface
 export interface AgentState {
@@ -55,7 +56,9 @@ export default function Home() {
 
   // Update agent state when language changes
   useEffect(() => {
-    if (selectedLanguage) {
+    // Only update if the language has actually changed and is different from the current state
+    if (selectedLanguage !== state.language) {
+      console.log("Language changed, updating agent state:", selectedLanguage);
       setState((prevState) => ({
         ...prevState,
         language: selectedLanguage,
@@ -63,11 +66,8 @@ export default function Home() {
         comments: prevState?.comments || "",
         current_node: prevState?.current_node || "",
       }));
-      
-      // Optionally trigger the agent when language changes
-      // triggerAgent(`I want to work with ${selectedLanguage} code.`);
     }
-  }, [selectedLanguage, setState]);
+  }, [selectedLanguage, setState, state.language]);
 
   // Log state changes for debugging
   useEffect(() => {
@@ -77,45 +77,37 @@ export default function Home() {
       comments: state.comments,
       test_counter: state.test_counter,
       timestamp: new Date().toISOString()
-
     });
   }, [state]);
 
-  // Handler for language changes
+  // Handler for language changes - only update context, don't directly update agent state
   const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
-    setSelectedLanguage(lang);
+    console.log("Language selector changed to:", lang);
+    // Only update if the language has actually changed
+    if (lang !== selectedLanguage) {
+      setSelectedLanguage(lang);
+    }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-6 h-[calc(100vh-80px)]">
-      <div className="flex-1 flex flex-col">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Documentation Helper</h1>
-          <LanguageSelector 
-            selectedLanguage={selectedLanguage} 
-            onLanguageChange={handleLanguageChange} 
-          />
-        </div>
-        
-        {/* Add a test button to trigger the agent */}
-        <Button 
-          className="mb-4"
-          onClick={() => triggerAgent("Help me understand this codebase.")}
-        >
-          Trigger Agent
-        </Button>
-        
-        <div className="flex-1 overflow-hidden">
-          <ChatInterface />
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm flex flex-col gap-4">
+        <div className="w-full flex flex-col md:flex-row gap-4">
+          <div className="w-full md:w-1/2">
+            <LanguageSelector 
+              selectedLanguage={selectedLanguage} 
+              onLanguageChange={handleLanguageChange} 
+            />
+            <ChatInterface />
+          </div>
+          <div className="w-full md:w-1/2">
+            <AgentStatePanel />
+            <div className="mt-4">
+              <TestStateUpdates />
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div className="w-full md:w-96 flex flex-col">
-        <h2 className="text-xl font-semibold mb-2">Agent Status</h2>
-        <div className="flex-1 border rounded-lg p-4 overflow-auto bg-secondary/30">
-          <AgentStatePanel />
-        </div>
-      </div>
-    </div>
+    </main>
   );
 } 

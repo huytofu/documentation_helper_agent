@@ -9,8 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { ProgrammingLanguage } from "@/types";
-import { LanguageContext } from "@/app/layout";
-import { useContext } from "react";
 
 interface LanguageSelectorProps {
   selectedLanguage: ProgrammingLanguage | "";
@@ -18,8 +16,6 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
-  const { setSelectedLanguage } = useContext(LanguageContext);
-
   const languages: ProgrammingLanguage[] = [
     "python",
     "javascript",
@@ -70,7 +66,6 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange }: Languag
       <DropdownMenuContent className="w-[200px] bg-white/80 backdrop-blur-sm">
         <DropdownMenuItem
           onClick={() => {
-            setSelectedLanguage("");
             onLanguageChange("");
           }}
         >
@@ -80,7 +75,6 @@ export function LanguageSelector({ selectedLanguage, onLanguageChange }: Languag
           <DropdownMenuItem
             key={lang}
             onClick={() => {
-              setSelectedLanguage(lang);
               onLanguageChange(lang);
             }}
           >

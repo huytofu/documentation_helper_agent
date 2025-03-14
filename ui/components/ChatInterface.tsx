@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CopilotChat } from "@copilotkit/react-ui";
 import { MessageSquare } from "lucide-react";
 import { useCoAgent } from "@copilotkit/react-core";
@@ -7,18 +7,22 @@ import { AGENT_NAME } from "@/constants";
 import { AgentState } from "@/app/page";
 
 export function ChatInterface() {
-  // Use the useCoAgent hook to get access to the run function
-  const { state, setState, run } = useCoAgent<AgentState>({
-    name: AGENT_NAME,
-    initialState: {
-      language: "",
-      current_node: "",
-      comments: "",
-    },
+  // Use a ref to track if this is the first render
+  const isInitialMount = useRef(true);
+  
+  // Use the useCoAgent hook to get access to the run function, but don't initialize state
+  // This prevents multiple components from trying to manage the same state
+  const { state, run } = useCoAgent<AgentState>({
+    name: AGENT_NAME
   });
 
-  // Log state changes for debugging
+  // Log state changes for debugging, but only after the initial mount
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     console.log("ChatInterface: Agent state updated:", state);
   }, [state]);
 
