@@ -96,8 +96,8 @@ def determine_user_sentiment(state: GraphState) -> str:
     else:
         return "bad"
     
-# Create the graph with async executor for streaming support
-workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState, executor="async")
+# Create the graph without executor parameter
+workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
@@ -156,3 +156,6 @@ workflow.add_conditional_edges(
     }
 )
 workflow.add_edge(POST_HUMAN_IN_LOOP, END)
+
+# Compile the graph with streaming enabled
+app = workflow.compile(streaming=True)
