@@ -9,6 +9,7 @@ import { ProgrammingLanguage } from "@/types";
 import { AgentStatePanel } from "@/components/AgentStatePanel";
 import { ChatInterface } from "@/components/ChatInterface";
 import { AGENT_NAME } from "@/constants";
+import { BookOpen } from "lucide-react";
 
 // Define shared agent state interface
 export interface AgentState {
@@ -69,27 +70,25 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-8">
       <div className="w-full max-w-7xl">
-        <h1 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Documentation Helper Agent
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <BookOpen className="h-7 w-7 text-blue-500" />
+          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Documentation Helper Agent
+          </h1>
+        </div>
         
         <div className="w-full flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/2 space-y-4">
-            <div className="bg-white/30 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
-              <LanguageSelector 
-                selectedLanguage={selectedLanguage} 
-                onLanguageChange={handleLanguageChange} 
-              />
-            </div>
+          <div className="w-full md:w-1/2 space-y-6">
+            <LanguageSelector 
+              selectedLanguage={selectedLanguage} 
+              onLanguageChange={handleLanguageChange} 
+            />
             
             <ChatInterface />
           </div>
           
           <div className="w-full md:w-1/2">
-            <div className="bg-white/30 backdrop-blur-sm p-4 rounded-lg border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Agent Status</h2>
-              <AgentStatePanel />
-            </div>
+            <AgentStatePanel />
           </div>
         </div>
       </div>
