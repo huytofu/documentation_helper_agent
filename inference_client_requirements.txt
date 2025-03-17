@@ -1,0 +1,6 @@
+# InferenceClient dependencies for the documentation helper agent
+huggingface-hub>=0.20.3
+langchain-core>=0.1.15
+langchain-huggingface>=0.0.2
+transformers>=4.38.0
+sentence-transformers>=2.5.0 
