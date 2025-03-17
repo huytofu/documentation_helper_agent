@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
 from langgraph.checkpoint.memory import MemorySaver
-# from langgraph.checkpoint.sqlite import SqliteSaver
 import logging
 import os
 
@@ -17,7 +16,6 @@ else:
 logger = logging.getLogger("graph.graph")
 logger.debug("Graph module initialized")
 
-# memory = SqliteSaver.from_conn_string(":memory:")
 memory = MemorySaver()
 
 # Compile the workflow centrally with streaming enabled
