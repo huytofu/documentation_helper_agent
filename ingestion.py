@@ -3,6 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from agent.graph.models.embeddings import embeddings
+from agent.graph.vector_stores import get_vector_store
 
 load_dotenv()
 
@@ -118,6 +119,28 @@ urls6 = [
     "https://docs.copilotkit.ai/coagents/advanced/exit-agent"
 ]
 
+def ingest_documents(framework, language, docs_list):
+    """Ingest documents into the vector store."""
+    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=600, chunk_overlap=50
+    )
+    doc_splits = text_splitter.split_documents(docs_list)
+
+    if len(doc_splits) > 0:
+        # Get the appropriate vector store based on environment
+        vector_store = get_vector_store(framework, language, embeddings)
+        
+        if vector_store:
+            # Add documents to the vector store
+            vector_store.add_documents(doc_splits)
+            return True
+        else:
+            print(f"Error: Could not create vector store for {framework} in {language}")
+            return False
+    else:
+        print("No documents to ingest")
+        return False
+
 for framework, urls in zip(
         ["langchain_python", "langchain_javascript", 
         "langgraph_python", "langgraph_javascript", 
@@ -127,16 +150,10 @@ for framework, urls in zip(
     docs = [WebBaseLoader(url).load() for url in urls]
     docs_list = [item for sublist in docs for item in sublist]
 
-    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=600, chunk_overlap=50
-    )
-    doc_splits = text_splitter.split_documents(docs_list)
-
-    if len(doc_splits
-    ) > 0:
-        vectorstore = Chroma.from_documents(
-            documents=doc_splits,
-            collection_name=framework,
-            embedding=embeddings,
-            persist_directory="./.chroma",
-        )
+    if ingest_documents(framework, "python", docs_list):
+        if ingest_documents(framework, "javascript", docs_list):
+            print(f"Successfully ingested documents for {framework}")
+        else:
+            print(f"Error: Could not ingest documents for {framework} in javascript")
+    else:
+        print(f"Error: Could not ingest documents for {framework} in python")

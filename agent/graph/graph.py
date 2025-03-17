@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 load_dotenv()
-from langgraph.checkpoint.memory import MemorySaver
 import logging
 import os
 
@@ -12,14 +11,19 @@ elif os.environ.get("FLOW") == "simple":
 else:
     from agent.graph.real_flow import workflow
 
+# Import the checkpointer factory
+from agent.graph.checkpointers import get_checkpointer
+
 # Configure logging
 logger = logging.getLogger("graph.graph")
 logger.debug("Graph module initialized")
 
-memory = MemorySaver()
+# Get the appropriate checkpointer based on environment
+checkpointer = get_checkpointer()
+logger.info(f"Using checkpointer: {checkpointer.__class__.__name__}")
 
 # Compile the workflow centrally with streaming enabled
-app = workflow.compile(checkpointer=memory, streaming=True)
+app = workflow.compile(checkpointer=checkpointer, streaming=True)
 logger.debug("Graph compiled successfully with streaming enabled")
 
 #app.get_graph().draw_mermaid_png(output_file_path="graph.png")

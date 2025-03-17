@@ -28,24 +28,24 @@ USE_HUGGINGFACE = os.environ.get("USE_HUGGINGFACE", "false").lower() == "true"
 HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
 
 # Third-party provider configuration via InferenceClient
-USE_INFERENCE_CLIENT = os.environ.get("USE_INFERENCE_CLIENT", "false").lower() == "true"
+USE_INFERENCE_CLIENT = os.environ.get("USE_INFERENCE_CLIENT", "true").lower() == "true"
 INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "together")
 INFERENCE_API_KEY = os.environ.get("INFERENCE_API_KEY", "")
 
 # Model-specific configurations for Hugging Face
 HUGGINGFACE_EMBEDDING_MODEL = os.environ.get("HUGGINGFACE_EMBEDDING_MODEL", "BAAI/bge-large-en-v1.5")
-HUGGINGFACE_GRADER_MODEL = os.environ.get("HUGGINGFACE_GRADER_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
-HUGGINGFACE_ROUTER_MODEL = os.environ.get("HUGGINGFACE_ROUTER_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
-HUGGINGFACE_GENERATOR_MODEL = os.environ.get("HUGGINGFACE_GENERATOR_MODEL", "codellama/CodeLlama-34b-Instruct-hf")
+HUGGINGFACE_GRADER_MODEL = os.environ.get("HUGGINGFACE_GRADER_MODEL", "meta-llama/Llama-3-70b-chat-hf")
+HUGGINGFACE_ROUTER_MODEL = os.environ.get("HUGGINGFACE_ROUTER_MODEL", "meta-llama/Llama-3-70b-chat-hf")
+HUGGINGFACE_GENERATOR_MODEL = os.environ.get("HUGGINGFACE_GENERATOR_MODEL", "deepseek-ai/deepseek-coder-v2-instruct")
 
 # Model-specific configurations for InferenceClient
 INFERENCE_EMBEDDING_MODEL = os.environ.get("INFERENCE_EMBEDDING_MODEL", "BAAI/bge-large-en-v1.5")
-INFERENCE_GRADER_MODEL = os.environ.get("INFERENCE_GRADER_MODEL", "deepseek-ai/DeepSeek-R1")
-INFERENCE_ROUTER_MODEL = os.environ.get("INFERENCE_ROUTER_MODEL", "deepseek-ai/DeepSeek-R1")
-INFERENCE_GENERATOR_MODEL = os.environ.get("INFERENCE_GENERATOR_MODEL", "deepseek-ai/DeepSeek-Coder-V2")
+INFERENCE_GRADER_MODEL = os.environ.get("INFERENCE_GRADER_MODEL", "meta-llama/Llama-3-70b-chat-hf")
+INFERENCE_ROUTER_MODEL = os.environ.get("INFERENCE_ROUTER_MODEL", "meta-llama/Llama-3-70b-chat-hf")
+INFERENCE_GENERATOR_MODEL = os.environ.get("INFERENCE_GENERATOR_MODEL", "deepseek-ai/deepseek-coder-v2-instruct")
 
 # Ollama model configurations
-OLLAMA_EMBEDDING_MODEL = "deepseek-coder:33b"
+OLLAMA_EMBEDDING_MODEL = "nomic-embed-text"
 OLLAMA_GRADER_MODEL = "llama3.3:70b"
 OLLAMA_ROUTER_MODEL = "llama3.3:70b"
 OLLAMA_GENERATOR_MODEL = "deepseek-coder:33b"

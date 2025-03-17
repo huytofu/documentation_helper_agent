@@ -4,13 +4,18 @@ import {
   LangChainAdapter,
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
-import { ChatOllama } from "@langchain/ollama";
+import { ChatTogetherAI } from "@langchain/community/chat_models/togetherai";
 import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { ChainValues } from "@langchain/core/utils/types";
 import { API_ENDPOINT, BACKEND_ENDPOINT } from "@/constants";
 
-const model = new ChatOllama({
-  model: "llama3.3:70b",
+// Get TogetherAI API key from environment
+const TOGETHER_API_KEY = process.env.INFERENCE_API_KEY || "";
+
+// Create TogetherAI chat model
+const model = new ChatTogetherAI({
+  apiKey: TOGETHER_API_KEY,
+  modelName: "meta-llama/Llama-3-70b-chat-hf",
   temperature: 0
 });
 

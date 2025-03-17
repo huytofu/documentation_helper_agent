@@ -1,18 +1,30 @@
-from langchain_chroma import Chroma
 from agent.graph.models.embeddings import embeddings
+from agent.graph.vector_stores import get_vector_store
 
 
 def get_retriever(collection_name, language):
+    """Get a retriever for the specified collection and language.
+    
+    Args:
+        collection_name: The name of the collection
+        language: The programming language
+        
+    Returns:
+        A retriever instance or None if an error occurs
+    """
     try:
         if language == "other":
             return None
+        
+        # Get the appropriate vector store based on environment
+        vector_store = get_vector_store(collection_name, language, embeddings)
+        
+        # Return the vector store as a retriever if it exists
+        if vector_store:
+            return vector_store.as_retriever()
         else:
-            full_collection_name = f"{collection_name}_{language}"
-            return Chroma(
-                collection_name=full_collection_name,
-                persist_directory="./.chroma",
-                embedding_function=embeddings,
-            ).as_retriever()
+            return None
+            
     except Exception as e:
         print(f"Error getting retriever for {collection_name} in {language}: {e}")
         return None
