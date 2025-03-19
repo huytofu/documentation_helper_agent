@@ -24,10 +24,12 @@ Environment Variables:
 import os
 
 # Global configuration
+# Determine if Hugging Face models should be used
 USE_HUGGINGFACE = os.environ.get("USE_HUGGINGFACE", "false").lower() == "true"
 HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
 
 # Third-party provider configuration via InferenceClient
+# Determine if InferenceClient should be used
 USE_INFERENCE_CLIENT = os.environ.get("USE_INFERENCE_CLIENT", "true").lower() == "true"
 INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "together")
 INFERENCE_API_KEY = os.environ.get("INFERENCE_API_KEY", "")

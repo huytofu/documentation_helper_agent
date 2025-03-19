@@ -4,6 +4,7 @@ import logging
 import os
 
 # Import the workflows instead of the compiled apps
+# Depending on the FLOW environment variable, import the appropriate workflow
 if os.environ.get("FLOW") == "test":
     from agent.graph.test_flow import workflow
 elif os.environ.get("FLOW") == "simple":
@@ -14,7 +15,7 @@ else:
 # Import the checkpointer factory
 from agent.graph.checkpointers import get_checkpointer
 
-# Configure logging
+# Configure logging for the graph module
 logger = logging.getLogger("graph.graph")
 logger.debug("Graph module initialized")
 
@@ -23,7 +24,9 @@ checkpointer = get_checkpointer()
 logger.info(f"Using checkpointer: {checkpointer.__class__.__name__}")
 
 # Compile the workflow centrally with streaming enabled
+# The compiled app is used to manage the workflow execution
 app = workflow.compile(checkpointer=checkpointer, streaming=True)
 logger.debug("Graph compiled successfully with streaming enabled")
 
-#app.get_graph().draw_mermaid_png(output_file_path="graph.png")
+# Uncomment the following line to generate a visual representation of the graph
+# app.get_graph().draw_mermaid_png(output_file_path="graph.png")

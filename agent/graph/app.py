@@ -1,5 +1,6 @@
 """FastAPI Application Definition"""
 
+# Import necessary modules and load environment variables
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -65,6 +66,7 @@ sdk = CopilotKitRemoteEndpoint(
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """Middleware to log incoming requests and modify request body if needed."""
     logger.info("\n=== Incoming Request ===")
     logger.info(f"URL: {request.url}")
     logger.info(f"Method: {request.method}")
@@ -103,7 +105,7 @@ add_fastapi_endpoint(app, sdk, "/copilotkitagent")
 # Test endpoint
 @app.get("/test")
 async def test_endpoint():
-    """Test the LangGraph agent."""
+    """Test the LangGraph agent by simulating a workflow with a test state."""
     logger.info("Received test request")
     try:
         # Create a simple test state
@@ -131,7 +133,7 @@ async def test_endpoint():
 # Add health check endpoint for serverless platforms
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for serverless platforms."""
+    """Health check endpoint for serverless platforms to verify server status."""
     logger.info("Health check requested")
     return {
         "status": "ok",
