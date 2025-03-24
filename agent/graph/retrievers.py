@@ -2,22 +2,18 @@ from agent.graph.models.embeddings import embeddings
 from agent.graph.vector_stores import get_vector_store
 
 
-def get_retriever(collection_name, language):
+def get_retriever(collection_name):
     """Get a retriever for the specified collection and language.
     
     Args:
         collection_name: The name of the collection
-        language: The programming language
         
     Returns:
         A retriever instance or None if an error occurs
     """
     try:
-        if language == "other":
-            return None
-        
         # Get the appropriate vector store based on environment
-        vector_store = get_vector_store(collection_name, language, embeddings)
+        vector_store = get_vector_store(collection_name, embeddings)
         
         # Return the vector store as a retriever if it exists
         if vector_store:
@@ -26,5 +22,5 @@ def get_retriever(collection_name, language):
             return None
             
     except Exception as e:
-        print(f"Error getting retriever for {collection_name} in {language}: {e}")
+        print(f"Error getting retriever for {collection_name}: {e}")
         return None

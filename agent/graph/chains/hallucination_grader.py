@@ -13,7 +13,7 @@ class GradeHallucinations(BaseModel):
 
 structured_llm_grader = llm.with_structured_output(GradeHallucinations)
 
-system = """You are a grader assessing whether an LLM generation is grounded in a set of retrieved facts. \n 
+system = """You are a grader assessing whether an answer is grounded in a set of facts. \n 
     You must choose between:
     - 'yes' means that the answer is grounded in the set of facts.
     - 'no' means that the answer is not grounded in the set of facts.
@@ -23,7 +23,7 @@ system = """You are a grader assessing whether an LLM generation is grounded in 
 hallucination_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
+        ("human", "Set of facts: \n {documents}. \n\n Answer: \n {answer}"),
     ]
 )
 

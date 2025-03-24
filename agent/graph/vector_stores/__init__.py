@@ -21,23 +21,18 @@ VECTOR_STORE_TYPE = os.getenv("VECTOR_STORE_TYPE", "chroma").lower()
 
 def get_vector_store(
     collection_name: str,
-    language: str,
     embedding_function: any
 ) -> Optional[VectorStore]:
     """Get the appropriate vector store based on VECTOR_STORE_TYPE environment variable.
     
     Args:
         collection_name: The name of the collection
-        language: The programming language
         embedding_function: The embedding function to use
         
     Returns:
         A vector store instance or None if an error occurs
     """
     try:
-        if language == "other":
-            return None
-            
         if VECTOR_STORE_TYPE == "chroma":
             from langchain_chroma import Chroma
             
@@ -85,5 +80,5 @@ def get_vector_store(
             )
             
     except Exception as e:
-        logger.error(f"Error creating vector store for {collection_name} in {language}: {e}")
+        logger.error(f"Error creating vector store for {collection_name}: {e}")
         return None 

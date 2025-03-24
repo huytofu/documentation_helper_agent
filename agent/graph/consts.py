@@ -1,6 +1,7 @@
 RETRIEVE = "retrieve"
 GRADE_DOCUMENTS = "grade_documents"
 GENERATE = "generate"
+REGENERATE = "regenerate"
 WEBSEARCH = "websearch"
 DECIDE_VECTORSTORE = "decide_vectorstore"
 DECIDE_LANGUAGE = "decide_language"

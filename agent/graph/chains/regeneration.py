@@ -9,16 +9,22 @@ system = """
 
     {documents}.
 
-    Please help write code snippet(s) of maximum 200 lines using the provided documents
-    to produce the feature or solve the problem described in the user's query. 
-    Code included in the answer must be in {language} language only!
-    You can also add some comments or explanations to help the user understand.
+    You are also given the previous generation: 
+    
+    {generation}.
+
+    You are also given comments on the previous generation: 
+    
+    {comments}.
+
+    Please help revise or improve the answer to better address the user's query 
+    based on the provided documents, the previous generation and the comments.
     """
-generation_prompt = ChatPromptTemplate.from_messages(
+regeneration_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
         ("human", "Query: {query}"),
     ]
 )
 
-generation_chain = generation_prompt | llm | StrOutputParser()
+regeneration_chain = regeneration_prompt | llm | StrOutputParser()

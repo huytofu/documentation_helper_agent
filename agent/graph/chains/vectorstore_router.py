@@ -6,10 +6,10 @@ from agent.graph.models.router import llm
 
 class VectorstoreRoute(BaseModel):
     """Route a query to the appropriate vectorstore"""
-    datasource: Literal["langchain", "langgraph", "copilotkit"] = Field(
+    datasource: Literal["openai", "smolagents", "langgraph", "copilotkit"] = Field(
         ...,
         description="""Given a user query determine which vectorstore to use. 
-        Answer must be either 'langchain', 'langgraph', or 'copilotkit' only.""",
+        Answer must be either 'openai', 'smolagents', 'langgraph', or 'copilotkit' only.""",
     )
 
 # Create the output parser

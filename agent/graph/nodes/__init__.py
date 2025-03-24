@@ -1,4 +1,5 @@
 from agent.graph.nodes.generate import generate
+from agent.graph.nodes.regenerate import regenerate
 from agent.graph.nodes.grade_documents import grade_documents
 from agent.graph.nodes.retrieve import retrieve
 from agent.graph.nodes.decide_vectorstore import decide_vectorstore
@@ -9,4 +10,4 @@ from agent.graph.nodes.initialize import initialize
 from agent.graph.nodes.pre_human_in_loop import pre_human_in_loop
 from agent.graph.nodes.post_human_in_loop import post_human_in_loop
 
-__all__ = ["generate", "grade_documents", "retrieve", "decide_vectorstore", "decide_language", "web_search", "human_in_loop", "initialize", "pre_human_in_loop", "post_human_in_loop"]
+__all__ = ["generate", "regenerate", "grade_documents", "retrieve", "decide_vectorstore", "decide_language", "web_search", "human_in_loop", "initialize", "pre_human_in_loop", "post_human_in_loop"]
