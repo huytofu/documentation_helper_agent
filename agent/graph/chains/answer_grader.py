@@ -2,6 +2,7 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain_core.runnables import RunnableSequence
 from agent.graph.models.grader import llm
+from agent.graph.utils.timeout import timeout
 
 class GradeAnswer(BaseModel):
 
@@ -24,6 +25,11 @@ answer_prompt = ChatPromptTemplate.from_messages(
         ("human", "User's query: \n {query}. \n\n Answer: \n {answer}"),
     ]
 )
+
+@timeout(15)  # 15 second timeout for answer grading
+def grade_answer(query: str, answer: str) -> GradeAnswer:
+    """Grade answer with timeout"""
+    return answer_grader.invoke({"query": query, "answer": answer})
 
 answer_grader: RunnableSequence = answer_prompt | structured_llm_grader
 answer_grader.with_fallbacks(

@@ -1,7 +1,7 @@
 from langgraph.graph import END, StateGraph
-from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
+from agent.graph.chains.answer_grader import answer_grader, GradeAnswer, grade_answer
 from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
-from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
+from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations, grade_hallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.state import GraphState
@@ -9,6 +9,7 @@ from langchain_core.messages import AIMessage
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState
+from concurrent.futures import TimeoutError
 
 import logging
 
@@ -30,19 +31,36 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
 
     hallucination_counter = 0
     while not hasattr(score, "binary_score") and hallucination_counter < 1:
-        score: GradeHallucinations = hallucination_grader.invoke(
-            {"documents": "\n\n".join([doc.page_content for doc in documents]) , "generation": generation}
-        )
         hallucination_counter += 1
+        try:
+            score: GradeHallucinations = grade_hallucinations(
+                documents="\n\n".join([doc.page_content for doc in documents]),
+                generation=generation
+            )
+        except TimeoutError:
+            logger.error("Hallucination grading timed out")
+            return "end_misery"
+        except Exception as e:
+            logger.info(f"---ERROR: {e}---")
+            logger.info("---RETRYING HALLUCINATION GRADING---")
+            continue
 
     if score and score.binary_score:
         logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.info("---GRADE GENERATION vs query---")
         score = {}
         answer_counter = 0
-        while not hasattr(score, "binary_score") and answer_counter < 2:
-            score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
+        while not hasattr(score, "binary_score") and answer_counter < 1:
             answer_counter += 1
+            try:
+                score: GradeAnswer = grade_answer(query=query, answer=generation)
+            except TimeoutError:
+                logger.error("Answer grading timed out")
+                return "end_misery"
+            except Exception as e:
+                logger.info(f"---ERROR: {e}---")
+                logger.info("---RETRYING ANSWER GRADING---")
+                continue
         
         if score and score.binary_score:
             logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
