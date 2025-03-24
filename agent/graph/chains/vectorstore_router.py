@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from agent.graph.models.router import llm
+import hashlib
+from functools import lru_cache
 
 class VectorstoreRoute(BaseModel):
     """Route a query to the appropriate vectorstore"""
@@ -23,13 +25,11 @@ We have three vectorstores available:
 3. LangGraph vectorstore: Contains documentation about the LangGraph framework
 4. CopilotKit vectorstore: Contains documentation about the CopilotKit framework and Coagents
 
-You must choose between:
+Options:
 - "openai": ONLY for queries specifically about the OpenAI Agents SDK
 - "smolagents": ONLY for queries specifically about the SmolAgents framework
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
-
-(IMPORTANT!) Your answer must be either "openai", "smolagents", "langgraph", or "copilotkit" only.
 
 {format_instructions}"""
 
@@ -40,3 +40,12 @@ route_prompt = ChatPromptTemplate.from_messages([
 
 # Create the chain with format instructions
 vectorstore_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm.with_structured_output(VectorstoreRoute)
+
+# Add caching to the router
+@lru_cache(maxsize=1000)
+def cached_router(query: str) -> VectorstoreRoute:
+    """Cached version of the router to avoid redundant LLM calls."""
+    return vectorstore_router.invoke({"query": query})
+
+# Update the router to use caching
+vectorstore_router.invoke = cached_router
