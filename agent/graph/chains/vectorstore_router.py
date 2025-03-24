@@ -18,16 +18,18 @@ parser = PydanticOutputParser(pydantic_object=VectorstoreRoute)
 # Create the prompt template
 system = """You are an expert at routing a user query to the appropriate vectorstore.
 We have three vectorstores available:
-1. LangChain vectorstore: Contains documentation about the LangChain framework
-2. LangGraph vectorstore: Contains documentation about the LangGraph framework
-3. CopilotKit vectorstore: Contains documentation about the CopilotKit framework and Coagents
+1. OpenAI vectorstore: Contains documentation about the OpenAI Agents SDK
+2. SmolAgents vectorstore: Contains documentation about the SmolAgents framework
+3. LangGraph vectorstore: Contains documentation about the LangGraph framework
+4. CopilotKit vectorstore: Contains documentation about the CopilotKit framework and Coagents
 
 You must choose between:
-- "langchain": ONLY for queries specifically about LangChain
-- "langgraph": ONLY for queries specifically about LangGraph
-- "copilotkit": ONLY for queries specifically about CopilotKit and/or Coagents
+- "openai": ONLY for queries specifically about the OpenAI Agents SDK
+- "smolagents": ONLY for queries specifically about the SmolAgents framework
+- "langgraph": ONLY for queries specifically about the LangGraph framework
+- "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
 
-(IMPORTANT!) Your answer must be either "langchain", "langgraph", or "copilotkit" only.
+(IMPORTANT!) Your answer must be either "openai", "smolagents", "langgraph", or "copilotkit" only.
 
 {format_instructions}"""
 
