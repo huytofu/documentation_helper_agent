@@ -14,9 +14,10 @@ from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from agent.graph.graph import app as agent_app, graph
 from agent.graph.state import GraphState
 from agent.graph.models.config import get_model_config, with_concurrency_limit
+from agent.graph.utils.batch_processor import BatchProcessor, BatchResult
 import datetime
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List
 import uvicorn
 
 # Configure root logger
@@ -38,6 +39,13 @@ logger.info("Initializing FastAPI application for Vercel...")
 
 # Create FastAPI app
 app = FastAPI()
+
+# Initialize batch processor
+batch_processor = BatchProcessor(
+    max_batch_size=int(os.getenv("MAX_BATCH_SIZE", "10")),
+    max_workers=int(os.getenv("MAX_WORKERS", "5")),
+    timeout=float(os.getenv("BATCH_TIMEOUT", "30.0"))
+)
 
 # Configure CORS for Vercel
 app.add_middleware(
@@ -71,6 +79,27 @@ sdk = CopilotKitRemoteEndpoint(
 # Store the last warm-up time in memory (will reset on cold start)
 last_warmup_time = 0
 WARMUP_INTERVAL = 300  # 5 minutes
+
+async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Process a single chat request.
+    
+    Args:
+        state: The state dictionary for the request
+        
+    Returns:
+        Processed result
+    """
+    try:
+        # Convert input state to GraphState
+        graph_state = GraphState(**state)
+        
+        # Run the graph with concurrency limit
+        result = await with_concurrency_limit(graph.ainvoke, graph_state)
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error processing request: {str(e)}")
+        raise
 
 async def warmup_function():
     """Warm up the model and graph by making a lightweight request."""
@@ -116,15 +145,28 @@ async def warmup():
 async def chat(state: Dict[str, Any]) -> Dict[str, Any]:
     """Main chat endpoint that processes user queries."""
     try:
-        # Convert input state to GraphState
-        graph_state = GraphState(**state)
-        
-        # Run the graph with concurrency limit
-        result = await with_concurrency_limit(graph.ainvoke, graph_state)
-        
-        return result
+        return await process_single_request(state)
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chat/batch")
+async def chat_batch(states: List[Dict[str, Any]]) -> List[BatchResult]:
+    """Batch chat endpoint that processes multiple queries in parallel.
+    
+    Args:
+        states: List of state dictionaries for multiple requests
+        
+    Returns:
+        List of BatchResult objects containing results or errors
+    """
+    try:
+        return await batch_processor.process_batch(
+            items=states,
+            process_fn=process_single_request
+        )
+    except Exception as e:
+        logger.error(f"Error in batch chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Add request logging middleware
@@ -181,10 +223,13 @@ async def health_check():
     return {
         "status": "ok",
         "environment": os.getenv("ENVIRONMENT", "production"),
-        "timestamp": datetime.datetime.now().isoformat()
+        "timestamp": datetime.datetime.now().isoformat(),
+        "batch_processor": {
+            "max_batch_size": batch_processor.max_batch_size,
+            "max_workers": batch_processor.max_workers,
+            "timeout": batch_processor.timeout
+        }
     }
 
 # Add logging for agent initialization
-logger.info("FastAPI application initialized with LangGraph agent for Vercel")
-
-# Remove the main block as it's not needed for Vercel 
+logger.info("FastAPI application initialized with LangGraph agent for Vercel") 

@@ -18,6 +18,9 @@
     "USE_INFERENCE_CLIENT": "true",
     "INFERENCE_PROVIDER": "together",
     "PROVISIONED_CONCURRENCY": "1",
-    "CONCURRENCY_LIMIT": "10"
+    "CONCURRENCY_LIMIT": "10",
+    "MAX_BATCH_SIZE": "10",
+    "MAX_WORKERS": "5",
+    "BATCH_TIMEOUT": "30.0"
   }
 } 
