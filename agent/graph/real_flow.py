@@ -10,10 +10,38 @@ from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, 
 from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState
 from concurrent.futures import TimeoutError
-
 import logging
+import os
+import time
 
 logger = logging.getLogger("graph.real_flow")
+
+def validate_state(state: GraphState) -> bool:
+    """Validate that all required fields are present in the state."""
+    required_fields = ["query", "documents", "generation"]
+    for field in required_fields:
+        if field not in state:
+            logger.error(f"Missing required state field: {field}")
+            return False
+    return True
+
+def check_iteration_limit(state: GraphState) -> bool:
+    """Check if the flow has exceeded maximum iterations."""
+    MAX_ITERATIONS = 5
+    state["iteration_count"] = state.get("iteration_count", 0) + 1
+    if state["iteration_count"] >= MAX_ITERATIONS:
+        logger.error(f"Flow exceeded maximum iterations ({MAX_ITERATIONS})")
+        return False
+    return True
+
+def cleanup_resources(state: GraphState) -> None:
+    """Clean up any temporary resources."""
+    if "temp_files" in state:
+        for file in state["temp_files"]:
+            try:
+                os.remove(file)
+            except Exception as e:
+                logger.error(f"Failed to cleanup temp file: {e}")
 
 def get_last_ai_message_content(messages):
     # Reverse through messages to find the last AI message
@@ -24,6 +52,17 @@ def get_last_ai_message_content(messages):
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     logger.info("---CHECK HALLUCINATIONS---")
+    
+    # Validate state
+    if not validate_state(state):
+        cleanup_resources(state)
+        return "end_misery"
+        
+    # Check iteration limit
+    if not check_iteration_limit(state):
+        cleanup_resources(state)
+        return "end_misery"
+    
     query = state["query"]
     documents = state["documents"]
     generation = state["generation"]
@@ -39,6 +78,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
             )
         except TimeoutError:
             logger.error("Hallucination grading timed out")
+            cleanup_resources(state)
             return "end_misery"
         except Exception as e:
             logger.info(f"---ERROR: {e}---")
@@ -48,19 +88,17 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     if score and score.binary_score:
         logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.info("---GRADE GENERATION vs query---")
-        score = {}
-        answer_counter = 0
-        while not hasattr(score, "binary_score") and answer_counter < 1:
-            answer_counter += 1
-            try:
-                score: GradeAnswer = grade_answer(query=query, answer=generation)
-            except TimeoutError:
-                logger.error("Answer grading timed out")
-                return "end_misery"
-            except Exception as e:
-                logger.info(f"---ERROR: {e}---")
-                logger.info("---RETRYING ANSWER GRADING---")
-                continue
+        
+        try:
+            score: GradeAnswer = grade_answer(query=query, answer=generation)
+        except TimeoutError:
+            logger.error("Answer grading timed out")
+            cleanup_resources(state)
+            return "end_misery"
+        except Exception as e:
+            logger.error(f"Error during answer grading: {str(e)}")
+            cleanup_resources(state)
+            return "end_misery"
         
         if score and score.binary_score:
             logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
@@ -75,6 +113,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         elif state["retry_count"] < 2:
             return "need search web"
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
+        cleanup_resources(state)
         return "end_misery"
 
 def grade_generation_grounded_in_query(state: GraphState) -> str:
@@ -102,18 +141,30 @@ def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
     documents = state["documents"]
     if len(documents) > 0:
+        # Clean up web search resources before generating
+        cleanup_resources(state)
         return GENERATE
     else:
+        # Clean up document resources before web search
+        cleanup_resources(state)
         return WEBSEARCH
     
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
-    sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
-    if sentiment and sentiment.binary_score:
-        return "good"
-    else:
-        return "bad"
-    
+    try:
+        sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
+        if sentiment and sentiment.binary_score:
+            return "good"
+        else:
+            return "bad"
+    except Exception as e:
+        logger.error(f"Error during sentiment analysis: {str(e)}")
+        cleanup_resources(state)
+        return "good"  # Default to good on error
+    finally:
+        # Always clean up resources before ending
+        cleanup_resources(state)
+
 # Create the graph without executor parameter
 workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 

@@ -1,5 +1,5 @@
 from langgraph.graph import END, StateGraph
-from agent.graph.chains.answer_grader import answer_grader, GradeAnswer
+from agent.graph.chains.answer_grader import answer_grader, GradeAnswer, grade_answer
 from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
@@ -9,10 +9,39 @@ from langchain_core.messages import AIMessage
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState
-
+from concurrent.futures import TimeoutError
 import logging
+import os
+import time
 
 logger = logging.getLogger("graph.test_flow")
+
+def validate_state(state: GraphState) -> bool:
+    """Validate that all required fields are present in the state."""
+    required_fields = ["query", "documents", "generation"]
+    for field in required_fields:
+        if field not in state:
+            logger.error(f"Missing required state field: {field}")
+            return False
+    return True
+
+def check_iteration_limit(state: GraphState) -> bool:
+    """Check if the flow has exceeded maximum iterations."""
+    MAX_ITERATIONS = 5
+    state["iteration_count"] = state.get("iteration_count", 0) + 1
+    if state["iteration_count"] >= MAX_ITERATIONS:
+        logger.error(f"Flow exceeded maximum iterations ({MAX_ITERATIONS})")
+        return False
+    return True
+
+def cleanup_resources(state: GraphState) -> None:
+    """Clean up any temporary resources."""
+    if "temp_files" in state:
+        for file in state["temp_files"]:
+            try:
+                os.remove(file)
+            except Exception as e:
+                logger.error(f"Failed to cleanup temp file: {e}")
 
 def get_last_ai_message_content(messages):
     # Reverse through messages to find the last AI message
@@ -23,14 +52,31 @@ def get_last_ai_message_content(messages):
 
 def grade_generation_grounded_in_query(state: GraphState) -> str:
     logger.info("---GRADE GENERATION GROUNDED IN QUERY---")
+    
+    # Validate state
+    if not validate_state(state):
+        cleanup_resources(state)
+        return "end_misery"
+        
+    # Check iteration limit
+    if not check_iteration_limit(state):
+        cleanup_resources(state)
+        return "end_misery"
+    
     generation = get_last_ai_message_content(state["messages"])
     query = state["query"]
     score = {}
 
-    answer_counter = 0
-    while not hasattr(score, "binary_score") and answer_counter < 2:
-        score: GradeAnswer = answer_grader.invoke({"query": query, "generation": generation})
-        answer_counter += 1
+    try:
+        score: GradeAnswer = grade_answer(query=query, answer=generation)
+    except TimeoutError:
+        logger.error("Answer grading timed out")
+        cleanup_resources(state)
+        return "end_misery"
+    except Exception as e:
+        logger.error(f"Error during answer grading: {str(e)}")
+        cleanup_resources(state)
+        return "end_misery"
     
     if score and score.binary_score:
         logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
@@ -42,6 +88,13 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
 
 def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")
+    
+    # Validate query
+    if "query" not in state or not state["query"]:
+        logger.error("Missing or empty query")
+        cleanup_resources(state)
+        return "end_misery"
+        
     query = state["query"]
     source: RouteQuery = query_router.invoke({"query": query})
     if source.datasource in ["websearch", None]:
@@ -58,10 +111,21 @@ def route_query(state: GraphState) -> str:
         
 def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
+    
+    # Validate documents
+    if "documents" not in state:
+        logger.error("Missing documents in state")
+        cleanup_resources(state)
+        return "end_misery"
+        
     documents = state["documents"]
     if len(documents) > 0:
+        # Clean up web search resources before generating
+        cleanup_resources(state)
         return GENERATE
     else:
+        # Clean up document resources before web search
+        cleanup_resources(state)
         return WEBSEARCH
     
 def determine_user_sentiment(state: GraphState) -> str:
