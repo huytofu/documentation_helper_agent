@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "agent/graph/app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "agent/graph/app.py"
+    }
+  ],
+  "env": {
+    "ENVIRONMENT": "production",
+    "USE_HUGGINGFACE": "true",
+    "USE_INFERENCE_CLIENT": "true",
+    "INFERENCE_PROVIDER": "together",
+    "PROVISIONED_CONCURRENCY": "1",
+    "CONCURRENCY_LIMIT": "10"
+  }
+} 

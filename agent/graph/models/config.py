@@ -19,9 +19,15 @@ Environment Variables:
     INFERENCE_GRADER_MODEL: Model ID for grader via InferenceClient
     INFERENCE_ROUTER_MODEL: Model ID for router via InferenceClient
     INFERENCE_GENERATOR_MODEL: Model ID for generator via InferenceClient
+    
+    PROVISIONED_CONCURRENCY: Number of concurrent instances to keep warm (default: 1)
+    CONCURRENCY_LIMIT: Maximum number of concurrent requests per instance (default: 10)
 """
 
 import os
+from typing import Dict, Any
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 # Global configuration
 # Determine if Hugging Face models should be used
@@ -52,7 +58,17 @@ OLLAMA_GRADER_MODEL = "llama3.3:70b"
 OLLAMA_ROUTER_MODEL = "llama3.3:70b"
 OLLAMA_GENERATOR_MODEL = "deepseek-coder:33b"
 
-def get_model_config():
+# Concurrency settings
+PROVISIONED_CONCURRENCY = int(os.environ.get("PROVISIONED_CONCURRENCY", "1"))
+CONCURRENCY_LIMIT = int(os.environ.get("CONCURRENCY_LIMIT", "10"))
+
+# Create thread pool for concurrent operations
+thread_pool = ThreadPoolExecutor(max_workers=CONCURRENCY_LIMIT)
+
+# Create semaphore for limiting concurrent requests
+concurrency_semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+
+def get_model_config() -> Dict[str, Any]:
     """
     Returns the current model configuration based on environment settings.
     
@@ -96,5 +112,22 @@ def get_model_config():
         "use_inference_client": USE_INFERENCE_CLIENT,
         "inference_provider": INFERENCE_PROVIDER,
         "inference_api_key": INFERENCE_API_KEY,
-        "models": models
-    } 
+        "models": models,
+        "provisioned_concurrency": PROVISIONED_CONCURRENCY,
+        "concurrency_limit": CONCURRENCY_LIMIT
+    }
+
+async def with_concurrency_limit(func, *args, **kwargs):
+    """
+    Wrapper to limit concurrent executions using a semaphore.
+    
+    Args:
+        func: The async function to execute
+        *args: Positional arguments for the function
+        **kwargs: Keyword arguments for the function
+        
+    Returns:
+        The result of the function execution
+    """
+    async with concurrency_semaphore:
+        return await func(*args, **kwargs) 
