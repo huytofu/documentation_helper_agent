@@ -1,6 +1,7 @@
 from langchain_core.prompts.chat import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from agent.graph.models.grader import llm
+from agent.graph.utils.timeout import timeout
 
 
 class GradeDocuments(BaseModel):
@@ -24,3 +25,8 @@ grade_prompt = ChatPromptTemplate.from_messages(
 )
 
 retrieval_grader = grade_prompt | structured_llm_grader
+
+@timeout(10)  # 10 second timeout for document grading
+def grade_single_document(query: str, document: str) -> GradeDocuments:
+    """Grade a single document with timeout"""
+    return retrieval_grader.invoke({"query": query, "document": document})
