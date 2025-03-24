@@ -38,14 +38,12 @@ def get_vector_store(
         if language == "other":
             return None
             
-        full_collection_name = f"{collection_name}_{language}"
-        
         if VECTOR_STORE_TYPE == "chroma":
             from langchain_chroma import Chroma
             
-            logger.info(f"Using Chroma vector store with collection: {full_collection_name}")
+            logger.info(f"Using Chroma vector store with collection: {collection_name}")
             return Chroma(
-                collection_name=full_collection_name,
+                collection_name=collection_name,
                 persist_directory="./.chroma",
                 embedding_function=embedding_function,
             )
@@ -69,11 +67,11 @@ def get_vector_store(
             # Initialize Pinecone
             pinecone.init(api_key=pinecone_api_key, environment=pinecone_environment)
             
-            logger.info(f"Using Pinecone vector store with namespace: {full_collection_name}")
+            logger.info(f"Using Pinecone vector store with namespace: {collection_name}")
             return Pinecone(
                 index_name=pinecone_index_name,
                 embedding=embedding_function,
-                namespace=full_collection_name,
+                namespace=collection_name,
             )
             
         else:
@@ -81,7 +79,7 @@ def get_vector_store(
             from langchain_chroma import Chroma
             
             return Chroma(
-                collection_name=full_collection_name,
+                collection_name=collection_name,
                 persist_directory="./.chroma",
                 embedding_function=embedding_function,
             )
