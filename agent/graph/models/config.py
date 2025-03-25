@@ -53,6 +53,7 @@ MODEL_IDS = {
     "embeddings": "BAAI/bge-large-en-v1.5",
     "router": "deepseek-ai/deepseek-coder-v2-instruct",
     "grader": "deepseek-ai/deepseek-coder-v2-instruct",
+    "hallucinate_grader": "mistralai/mistral-large-latest",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
 
@@ -61,6 +62,7 @@ OLLAMA_MODELS = {
     "embeddings": "nomic-embed-text",
     "router": "deepseek-coder",
     "grader": "deepseek-coder",
+    "hallucinate_grader": "mistral",
     "generator": "deepseek-coder"
 }
 
