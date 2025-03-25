@@ -16,6 +16,12 @@ from agent.graph.graph import app as agent_app, graph
 from agent.graph.state import GraphState
 from agent.graph.models.config import get_model_config, with_concurrency_limit
 from agent.graph.utils.batch_processor import BatchProcessor, BatchResult
+from agent.graph.utils.security import (
+    validate_state,
+    validate_batch_states,
+    sanitize_response,
+    SecurityError
+)
 import datetime
 import asyncio
 from typing import Dict, Any, List
@@ -23,6 +29,12 @@ import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 import re
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import RequestResponseEndpoint
+import time
+from collections import defaultdict
+import hashlib
 
 # Configure root logger
 logging.basicConfig(
@@ -44,6 +56,97 @@ logger.info("Initializing FastAPI application for Vercel...")
 # Create FastAPI app
 app = FastAPI()
 
+# Security Configuration
+MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE", "1048576"))  # 1MB
+MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "10"))
+REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
+MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "100"))
+CIRCUIT_BREAKER_THRESHOLD = float(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "0.8"))  # 80% error rate
+CIRCUIT_BREAKER_RESET = int(os.getenv("CIRCUIT_BREAKER_RESET", "60"))  # seconds
+
+# Enhanced Rate Limit Middleware
+class EnhancedRateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp):
+        super().__init__(app)
+        self.requests = defaultdict(list)
+        self.error_counts = defaultdict(int)
+        self.circuit_breaker_state = defaultdict(lambda: {"open": False, "last_failure": 0})
+        self.lock = asyncio.Lock()
+
+    async def dispatch(self, request: Request, call_next):
+        client_ip = request.client.host
+        current_time = time.time()
+
+        # Check circuit breaker
+        async with self.lock:
+            if self.circuit_breaker_state[client_ip]["open"]:
+                if current_time - self.circuit_breaker_state[client_ip]["last_failure"] < CIRCUIT_BREAKER_RESET:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Service temporarily unavailable due to high error rate"
+                    )
+                else:
+                    self.circuit_breaker_state[client_ip]["open"] = False
+                    self.error_counts[client_ip] = 0
+
+        # Check request size
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_REQUEST_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail="Request too large"
+            )
+
+        # Clean up old requests
+        async with self.lock:
+            self.requests[client_ip] = [
+                t for t in self.requests[client_ip]
+                if current_time - t < RATE_LIMIT_WINDOW
+            ]
+
+            # Check rate limit
+            if len(self.requests[client_ip]) >= RATE_LIMIT_REQUESTS:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many requests"
+                )
+
+            # Add current request
+            self.requests[client_ip].append(current_time)
+
+        try:
+            # Add timeout to request handling
+            response = await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT)
+            
+            # Update circuit breaker on success
+            async with self.lock:
+                if self.error_counts[client_ip] > 0:
+                    self.error_counts[client_ip] = max(0, self.error_counts[client_ip] - 1)
+
+            return response
+
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=504,
+                detail="Request timeout"
+            )
+        except Exception as e:
+            # Update error counts and circuit breaker
+            async with self.lock:
+                self.error_counts[client_ip] += 1
+                if self.error_counts[client_ip] / RATE_LIMIT_REQUESTS > CIRCUIT_BREAKER_THRESHOLD:
+                    self.circuit_breaker_state[client_ip]["open"] = True
+                    self.circuit_breaker_state[client_ip]["last_failure"] = current_time
+            raise
+
+# Add enhanced rate limiting middleware
+app.add_middleware(EnhancedRateLimitMiddleware)
+
+# Add GZIP compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # API Key security
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 API_KEY = os.getenv("API_KEY", "")
@@ -60,49 +163,12 @@ async def verify_api_key(api_key: str = Depends(API_KEY_HEADER)):
         )
     return api_key
 
-# Initialize batch processor with rate limiting
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, requests_per_minute: int = 60):
-        super().__init__(app)
-        self.requests_per_minute = requests_per_minute
-        self.requests = {}
-
-    async def dispatch(self, request: Request, call_next):
-        client_ip = request.client.host
-        current_time = datetime.datetime.now()
-        
-        # Clean up old requests
-        self.requests = {
-            ip: times for ip, times in self.requests.items()
-            if (current_time - times[-1]).total_seconds() < 60
-        }
-        
-        # Check rate limit
-        if client_ip in self.requests:
-            if len(self.requests[client_ip]) >= self.requests_per_minute:
-                raise HTTPException(
-                    status_code=429,
-                    detail="Too many requests"
-                )
-            self.requests[client_ip].append(current_time)
-        else:
-            self.requests[client_ip] = [current_time]
-        
-        return await call_next(request)
-
-# Add rate limiting middleware
-app.add_middleware(
-    RateLimitMiddleware,
-    requests_per_minute=int(os.getenv("RATE_LIMIT", "60"))
-)
-
 # Initialize batch processor with validation
 def validate_batch_size(size: int) -> int:
-    max_size = int(os.getenv("MAX_BATCH_SIZE", "10"))
-    if size > max_size:
+    if size > MAX_BATCH_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"Batch size exceeds maximum of {max_size}"
+            detail=f"Batch size exceeds maximum of {MAX_BATCH_SIZE}"
         )
     return size
 
@@ -155,9 +221,12 @@ WARMUP_INTERVAL = 300  # 5 minutes
 async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
     """Process a single chat request."""
     try:
-        # Validate state
-        if not isinstance(state, dict):
-            raise ValueError("Invalid state format")
+        # Validate and sanitize state
+        try:
+            state = validate_state(state)
+        except SecurityError as e:
+            logger.warning(f"Security validation failed: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
         
         # Convert input state to GraphState
         graph_state = GraphState(**state)
@@ -165,7 +234,8 @@ async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
         # Run the graph with concurrency limit
         result = await with_concurrency_limit(graph.ainvoke, graph_state)
         
-        return result
+        # Sanitize response before returning
+        return sanitize_response(result)
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
         raise
@@ -218,6 +288,9 @@ async def chat(
     """Main chat endpoint that processes user queries."""
     try:
         return await process_single_request(state)
+    except SecurityError as e:
+        logger.warning(f"Security error in chat endpoint: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -232,10 +305,23 @@ async def chat_batch(
         # Validate batch size
         validate_batch_size(len(states))
         
-        return await batch_processor.process_batch(
+        # Validate and sanitize states
+        try:
+            states = validate_batch_states(states)
+        except SecurityError as e:
+            logger.warning(f"Security validation failed in batch: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+        
+        results = await batch_processor.process_batch(
             items=states,
             process_fn=process_single_request
         )
+        
+        # Sanitize results before returning
+        return [sanitize_response(result) for result in results]
+    except SecurityError as e:
+        logger.warning(f"Security error in batch endpoint: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error in batch chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
