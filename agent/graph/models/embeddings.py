@@ -1,26 +1,26 @@
 # from langchain_openai import OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings
 from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
-from .config import (
-    USE_HUGGINGFACE, HUGGINGFACE_API_KEY, HUGGINGFACE_EMBEDDING_MODEL, OLLAMA_EMBEDDING_MODEL,
-    USE_INFERENCE_CLIENT, INFERENCE_API_KEY, INFERENCE_PROVIDER, INFERENCE_EMBEDDING_MODEL
-)
+from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientEmbeddings
 
-# Choose embeddings model based on configuration
-if USE_INFERENCE_CLIENT and INFERENCE_API_KEY:
+# Get model configuration
+config = get_model_config_for_component("embeddings")
+
+# Initialize embeddings based on configuration
+if "client" in config:
     # Use InferenceClient with third-party provider
     embeddings = InferenceClientEmbeddings(
-        provider=INFERENCE_PROVIDER,
-        api_key=INFERENCE_API_KEY,
-        model=INFERENCE_EMBEDDING_MODEL
+        provider=config.get("provider", "together"),
+        api_key=config["api_key"],
+        model=config["model"]
     )
-elif USE_HUGGINGFACE and HUGGINGFACE_API_KEY:
+elif "api_key" in config:
     # Use Hugging Face
     embeddings = HuggingFaceInferenceAPIEmbeddings(
-        api_key=HUGGINGFACE_API_KEY,
-        model_name=HUGGINGFACE_EMBEDDING_MODEL
+        api_key=config["api_key"],
+        model_name=config["model"]
     )
 else:
     # Default to Ollama
-    embeddings = OllamaEmbeddings(model=OLLAMA_EMBEDDING_MODEL)
+    embeddings = OllamaEmbeddings(model=config["model"])

@@ -14,7 +14,7 @@ from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from agent.graph.graph import app as agent_app, graph
 from agent.graph.state import GraphState
-from agent.graph.models.config import get_model_config, with_concurrency_limit
+from agent.graph.models.config import with_concurrency_limit
 from agent.graph.utils.batch_processor import BatchProcessor, BatchResult
 from agent.graph.utils.security import (
     validate_state,
@@ -243,9 +243,6 @@ async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
 async def warmup_function():
     """Warm up the model and graph by making a lightweight request."""
     try:
-        # Get model config to ensure models are loaded
-        config = get_model_config()
-        
         # Create a minimal state for warm-up
         warmup_state = GraphState(
             query="test",
