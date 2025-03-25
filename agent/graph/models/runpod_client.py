@@ -1,15 +1,16 @@
-"""RunPod client configuration for serverless inference."""
+"""RunPod client configuration for serverless vLLM inference."""
 
 import os
 import json
 import aiohttp
 from typing import Dict, Any, Optional
 import logging
+from asyncio import sleep as async_sleep
 
 logger = logging.getLogger(__name__)
 
 class RunPodClient:
-    """Client for interacting with RunPod serverless endpoints."""
+    """Client for interacting with RunPod serverless vLLM endpoints."""
     
     def __init__(
         self,
@@ -21,7 +22,8 @@ class RunPodClient:
         top_p: float = 0.9,
         top_k: int = 40,
         presence_penalty: float = 0.1,
-        frequency_penalty: float = 0.1
+        frequency_penalty: float = 0.1,
+        use_vllm: bool = True
     ):
         """Initialize RunPod client.
         
@@ -35,6 +37,7 @@ class RunPodClient:
             top_k: Top-k sampling parameter
             presence_penalty: Presence penalty
             frequency_penalty: Frequency penalty
+            use_vllm: Whether to use vLLM for faster inference
         """
         self.api_key = api_key
         self.endpoint_id = endpoint_id
@@ -45,6 +48,7 @@ class RunPodClient:
         self.top_k = top_k
         self.presence_penalty = presence_penalty
         self.frequency_penalty = frequency_penalty
+        self.use_vllm = use_vllm
         self.base_url = f"https://api.runpod.ai/v2/{endpoint_id}"
         self.headers = {
             "Authorization": f"Bearer {api_key}",
@@ -57,7 +61,7 @@ class RunPodClient:
         system_prompt: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Generate text using RunPod endpoint.
+        """Generate text using RunPod serverless vLLM endpoint.
         
         Args:
             prompt: User prompt
@@ -73,7 +77,7 @@ class RunPodClient:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        # Prepare request payload
+        # Prepare request payload with vLLM optimizations
         payload = {
             "input": {
                 "messages": messages,
@@ -83,7 +87,22 @@ class RunPodClient:
                 "top_p": kwargs.get("top_p", self.top_p),
                 "top_k": kwargs.get("top_k", self.top_k),
                 "presence_penalty": kwargs.get("presence_penalty", self.presence_penalty),
-                "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty)
+                "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty),
+                "use_vllm": self.use_vllm,
+                "serverless": True,
+                "vllm_params": {
+                    "max_num_batched_tokens": 4096,
+                    "max_num_seqs": 256,
+                    "max_paddings": 256,
+                    "disable_log_stats": True,
+                    "gpu_memory_utilization": 0.9,
+                    "max_model_len": 2048,
+                    "quantization": "awq",  # Use AWQ quantization for better performance
+                    "dtype": "float16",     # Use float16 for better memory efficiency
+                    "seed": 42,
+                    "worker_use_ray": False,
+                    "disable_log_requests": True
+                }
             }
         }
         
@@ -103,7 +122,9 @@ class RunPodClient:
                     result = await response.json()
                     job_id = result["id"]
                 
-                # Poll for completion
+                # Poll for completion with exponential backoff
+                backoff = 1
+                max_backoff = 10
                 while True:
                     async with session.get(
                         f"{self.base_url}/status/{job_id}",
@@ -120,8 +141,9 @@ class RunPodClient:
                         elif status["status"] == "FAILED":
                             raise Exception(f"RunPod job failed: {status.get('error', 'Unknown error')}")
                         
-                        # Wait before polling again
-                        await asyncio.sleep(1)
+                        # Exponential backoff
+                        await async_sleep(backoff)
+                        backoff = min(backoff * 2, max_backoff)
         
         except Exception as e:
             logger.error(f"Error in RunPod generation: {str(e)}")
@@ -139,5 +161,6 @@ class RunPodClient:
             top_p=float(os.getenv("RUNPOD_TOP_P", "0.9")),
             top_k=int(os.getenv("RUNPOD_TOP_K", "40")),
             presence_penalty=float(os.getenv("RUNPOD_PRESENCE_PENALTY", "0.1")),
-            frequency_penalty=float(os.getenv("RUNPOD_FREQUENCY_PENALTY", "0.1"))
+            frequency_penalty=float(os.getenv("RUNPOD_FREQUENCY_PENALTY", "0.1")),
+            use_vllm=os.getenv("RUNPOD_USE_VLLM", "true").lower() == "true"
         ) 

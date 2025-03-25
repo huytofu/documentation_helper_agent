@@ -28,6 +28,9 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from huggingface_hub import InferenceClient
 from .runpod_client import RunPodClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Environment flags
 USE_HUGGINGFACE = os.environ.get("USE_HUGGINGFACE", "true").lower() == "true"
@@ -48,17 +51,17 @@ RUNPOD_ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")
 # Model IDs
 MODEL_IDS = {
     "embeddings": "BAAI/bge-large-en-v1.5",
-    "router": "meta-llama/Llama-3-70b-chat-hf",
-    "grader": "meta-llama/Llama-3-70b-chat-hf",
+    "router": "deepseek-ai/deepseek-coder-v2-instruct",
+    "grader": "deepseek-ai/deepseek-coder-v2-instruct",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
 
 # Ollama model names
 OLLAMA_MODELS = {
-    "embeddings": "qllama/bge-large-en-v1.5",
-    "router": "llama3.3:70b",
-    "grader": "llama3.3:70b",
-    "generator": "deepseek-coder:33b"
+    "embeddings": "nomic-embed-text",
+    "router": "deepseek-coder",
+    "grader": "deepseek-coder",
+    "generator": "deepseek-coder"
 }
 
 # Concurrency settings
@@ -129,38 +132,72 @@ async def with_concurrency_limit(func, *args, **kwargs):
         return await func(*args, **kwargs)
 
 def get_active_provider(component: str) -> str:
-    """Get the active provider for a component based on configuration."""
+    """Get the active model provider for a component.
+    
+    Args:
+        component: Component name (embeddings, router, grader, generator)
+        
+    Returns:
+        Active provider name (ollama, huggingface, runpod, or inference_client)
+    """
     if USE_OLLAMA:
         return "ollama"
-    
-    if USE_INFERENCE_CLIENT:
-        return "inference"
-    
-    if component == "generator" and USE_RUNPOD and runpod_client:
+    elif USE_RUNPOD:
         return "runpod"
-    
-    return "huggingface"
+    elif USE_INFERENCE_CLIENT:
+        return "inference_client"
+    elif USE_HUGGINGFACE:
+        return "huggingface"
+    else:
+        raise ValueError("No model provider enabled. Please set one of USE_OLLAMA, USE_RUNPOD, USE_INFERENCE_CLIENT, or USE_HUGGINGFACE to true.")
 
-def get_model_config_for_component(component: str) -> dict:
-    """Get the model configuration for a specific component."""
+def get_model_config_for_component(component: str) -> Dict[str, Any]:
+    """Get model configuration for a specific component.
+    
+    Args:
+        component: Component name (embeddings, router, grader, generator)
+        
+    Returns:
+        Model configuration dictionary
+    """
     provider = get_active_provider(component)
     
     if provider == "ollama":
-        return {"model": OLLAMA_MODELS[component], **get_ollama_config()}
-    
-    if provider == "inference":
         return {
-            "model": MODEL_IDS[component],
-            "api_key": INFERENCE_API_KEY
+            "model_id": OLLAMA_MODELS[component],
+            "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         }
-    
-    if provider == "runpod":
+    elif provider == "runpod":
         return {
-            "model": MODEL_IDS[component],
-            "client": runpod_client
+            "model_id": os.getenv("RUNPOD_MODEL_ID", MODEL_IDS[component]),
+            "api_key": os.getenv("RUNPOD_API_KEY"),
+            "endpoint_id": os.getenv("RUNPOD_ENDPOINT_ID"),
+            "max_tokens": int(os.getenv("RUNPOD_MAX_TOKENS", "2048")),
+            "temperature": float(os.getenv("RUNPOD_TEMPERATURE", "0.2")),
+            "top_p": float(os.getenv("RUNPOD_TOP_P", "0.9")),
+            "top_k": int(os.getenv("RUNPOD_TOP_K", "40")),
+            "presence_penalty": float(os.getenv("RUNPOD_PRESENCE_PENALTY", "0.1")),
+            "frequency_penalty": float(os.getenv("RUNPOD_FREQUENCY_PENALTY", "0.1")),
+            "use_vllm": os.getenv("RUNPOD_USE_VLLM", "true").lower() == "true",
+            "vllm_params": {
+                "max_num_batched_tokens": int(os.getenv("RUNPOD_VLLM_MAX_BATCHED_TOKENS", "4096")),
+                "max_num_seqs": int(os.getenv("RUNPOD_VLLM_MAX_NUM_SEQS", "256")),
+                "max_paddings": int(os.getenv("RUNPOD_VLLM_MAX_PADDINGS", "256")),
+                "gpu_memory_utilization": float(os.getenv("RUNPOD_VLLM_GPU_MEMORY_UTILIZATION", "0.9")),
+                "max_model_len": int(os.getenv("RUNPOD_VLLM_MAX_MODEL_LEN", "2048")),
+                "quantization": os.getenv("RUNPOD_VLLM_QUANTIZATION", "awq"),
+                "dtype": os.getenv("RUNPOD_VLLM_DTYPE", "float16")
+            }
         }
-    
-    return {
-        "model": MODEL_IDS[component],
-        "api_key": HUGGINGFACE_API_KEY
-    } 
+    elif provider == "inference_client":
+        return {
+            "model_id": os.getenv("INFERENCE_MODEL_ID", MODEL_IDS[component]),
+            "api_key": os.getenv("INFERENCE_API_KEY"),
+            "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models")
+        }
+    else:  # huggingface
+        return {
+            "model_id": os.getenv("HUGGINGFACE_MODEL_ID", MODEL_IDS[component]),
+            "api_key": os.getenv("HUGGINGFACE_API_KEY"),
+            "base_url": os.getenv("HUGGINGFACE_BASE_URL", "https://api-inference.huggingface.co/models")
+        } 
