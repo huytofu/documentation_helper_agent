@@ -1,0 +1,345 @@
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, Timestamp, increment } from 'firebase/firestore';
+import { auth, db } from './firebase';
+import { User, UserSession } from '@/types/user';
+import { encrypt, decrypt } from './encryption';
+import { RateLimitService } from './rateLimit';
+
+export class AuthService {
+  private static instance: AuthService;
+  private currentUser: User | null = null;
+  private sessionId: string | null = null;
+  private rateLimitService: RateLimitService;
+
+  private constructor() {
+    this.rateLimitService = RateLimitService.getInstance();
+    // Listen for auth state changes
+    onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        await this.loadUserData(firebaseUser);
+      } else {
+        this.currentUser = null;
+        this.sessionId = null;
+      }
+    });
+  }
+
+  public static getInstance(): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService();
+    }
+    return AuthService.instance;
+  }
+
+  private async loadUserData(firebaseUser: FirebaseUser): Promise<void> {
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User;
+      // Decrypt sensitive data
+      if (userData.apiKey) {
+        userData.apiKey = decrypt(userData.apiKey);
+      }
+      if (userData.email) {
+        userData.email = decrypt(userData.email);
+      }
+      this.currentUser = userData;
+    }
+  }
+
+  public async register(email: string, password: string): Promise<User> {
+    try {
+      // Check rate limit for registration
+      const canRegister = await this.rateLimitService.checkRateLimit('anonymous', 'register');
+      if (!canRegister) {
+        throw new Error('Too many registration attempts. Please try again later.');
+      }
+
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      // Send email verification
+      await sendEmailVerification(firebaseUser);
+
+      // Generate and encrypt sensitive data
+      const apiKey = crypto.randomUUID();
+      const encryptedApiKey = encrypt(apiKey);
+      const encryptedEmail = encrypt(email);
+
+      // Create user document in Firestore
+      const user: User = {
+        uid: firebaseUser.uid,
+        email: encryptedEmail,
+        emailVerified: false,
+        createdAt: new Date(),
+        lastLoginAt: null,
+        apiKey: encryptedApiKey,
+        usageLimit: 100, // Default limit
+        currentUsage: 0,
+        isActive: false, // Will be activated after email verification
+        role: 'user',
+        chatUsage: {
+          count: 0,
+          lastReset: new Date()
+        }
+      };
+
+      await setDoc(doc(db, 'users', firebaseUser.uid), user);
+      this.currentUser = { ...user, apiKey, email }; // Store decrypted data in memory
+
+      return this.currentUser;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  }
+
+  public async login(email: string, password: string): Promise<User> {
+    try {
+      // Check rate limit for login
+      const canLogin = await this.rateLimitService.checkRateLimit('anonymous', 'login');
+      if (!canLogin) {
+        throw new Error('Too many login attempts. Please try again later.');
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      // Check if email is verified
+      if (!firebaseUser.emailVerified) {
+        throw new Error('Please verify your email before logging in');
+      }
+
+      // Check if account is active
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      const userData = userDoc.data() as User;
+      
+      if (!userData.isActive) {
+        throw new Error('Account is not active. Please verify your email');
+      }
+
+      // Validate existing sessions
+      await this.validateSessions(firebaseUser.uid);
+
+      // Update last login
+      await updateDoc(doc(db, 'users', firebaseUser.uid), {
+        lastLoginAt: serverTimestamp()
+      });
+
+      // Create new session
+      const session = await this.createSession(firebaseUser.uid);
+
+      // Decrypt sensitive data
+      if (userData.apiKey) {
+        userData.apiKey = decrypt(userData.apiKey);
+      }
+
+      this.currentUser = userData;
+      this.sessionId = session.id;
+      return userData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  }
+
+  private async validateSessions(userId: string): Promise<void> {
+    // Invalidate expired sessions
+    const sessionsQuery = query(
+      collection(db, 'sessions'),
+      where('userId', '==', userId),
+      where('isValid', '==', true)
+    );
+    
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+    const now = new Date();
+    
+    for (const doc of sessionsSnapshot.docs) {
+      const session = doc.data() as UserSession;
+      if (session.expiresAt.toDate() < now) {
+        await updateDoc(doc.ref, { isValid: false });
+      }
+    }
+  }
+
+  private async createSession(userId: string): Promise<UserSession> {
+    // Get client IP and User-Agent
+    const ipAddress = await this.getClientIP();
+    const userAgent = navigator.userAgent;
+
+    const session: UserSession = {
+      id: crypto.randomUUID(),
+      userId: userId,
+      createdAt: new Date(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)), // 24 hours
+      ipAddress: ipAddress,
+      userAgent: userAgent,
+      isValid: true
+    };
+
+    await setDoc(doc(db, 'sessions', session.id), session);
+    return session;
+  }
+
+  private async getClientIP(): Promise<string> {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error getting IP:', error);
+      return 'unknown';
+    }
+  }
+
+  public async logout(): Promise<void> {
+    try {
+      // Invalidate current session
+      if (this.sessionId) {
+        await updateDoc(doc(db, 'sessions', this.sessionId), {
+          isValid: false
+        });
+      }
+      
+      await signOut(auth);
+      this.currentUser = null;
+      this.sessionId = null;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  }
+
+  public async verifyEmail(actionCode: string): Promise<void> {
+    try {
+      // Check rate limit for email verification
+      const canVerify = await this.rateLimitService.checkRateLimit('anonymous', 'verify_email');
+      if (!canVerify) {
+        throw new Error('Too many verification attempts. Please try again later.');
+      }
+
+      // Verify the email
+      await auth.applyActionCode(actionCode);
+
+      // Get the user
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user found');
+      }
+
+      // Update user document
+      await updateDoc(doc(db, 'users', user.uid), {
+        emailVerified: true,
+        isActive: true
+      });
+
+      // Reload user data
+      await this.loadUserData(user);
+    } catch (error) {
+      console.error('Email verification error:', error);
+      throw error;
+    }
+  }
+
+  public getCurrentUser(): User | null {
+    return this.currentUser;
+  }
+
+  public async isAuthenticated(): Promise<boolean> {
+    if (!this.currentUser || !this.sessionId) {
+      return false;
+    }
+
+    // Validate current session
+    const sessionDoc = await getDoc(doc(db, 'sessions', this.sessionId));
+    if (!sessionDoc.exists()) {
+      return false;
+    }
+
+    const session = sessionDoc.data() as UserSession;
+    
+    // Validate IP and User-Agent
+    const currentIP = await this.getClientIP();
+    const currentUserAgent = navigator.userAgent;
+    
+    if (session.ipAddress !== currentIP || session.userAgent !== currentUserAgent) {
+      // Invalidate session if IP or User-Agent changed
+      await updateDoc(doc(db, 'sessions', this.sessionId), {
+        isValid: false
+      });
+      return false;
+    }
+
+    return session.isValid && session.expiresAt.toDate() > new Date();
+  }
+
+  public async checkChatLimit(): Promise<boolean> {
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const userDoc = await getDoc(doc(db, 'users', this.currentUser.uid));
+    if (!userDoc.exists()) {
+      throw new Error('User document not found');
+    }
+
+    const userData = userDoc.data() as User;
+    const now = new Date();
+    const lastReset = new Date(userData.chatUsage.lastReset);
+
+    // Reset count if it's a new day
+    if (now.getDate() !== lastReset.getDate() || 
+        now.getMonth() !== lastReset.getMonth() || 
+        now.getFullYear() !== lastReset.getFullYear()) {
+      await updateDoc(doc(db, 'users', this.currentUser.uid), {
+        'chatUsage.count': 0,
+        'chatUsage.lastReset': now
+      });
+      return true;
+    }
+
+    // Check if user has reached daily limit
+    if (userData.chatUsage.count >= 5) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public async incrementChatUsage(): Promise<void> {
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const userRef = doc(db, 'users', this.currentUser.uid);
+    await updateDoc(userRef, {
+      'chatUsage.count': increment(1)
+    });
+
+    // Update local state
+    if (this.currentUser.chatUsage) {
+      this.currentUser.chatUsage.count += 1;
+    }
+  }
+
+  public async getRemainingChats(): Promise<number> {
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const userDoc = await getDoc(doc(db, 'users', this.currentUser.uid));
+    if (!userDoc.exists()) {
+      throw new Error('User document not found');
+    }
+
+    const userData = userDoc.data() as User;
+    return Math.max(0, 5 - userData.chatUsage.count);
+  }
+} 

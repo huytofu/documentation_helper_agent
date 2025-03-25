@@ -1,97 +1,32 @@
-"use client";
+import Link from 'next/link';
 
-import React, { useEffect } from 'react';
-import { useCoAgent } from "@copilotkit/react-core";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { LanguageContext } from "./layout";
-import { useContext } from "react";
-import { ProgrammingLanguage } from "@/types";
-import { AgentStatePanel } from "@/components/AgentStatePanel";
-import { ChatInterface } from "@/components/ChatInterface";
-import { AGENT_NAME } from "@/constants";
-import { BookOpen } from "lucide-react";
-
-// Define shared agent state interface
-export interface AgentState {
-  language: ProgrammingLanguage | "";
-  comments: string;
-  current_node: string;
-  test_counter?: number;
-}
-
-export default function Home() {
-  const { selectedLanguage, setSelectedLanguage } = useContext(LanguageContext);
-
-  // Use coAgent state management with proper initialization
-  const { state, setState } = useCoAgent<AgentState>({
-    name: AGENT_NAME,
-    initialState: {
-      language: selectedLanguage || "python",
-      current_node: "",
-      comments: "",
-    },
-  });
-
-  // Update agent state when language changes
-  useEffect(() => {
-    // Only update if the language has actually changed and is different from the current state
-    if (selectedLanguage !== state.language) {
-      console.log("Language changed, updating agent state:", selectedLanguage);
-      setState((prevState) => ({
-        ...prevState,
-        language: selectedLanguage,
-        // Ensure required fields are always present
-        comments: prevState?.comments || "",
-        current_node: prevState?.current_node || "",
-      }));
-    }
-  }, [selectedLanguage, setState, state.language]);
-
-  // Log state changes for debugging
-  useEffect(() => {
-    console.log("useCoAgent state changed in page.tsx:", {
-      language: state.language,
-      current_node: state.current_node,
-      comments: state.comments,
-      test_counter: state.test_counter,
-      timestamp: new Date().toISOString()
-    });
-  }, [state]);
-
-  // Handler for language changes - only update context, don't directly update agent state
-  const handleLanguageChange = (lang: ProgrammingLanguage | "") => {
-    console.log("Language selector changed to:", lang);
-    // Only update if the language has actually changed
-    if (lang !== selectedLanguage) {
-      setSelectedLanguage(lang);
-    }
-  };
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-8">
-      <div className="w-full max-w-7xl">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <BookOpen className="h-7 w-7 text-blue-500" />
-          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Documentation Helper Agent
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Welcome to Your App
           </h1>
-        </div>
-        
-        <div className="w-full flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/2 space-y-6">
-            <LanguageSelector 
-              selectedLanguage={selectedLanguage} 
-              onLanguageChange={handleLanguageChange} 
-            />
-            
-            <ChatInterface />
-          </div>
-          
-          <div className="w-full md:w-1/2">
-            <AgentStatePanel />
+          <p className="text-gray-600 mb-8">
+            A powerful application for managing your documentation and code.
+          </p>
+          <div className="space-y-4">
+            <Link
+              href="/login"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Login
+            </Link>
+            <Link
+              href="/register"
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Register
+            </Link>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 } 
