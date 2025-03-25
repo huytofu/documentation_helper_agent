@@ -13,14 +13,11 @@
     }
   ],
   "env": {
-    "ENVIRONMENT": "production",
     "USE_HUGGINGFACE": "true",
-    "USE_INFERENCE_CLIENT": "true",
-    "INFERENCE_PROVIDER": "together",
+    "USE_INFERENCE_CLIENT": "false",
+    "ENVIRONMENT": "production",
     "PROVISIONED_CONCURRENCY": "1",
-    "CONCURRENCY_LIMIT": "10",
-    "MAX_BATCH_SIZE": "10",
-    "MAX_WORKERS": "5",
-    "BATCH_TIMEOUT": "30.0"
+    "CONCURRENCY_LIMIT": "5",
+    "LOG_LEVEL": "INFO"
   }
 } 

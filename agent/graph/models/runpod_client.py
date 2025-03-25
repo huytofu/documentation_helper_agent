@@ -1,0 +1,143 @@
+"""RunPod client configuration for serverless inference."""
+
+import os
+import json
+import aiohttp
+from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+class RunPodClient:
+    """Client for interacting with RunPod serverless endpoints."""
+    
+    def __init__(
+        self,
+        api_key: str,
+        endpoint_id: str,
+        model_id: str = "deepseek-ai/deepseek-coder-v2-instruct",
+        max_tokens: int = 2048,
+        temperature: float = 0.2,
+        top_p: float = 0.9,
+        top_k: int = 40,
+        presence_penalty: float = 0.1,
+        frequency_penalty: float = 0.1
+    ):
+        """Initialize RunPod client.
+        
+        Args:
+            api_key: RunPod API key
+            endpoint_id: RunPod endpoint ID
+            model_id: Model ID to use
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature
+            top_p: Top-p sampling parameter
+            top_k: Top-k sampling parameter
+            presence_penalty: Presence penalty
+            frequency_penalty: Frequency penalty
+        """
+        self.api_key = api_key
+        self.endpoint_id = endpoint_id
+        self.model_id = model_id
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.presence_penalty = presence_penalty
+        self.frequency_penalty = frequency_penalty
+        self.base_url = f"https://api.runpod.ai/v2/{endpoint_id}"
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    async def generate(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Generate text using RunPod endpoint.
+        
+        Args:
+            prompt: User prompt
+            system_prompt: Optional system prompt
+            **kwargs: Additional parameters to override defaults
+            
+        Returns:
+            Generated text and metadata
+        """
+        # Prepare messages
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        # Prepare request payload
+        payload = {
+            "input": {
+                "messages": messages,
+                "model": self.model_id,
+                "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+                "temperature": kwargs.get("temperature", self.temperature),
+                "top_p": kwargs.get("top_p", self.top_p),
+                "top_k": kwargs.get("top_k", self.top_k),
+                "presence_penalty": kwargs.get("presence_penalty", self.presence_penalty),
+                "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty)
+            }
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Start generation
+                async with session.post(
+                    f"{self.base_url}/run",
+                    headers=self.headers,
+                    json=payload
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logger.error(f"RunPod API error: {error_text}")
+                        raise Exception(f"RunPod API error: {error_text}")
+                    
+                    result = await response.json()
+                    job_id = result["id"]
+                
+                # Poll for completion
+                while True:
+                    async with session.get(
+                        f"{self.base_url}/status/{job_id}",
+                        headers=self.headers
+                    ) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.error(f"RunPod status error: {error_text}")
+                            raise Exception(f"RunPod status error: {error_text}")
+                        
+                        status = await response.json()
+                        if status["status"] == "COMPLETED":
+                            return status["output"]
+                        elif status["status"] == "FAILED":
+                            raise Exception(f"RunPod job failed: {status.get('error', 'Unknown error')}")
+                        
+                        # Wait before polling again
+                        await asyncio.sleep(1)
+        
+        except Exception as e:
+            logger.error(f"Error in RunPod generation: {str(e)}")
+            raise
+    
+    @classmethod
+    def from_env(cls) -> "RunPodClient":
+        """Create RunPod client from environment variables."""
+        return cls(
+            api_key=os.getenv("RUNPOD_API_KEY"),
+            endpoint_id=os.getenv("RUNPOD_ENDPOINT_ID"),
+            model_id=os.getenv("RUNPOD_MODEL_ID", "deepseek-ai/deepseek-coder-v2-instruct"),
+            max_tokens=int(os.getenv("RUNPOD_MAX_TOKENS", "2048")),
+            temperature=float(os.getenv("RUNPOD_TEMPERATURE", "0.2")),
+            top_p=float(os.getenv("RUNPOD_TOP_P", "0.9")),
+            top_k=int(os.getenv("RUNPOD_TOP_K", "40")),
+            presence_penalty=float(os.getenv("RUNPOD_PRESENCE_PENALTY", "0.1")),
+            frequency_penalty=float(os.getenv("RUNPOD_FREQUENCY_PENALTY", "0.1"))
+        ) 

@@ -1,218 +1,224 @@
-# documentation_helper_agent
+# Documentation Helper Agent
 
-# This Repo is coding an agent that can help you code by referring to packages/frameworks' documentation
-## List of supported packages/frameworks:
-1. LangChain
-2. LangGraph
-3. CopilotKit
+A LangGraph-based agent that helps with code documentation and answering coding-related questions.
 
-### Built with LangChain + LangGraph + CopilotKit
-   
-## Server Configuration
+## Features
 
-The application has been refactored to support both traditional and serverless deployments:
+- Multi-stage processing pipeline for accurate responses
+- Support for multiple model providers (Hugging Face, Ollama, RunPod)
+- Efficient resource management and caching
+- Parallel processing capabilities
+- Comprehensive error handling and logging
 
-### File Structure
+## Model Configuration
 
-- `agent/graph/app.py`: Contains the FastAPI application definition
-- `agent/graph/server.py`: Contains the server startup code for local development
-- `agent/graph/wsgi.py`: Exports the app for WSGI servers (e.g., Gunicorn)
-- `agent/graph/asgi.py`: Exports the app for ASGI servers (e.g., Uvicorn, Hypercorn)
-- `agent/graph/serverless.py`: Provides handlers for serverless platforms
+The agent uses a combination of specialized models for different tasks:
 
-### Running Locally
+### Default Model Combination
+- **Embeddings**: `BAAI/bge-large-en-v1.5` (Hugging Face)
+  - High-quality embeddings for semantic search
+  - Optimized for code and documentation
+- **Grader & Router**: `meta-llama/Llama-3-70b-chat-hf` (Hugging Face)
+  - Powerful model for decision making
+  - Used for both grading and routing tasks
+- **Generator**: `deepseek-ai/deepseek-coder-v2-instruct` (RunPod with vLLM)
+  - Specialized for code generation
+  - Optimized for documentation tasks
+  - Served using vLLM framework for improved performance
 
-```bash
-# Run with the development server
-python -m agent.graph.server
+### Alternative Model Options
+- **Ollama Models**:
+  - Embeddings: `qllama/bge-large-en-v1.5` (Quantized version of BGE-large-en-v1.5)
+  - Grader & Router: `llama3.3:70b`
+  - Generator: `deepseek-coder:33b`
+- **Hugging Face Only**:
+  - Set `USE_RUNPOD=false` to use Hugging Face for all models
+  - Generator: `deepseek-ai/deepseek-coder-v2-instruct` (via Hugging Face Inference API)
 
-# Run with Uvicorn directly
-uvicorn agent.graph.app:app --host 0.0.0.0 --port 8000
+## Environment Variables
 
-# Run with Gunicorn (WSGI)
-gunicorn agent.graph.wsgi:application
-
-# Run with Uvicorn as an ASGI server
-uvicorn agent.graph.asgi:application
-```
-
-### Serverless Deployment
-
-The application supports multiple serverless platforms through the `SERVER_TYPE` environment variable:
-
-#### AWS Lambda
+Configure the agent using the following environment variables:
 
 ```bash
-# Set the environment variable
-export SERVER_TYPE="aws lambda"
+# Model Provider Selection (Default: Hugging Face for most models, RunPod for generator)
+USE_HUGGINGFACE=true  # Use Hugging Face models (default)
+USE_INFERENCE_CLIENT=false  # Use third-party inference providers
+USE_RUNPOD=true  # Use RunPod serverless for generator model (default)
 
-# Deploy using your preferred method (e.g., AWS SAM, Serverless Framework)
-# Example serverless.yml
-functions:
-  app:
-    handler: agent.graph.serverless.handler
-    events:
-      - http:
-          path: /{proxy+}
-          method: any
+# RunPod Configuration (if USE_RUNPOD=true)
+RUNPOD_API_KEY=your_runpod_api_key
+RUNPOD_ENDPOINT_ID=your_endpoint_id
+RUNPOD_MODEL_ID=deepseek-ai/deepseek-coder-v2-instruct
+RUNPOD_MAX_TOKENS=2048
+RUNPOD_TEMPERATURE=0.2
+RUNPOD_TOP_P=0.9
+RUNPOD_TOP_K=40
+RUNPOD_PRESENCE_PENALTY=0.1
+RUNPOD_FREQUENCY_PENALTY=0.1
+
+# Hugging Face Configuration
+HUGGINGFACE_API_KEY=your_huggingface_api_key
+
+# Model Selection (Default Models)
+HUGGINGFACE_EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
+HUGGINGFACE_GRADER_MODEL=meta-llama/Llama-3-70b-chat-hf
+HUGGINGFACE_ROUTER_MODEL=meta-llama/Llama-3-70b-chat-hf
+HUGGINGFACE_GENERATOR_MODEL=deepseek-ai/deepseek-coder-v2-instruct
+
+# Concurrency Settings
+PROVISIONED_CONCURRENCY=1  # Number of concurrent instances
+CONCURRENCY_LIMIT=5  # Maximum concurrent requests per instance
 ```
 
-#### Azure Functions
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/documentation_helper_agent.git
+cd documentation_helper_agent
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+## Usage
+
+1. Start the FastAPI server:
+```bash
+uvicorn agent.graph.app:app --reload
+```
+
+2. Send requests to the API:
+```bash
+curl -X POST "http://localhost:8000/api/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "How do I implement a binary search tree?"}'
+```
+
+## Deployment
+
+### Vercel Serverless Deployment
+
+1. Install Vercel CLI:
+```bash
+npm install -g vercel
+```
+
+2. Configure environment variables in Vercel:
+   - Go to your project settings in Vercel
+   - Add the following environment variables:
+     ```
+     HUGGINGFACE_API_KEY=your_huggingface_api_key
+     API_KEY=your_api_key
+     FRONTEND_URL=your_frontend_url
+     ```
+
+3. Deploy to Vercel:
+```bash
+vercel
+```
+
+4. Set up warm-up endpoint:
+   - Create a cron job in Vercel to call `/api/warmup` every 5 minutes
+   - This helps keep the serverless functions warm
+
+5. Monitor deployment:
+   - Check Vercel dashboard for deployment status
+   - Monitor function execution times
+   - Watch for any errors in the logs
+
+### RunPod Serverless Deployment
+
+1. Set up RunPod:
+   - Create a RunPod account
+   - Deploy DeepSeek Coder V2 on RunPod serverless
+   - Get your API key and endpoint ID
+
+2. Configure environment variables:
+   ```bash
+   USE_RUNPOD=true
+   RUNPOD_API_KEY=your_runpod_api_key
+   RUNPOD_ENDPOINT_ID=your_endpoint_id
+   RUNPOD_MODEL_ID=deepseek-ai/deepseek-coder-v2-instruct
+   ```
+
+3. Benefits of RunPod serverless:
+   - Pay-per-request pricing
+   - Automatic scaling
+   - Cold start optimization
+   - High availability
+   - Low latency
+
+4. Monitoring:
+   - Use RunPod dashboard to monitor:
+     - Request volume
+     - Response times
+     - Error rates
+     - Cost per request
+
+### Environment Variables
+
+For Vercel deployment, set these environment variables in your Vercel project settings:
 
 ```bash
-# Set the environment variable
-export SERVER_TYPE="azure functions"
+# Model Provider Selection (Default: Hugging Face Inference API)
+USE_HUGGINGFACE=true
+USE_INFERENCE_CLIENT=false
 
-# In your function.json
-{
-  "scriptFile": "__init__.py",
-  "bindings": [
-    {
-      "authLevel": "anonymous",
-      "type": "httpTrigger",
-      "direction": "in",
-      "name": "req",
-      "methods": ["get", "post", "put", "delete", "options", "head", "patch"],
-      "route": "{*route}"
-    },
-    {
-      "type": "http",
-      "direction": "out",
-      "name": "$return"
-    }
-  ]
-}
+# Hugging Face Configuration
+HUGGINGFACE_API_KEY=your_huggingface_api_key
 
-# In your __init__.py
-from agent.graph.serverless import main
+# Model Selection (Default Models)
+HUGGINGFACE_EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
+HUGGINGFACE_GRADER_MODEL=meta-llama/Llama-3-70b-chat-hf
+HUGGINGFACE_ROUTER_MODEL=meta-llama/Llama-3-70b-chat-hf
+HUGGINGFACE_GENERATOR_MODEL=deepseek-ai/deepseek-coder-v2-instruct
+
+# Concurrency Settings (Optimized for Vercel)
+PROVISIONED_CONCURRENCY=1
+CONCURRENCY_LIMIT=5
+
+# Environment
+ENVIRONMENT=production
+
+# API Security
+API_KEY=your_api_key
+
+# Frontend URL (for CORS)
+FRONTEND_URL=your_frontend_url
+
+# Logging
+LOG_LEVEL=INFO
 ```
 
-#### Google Cloud Functions
+### Performance Optimization
 
-```bash
-# Set the environment variable
-export SERVER_TYPE="google cloud functions"
+For optimal performance on Vercel:
 
-# In your main.py
-from agent.graph.serverless import gcp_handler
+1. **Cold Start Optimization**:
+   - Use the warm-up endpoint
+   - Keep functions warm with provisioned concurrency
+   - Optimize function size
 
-# Export the handler
-def handle_request(request):
-    return gcp_handler(request)
-```
+2. **Resource Management**:
+   - Monitor memory usage
+   - Optimize response times
+   - Use appropriate timeout settings
 
-#### Vercel
+3. **Cost Optimization**:
+   - Monitor function execution times
+   - Use appropriate concurrency limits
+   - Implement caching where possible
 
-```bash
-# Set the environment variable
-export SERVER_TYPE="vercel"
-
-# In your vercel.json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "agent/graph/serverless.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "agent/graph/serverless.py"
-    }
-  ]
-}
-```
-   
-## Persistent State Management
-
-The application supports multiple state persistence options through the `CHECKPOINTER_TYPE` environment variable:
-
-### Checkpointer Types
-
-#### Memory (Default)
-
-```bash
-# Set the environment variable
-export CHECKPOINTER_TYPE=memory
-```
-
-This is the default option and stores state in memory. State is lost when the server restarts or between serverless function invocations.
-
-#### Vercel KV (Redis)
-
-```bash
-# Set the environment variable
-export CHECKPOINTER_TYPE=vercel_kv
-
-# Required Vercel KV environment variables
-export KV_URL=your_kv_url
-export KV_REST_API_URL=your_kv_rest_api_url
-export KV_REST_API_TOKEN=your_kv_rest_api_token
-export KV_REST_API_READ_ONLY_TOKEN=your_kv_rest_api_read_only_token
-```
-
-This option stores state in Vercel KV (Redis), providing persistence across serverless function invocations. It's ideal for Vercel deployments.
-
-To set up Vercel KV:
-1. Add the Vercel KV integration to your Vercel project
-2. Copy the KV environment variables from your Vercel project settings
-3. Add them to your `.env` file or environment
-
-#### PostgreSQL
-
-```bash
-# Set the environment variable
-export CHECKPOINTER_TYPE=postgres
-
-# Required PostgreSQL environment variable
-export DATABASE_URL=postgresql://username:password@hostname:port/database
-```
-
-This option stores state in a PostgreSQL database, providing persistence across serverless function invocations. It works with any cloud provider's PostgreSQL service:
-- AWS RDS
-- Google Cloud SQL
-- Azure Database for PostgreSQL
-- Digital Ocean Managed PostgreSQL
-
-To set up PostgreSQL:
-1. Create a PostgreSQL database in your cloud provider
-2. Get the connection string for your database
-3. Add it to your `.env` file or environment as `DATABASE_URL`
-   
-## Vector Store Configuration
-
-The application supports multiple vector store options through the `VECTOR_STORE_TYPE` environment variable:
-
-### Vector Store Types
-
-#### Chroma (Default)
-
-```bash
-# Set the environment variable
-export VECTOR_STORE_TYPE=chroma
-```
-
-This is the default option and stores vectors in a local Chroma database. It's ideal for local development and testing.
-
-#### Pinecone
-
-```bash
-# Set the environment variable
-export VECTOR_STORE_TYPE=pinecone
-
-# Required Pinecone environment variables
-export PINECONE_API_KEY=your_pinecone_api_key
-export PINECONE_ENVIRONMENT=your_pinecone_environment
-export PINECONE_INDEX_NAME=your_pinecone_index_name
-```
-
-This option stores vectors in Pinecone, providing persistence and scalability for serverless deployments.
-
-To set up Pinecone:
-1. Create a Pinecone account at https://www.pinecone.io/
-2. Create a new index with the appropriate dimensions (1536 for most embedding models)
-3. Get your API key and environment from the Pinecone console
-4. Add them to your `.env` file or environment
-   
+4. **Monitoring**:
+   - Set up Vercel Analytics
+   - Monitor error rates
+   - Track performance metrics

@@ -7,8 +7,9 @@ load_dotenv()
 
 import logging
 import json
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from agent.graph.graph import app as agent_app, graph
@@ -19,10 +20,13 @@ import datetime
 import asyncio
 from typing import Dict, Any, List
 import uvicorn
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
+import re
 
 # Configure root logger
 logging.basicConfig(
-    level=logging.INFO,  # Changed to INFO for production
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s',
     force=True
 )
@@ -40,20 +44,88 @@ logger.info("Initializing FastAPI application for Vercel...")
 # Create FastAPI app
 app = FastAPI()
 
-# Initialize batch processor
+# API Key security
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+API_KEY = os.getenv("API_KEY", "")
+if not API_KEY:
+    logger.warning("API_KEY not set in environment variables")
+
+async def verify_api_key(api_key: str = Depends(API_KEY_HEADER)):
+    if not API_KEY:
+        return None
+    if not api_key or api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API key"
+        )
+    return api_key
+
+# Initialize batch processor with rate limiting
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, requests_per_minute: int = 60):
+        super().__init__(app)
+        self.requests_per_minute = requests_per_minute
+        self.requests = {}
+
+    async def dispatch(self, request: Request, call_next):
+        client_ip = request.client.host
+        current_time = datetime.datetime.now()
+        
+        # Clean up old requests
+        self.requests = {
+            ip: times for ip, times in self.requests.items()
+            if (current_time - times[-1]).total_seconds() < 60
+        }
+        
+        # Check rate limit
+        if client_ip in self.requests:
+            if len(self.requests[client_ip]) >= self.requests_per_minute:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many requests"
+                )
+            self.requests[client_ip].append(current_time)
+        else:
+            self.requests[client_ip] = [current_time]
+        
+        return await call_next(request)
+
+# Add rate limiting middleware
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=int(os.getenv("RATE_LIMIT", "60"))
+)
+
+# Initialize batch processor with validation
+def validate_batch_size(size: int) -> int:
+    max_size = int(os.getenv("MAX_BATCH_SIZE", "10"))
+    if size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch size exceeds maximum of {max_size}"
+        )
+    return size
+
 batch_processor = BatchProcessor(
-    max_batch_size=int(os.getenv("MAX_BATCH_SIZE", "10")),
+    max_batch_size=validate_batch_size(int(os.getenv("MAX_BATCH_SIZE", "10"))),
     max_workers=int(os.getenv("MAX_WORKERS", "5")),
     timeout=float(os.getenv("BATCH_TIMEOUT", "30.0"))
 )
 
-# Configure CORS for Vercel
+# Configure CORS with strict settings
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+if not FRONTEND_URL:
+    logger.error("FRONTEND_URL not set in environment variables")
+    raise ValueError("FRONTEND_URL environment variable is required")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "*")],  # Use environment variable for frontend URL
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+    expose_headers=["Content-Length", "X-Request-ID"],
+    max_age=3600,
 )
 
 # Create SDK instance
@@ -81,15 +153,12 @@ last_warmup_time = 0
 WARMUP_INTERVAL = 300  # 5 minutes
 
 async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Process a single chat request.
-    
-    Args:
-        state: The state dictionary for the request
-        
-    Returns:
-        Processed result
-    """
+    """Process a single chat request."""
     try:
+        # Validate state
+        if not isinstance(state, dict):
+            raise ValueError("Invalid state format")
+        
         # Convert input state to GraphState
         graph_state = GraphState(**state)
         
@@ -142,7 +211,10 @@ async def warmup():
         raise HTTPException(status_code=500, detail="Warm-up failed")
 
 @app.post("/api/chat")
-async def chat(state: Dict[str, Any]) -> Dict[str, Any]:
+async def chat(
+    state: Dict[str, Any],
+    api_key: str = Depends(verify_api_key)
+) -> Dict[str, Any]:
     """Main chat endpoint that processes user queries."""
     try:
         return await process_single_request(state)
@@ -151,16 +223,15 @@ async def chat(state: Dict[str, Any]) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/chat/batch")
-async def chat_batch(states: List[Dict[str, Any]]) -> List[BatchResult]:
-    """Batch chat endpoint that processes multiple queries in parallel.
-    
-    Args:
-        states: List of state dictionaries for multiple requests
-        
-    Returns:
-        List of BatchResult objects containing results or errors
-    """
+async def chat_batch(
+    states: List[Dict[str, Any]],
+    api_key: str = Depends(verify_api_key)
+) -> List[BatchResult]:
+    """Batch chat endpoint that processes multiple queries in parallel."""
     try:
+        # Validate batch size
+        validate_batch_size(len(states))
+        
         return await batch_processor.process_batch(
             items=states,
             process_fn=process_single_request
@@ -169,27 +240,31 @@ async def chat_batch(states: List[Dict[str, Any]]) -> List[BatchResult]:
         logger.error(f"Error in batch chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Add request logging middleware
+# Add request logging middleware with sanitization
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Middleware to log incoming requests and modify request body if needed."""
+    """Middleware to log incoming requests with sanitization."""
     logger.info("\n=== Incoming Request ===")
     logger.info(f"URL: {request.url}")
     logger.info(f"Method: {request.method}")
     
-    # Only log headers in development
+    # Only log non-sensitive headers in development
     if os.getenv("ENVIRONMENT") == "development":
+        sensitive_headers = {"authorization", "cookie", "x-api-key"}
         logger.info("Headers:")
         for header, value in request.headers.items():
-            logger.info(f"  {header}: {value}")
+            if header.lower() not in sensitive_headers:
+                logger.info(f"  {header}: {value}")
     
     body = await request.body()
     if body:
         try:
             body_json = json.loads(body)
             if os.getenv("ENVIRONMENT") == "development":
-                logger.info("Original Body:")
-                logger.info(json.dumps(body_json, indent=2))
+                # Sanitize sensitive data
+                sanitized_body = _sanitize_sensitive_data(body_json)
+                logger.info("Sanitized Body:")
+                logger.info(json.dumps(sanitized_body, indent=2))
             
             # Extract properties and assign to state if they exist
             if "properties" in body_json:
@@ -200,19 +275,32 @@ async def log_requests(request: Request, call_next):
                 
                 if os.getenv("ENVIRONMENT") == "development":
                     logger.info("Updated Body with properties in state:")
-                    logger.info(json.dumps(body_json, indent=2))
+                    logger.info(json.dumps(_sanitize_sensitive_data(body_json), indent=2))
                 
                 # Create a new request with the modified body
                 request._body = json.dumps(body_json).encode()
         except:
             if os.getenv("ENVIRONMENT") == "development":
-                logger.info(f"Raw body: {body}")
+                logger.info("Raw body (sanitized): [REDACTED]")
     
     response = await call_next(request)
     logger.info("=== End Request ===\n")
     return response
 
-# Add CopilotKit endpoint
+def _sanitize_sensitive_data(data: Any) -> Any:
+    """Sanitize sensitive data in request/response bodies."""
+    if isinstance(data, dict):
+        sensitive_keys = {"api_key", "password", "token", "secret"}
+        return {
+            k: "[REDACTED]" if any(sk in k.lower() for sk in sensitive_keys)
+            else _sanitize_sensitive_data(v)
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [_sanitize_sensitive_data(item) for item in data]
+    return data
+
+# Add CopilotKit endpoint with API key protection
 add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
 
 # Health check endpoint for Vercel
