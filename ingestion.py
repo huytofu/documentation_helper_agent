@@ -262,7 +262,7 @@ urls4 = [
     "https://docs.copilotkit.ai/troubleshooting/common-issues"
 ]
 
-def ingest_documents(framework, language, docs_list):
+def ingest_documents(framework, docs_list):
     """Ingest documents into the vector store."""
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=600, chunk_overlap=50
@@ -271,14 +271,14 @@ def ingest_documents(framework, language, docs_list):
 
     if len(doc_splits) > 0:
         # Get the appropriate vector store based on environment
-        vector_store = get_vector_store(framework, language, embeddings)
+        vector_store = get_vector_store(framework, embeddings)
         
         if vector_store:
             # Add documents to the vector store
             vector_store.add_documents(doc_splits)
             return True
         else:
-            print(f"Error: Could not create vector store for {framework} in {language}")
+            print(f"Error: Could not create vector store for {framework}")
             return False
     else:
         print("No documents to ingest")
@@ -291,10 +291,8 @@ for framework, urls in zip(
     docs = [WebBaseLoader(url).load() for url in urls]
     docs_list = [item for sublist in docs for item in sublist]
 
-    if ingest_documents(framework, "python", docs_list):
-        if ingest_documents(framework, "javascript", docs_list):
-            print(f"Successfully ingested documents for {framework}")
-        else:
-            print(f"Error: Could not ingest documents for {framework} in javascript")
+    if ingest_documents(framework, docs_list):
+        print(f"Successfully ingested documents for {framework}")
     else:
-        print(f"Error: Could not ingest documents for {framework} in python")
+        print(f"Error: Could not ingest documents for {framework}")
+    
