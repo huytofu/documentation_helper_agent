@@ -3,25 +3,6 @@ import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { encrypt } from '../lib/encryption';
 
-// Indexes
-const indexes = [
-  {
-    collectionGroup: 'sessions',
-    queryScope: 'COLLECTION',
-    fields: [
-      { fieldPath: 'userId', order: 'ASCENDING' },
-      { fieldPath: 'isValid', order: 'ASCENDING' }
-    ]
-  },
-  {
-    collectionGroup: 'sessions',
-    queryScope: 'COLLECTION',
-    fields: [
-      { fieldPath: 'expiresAt', order: 'ASCENDING' }
-    ]
-  }
-];
-
 // Create a test user
 async function createTestUser() {
   try {
