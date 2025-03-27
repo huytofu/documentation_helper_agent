@@ -4,7 +4,7 @@ from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
-from agent.graph.state import GraphState
+from agent.graph.state import GraphState, cleanup_resources
 from langchain_core.messages import AIMessage
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
@@ -34,15 +34,6 @@ def check_iteration_limit(state: GraphState) -> bool:
         return False
     return True
 
-def cleanup_resources(state: GraphState) -> None:
-    """Clean up any temporary resources."""
-    if "temp_files" in state:
-        for file in state["temp_files"]:
-            try:
-                os.remove(file)
-            except Exception as e:
-                logger.error(f"Failed to cleanup temp file: {e}")
-
 def get_last_ai_message_content(messages):
     # Reverse through messages to find the last AI message
     for message in reversed(messages):
@@ -63,8 +54,8 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
         cleanup_resources(state)
         return "end_misery"
     
-    generation = get_last_ai_message_content(state["messages"])
-    query = state["query"]
+    generation = get_last_ai_message_content(state.get("messages", []))
+    query = state.get("query", "")
     score = {}
 
     try:
@@ -90,12 +81,12 @@ def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")
     
     # Validate query
-    if "query" not in state or not state["query"]:
+    query = state.get("query", "")
+    if not query:
         logger.error("Missing or empty query")
         cleanup_resources(state)
         return "end_misery"
         
-    query = state["query"]
     source: RouteQuery = query_router.invoke({"query": query})
     if source.datasource in ["websearch", None]:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
@@ -113,12 +104,7 @@ def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
     
     # Validate documents
-    if "documents" not in state:
-        logger.error("Missing documents in state")
-        cleanup_resources(state)
-        return "end_misery"
-        
-    documents = state["documents"]
+    documents = state.get("documents", [])
     if len(documents) > 0:
         # Clean up web search resources before generating
         cleanup_resources(state)
@@ -130,7 +116,7 @@ def to_search_web_or_not(state: GraphState) -> str:
     
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
-    sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
+    sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state.get("comments", "")})
     if sentiment and sentiment.binary_score:
         return "good"
     else:

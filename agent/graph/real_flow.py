@@ -4,7 +4,7 @@ from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations, grade_hallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
-from agent.graph.state import GraphState
+from agent.graph.state import GraphState, cleanup_resources
 from langchain_core.messages import AIMessage
 from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP
 from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop
@@ -19,12 +19,97 @@ from typing import Dict, Any
 logger = logging.getLogger("graph.real_flow")
 
 def validate_state(state: GraphState) -> bool:
-    """Validate that all required fields are present in the state."""
-    required_fields = ["query", "documents", "generation"]
-    for field in required_fields:
+    """Validate that all required fields are present and valid in the state.
+    
+    Args:
+        state: The state to validate
+        
+    Returns:
+        bool: True if state is valid, False otherwise
+    """
+    # Define required fields and their validation rules
+    required_fields = {
+        "query": {
+            "type": str,
+            "min_length": 1,
+            "max_length": 1000,
+            "validate": lambda x: x.strip() != ""
+        },
+        "documents": {
+            "type": list,
+            "min_length": 0,
+            "validate": lambda x: all(isinstance(doc, str) and len(doc.strip()) > 0 for doc in x)
+        },
+        "generation": {
+            "type": str,
+            "min_length": 0,
+            "max_length": 5000,
+            "validate": lambda x: isinstance(x, str)
+        },
+        "retry_count": {
+            "type": int,
+            "min_value": 0,
+            "max_value": 5,
+            "validate": lambda x: 0 <= x <= 5
+        },
+        "current_node": {
+            "type": str,
+            "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
+                              "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
+                              "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"],
+            "validate": lambda x: x in ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
+                                      "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
+                                      "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"]
+        },
+        "language": {
+            "type": str,
+            "allowed_values": ["python", "javascript", ""],
+            "validate": lambda x: x in ["python", "javascript", ""]
+        },
+        "comments": {
+            "type": str,
+            "max_length": 1000,
+            "validate": lambda x: isinstance(x, str)
+        }
+    }
+
+    # Check each required field
+    for field, rules in required_fields.items():
+        # Check presence
         if field not in state:
-            logger.error(f"Missing required state field: {field}")
+            logger.error(f"Missing required field: {field}")
             return False
+            
+        value = state[field]
+        
+        # Check type
+        if not isinstance(value, rules["type"]):
+            logger.error(f"Invalid type for {field}: expected {rules['type']}, got {type(value)}")
+            return False
+            
+        # Check length constraints if specified
+        if "min_length" in rules and len(value) < rules["min_length"]:
+            logger.error(f"Field {field} length {len(value)} is less than minimum {rules['min_length']}")
+            return False
+            
+        if "max_length" in rules and len(value) > rules["max_length"]:
+            logger.error(f"Field {field} length {len(value)} exceeds maximum {rules['max_length']}")
+            return False
+            
+        # Check numeric constraints if specified
+        if "min_value" in rules and value < rules["min_value"]:
+            logger.error(f"Field {field} value {value} is less than minimum {rules['min_value']}")
+            return False
+            
+        if "max_value" in rules and value > rules["max_value"]:
+            logger.error(f"Field {field} value {value} exceeds maximum {rules['max_value']}")
+            return False
+            
+        # Run custom validation if specified
+        if "validate" in rules and not rules["validate"](value):
+            logger.error(f"Custom validation failed for field: {field}")
+            return False
+            
     return True
 
 def check_iteration_limit(state: GraphState) -> bool:
@@ -36,15 +121,6 @@ def check_iteration_limit(state: GraphState) -> bool:
         return False
     return True
 
-def cleanup_resources(state: GraphState) -> None:
-    """Clean up any temporary resources."""
-    if "temp_files" in state:
-        for file in state["temp_files"]:
-            try:
-                os.remove(file)
-            except Exception as e:
-                logger.error(f"Failed to cleanup temp file: {e}")
-
 def get_last_ai_message_content(messages):
     # Reverse through messages to find the last AI message
     for message in reversed(messages):
@@ -53,6 +129,14 @@ def get_last_ai_message_content(messages):
     return ""
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
+    """Grade generation for hallucinations and query relevance.
+    
+    Args:
+        state: Current graph state
+        
+    Returns:
+        str: Next node to execute
+    """
     logger.info("---CHECK HALLUCINATIONS---")
     
     # Validate state
@@ -65,9 +149,9 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         cleanup_resources(state)
         return "end_misery"
     
-    query = state["query"]
-    documents = state["documents"]
-    generation = state["generation"]
+    query = state.get("query", "")
+    documents = state.get("documents", [])
+    generation = state.get("generation", "")
     score = {}
 
     hallucination_counter = 0
@@ -95,11 +179,9 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
             score: GradeAnswer = grade_answer(query=query, answer=generation)
         except TimeoutError:
             logger.error("Answer grading timed out")
-            cleanup_resources(state)
             return "end_misery"
         except Exception as e:
             logger.error(f"Error during answer grading: {str(e)}")
-            cleanup_resources(state)
             return "end_misery"
         
         if score and score.binary_score:
@@ -110,9 +192,10 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
             return "not useful"
     else:
         logger.info("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
-        if state["retry_count"] == 0:
+        retry_count = state.get("retry_count", 0)
+        if retry_count == 0:
             return "not supported"
-        elif state["retry_count"] < 2:
+        elif retry_count < 2:
             return "need search web"
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         cleanup_resources(state)
@@ -120,12 +203,12 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
 
 def grade_generation_grounded_in_query(state: GraphState) -> str:
     logger.info("---GRADE GENERATION GROUNDED IN QUERY---")
-    generation = get_last_ai_message_content(state["messages"])
+    generation = get_last_ai_message_content(state.get("messages", []))
     # Rest of the function...
 
 def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")
-    query = state["query"]
+    query = state.get("query", "")
     source: RouteQuery = query_router.invoke({"query": query})
     if source.datasource in ["websearch", None]:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
@@ -141,27 +224,22 @@ def route_query(state: GraphState) -> str:
         
 def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
-    documents = state["documents"]
+    documents = state.get("documents", [])
     if len(documents) > 0:
-        # Clean up web search resources before generating
-        cleanup_resources(state)
         return GENERATE
     else:
-        # Clean up document resources before web search
-        cleanup_resources(state)
         return WEBSEARCH
     
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
     try:
-        sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state["comments"]})
+        sentiment: GradeSentiment = sentiment_grader.invoke({"comments": state.get("comments", "")})
         if sentiment and sentiment.binary_score:
             return "good"
         else:
             return "bad"
     except Exception as e:
         logger.error(f"Error during sentiment analysis: {str(e)}")
-        cleanup_resources(state)
         return "good"  # Default to good on error
     finally:
         # Always clean up resources before ending
