@@ -67,11 +67,10 @@ export class AuthService {
 
       // Configure verification email settings
       const actionCodeSettings = {
-        url: `${window.location.origin}/verify-email`,
-        handleCodeInApp: true
+        url: `${window.location.origin}/verify-email`,  // This is where user will be redirected after verification
       };
 
-      // Send verification email with custom settings
+      // Send verification email with settings
       await sendEmailVerification(firebaseUser, actionCodeSettings);
 
       // Generate and encrypt sensitive data
@@ -111,29 +110,35 @@ export class AuthService {
 
   public async login(email: string, password: string): Promise<User> {
     try {
-      // Check rate limit for login
+      // Check rate limit for login attempts
       const canLogin = await this.rateLimitService.checkRateLimit('anonymous', 'login');
       if (!canLogin) {
         throw new Error('Too many login attempts. Please try again later.');
       }
 
+      // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
+      console.log('Firebase Auth login successful');
 
-      // Check if account is active and email is verified in Firestore
+      // Get user document from Firestore
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       const userData = userDoc.data() as User;
-      
-      if (!userData) {
-        throw new Error('User document not found');
+      console.log('Retrieved user data from Firestore');
+
+      // Sync email verification status if there's a mismatch
+      if (firebaseUser.emailVerified && !userData.emailVerified) {
+        console.log('Syncing email verification status with Firestore');
+        await updateDoc(doc(db, 'users', firebaseUser.uid), {
+          emailVerified: true,
+          isActive: true
+        });
+        console.log('Email verification status synced');
       }
 
-      if (!userData.emailVerified) {
-        throw new Error('Please verify your email before logging in');
-      }
-
-      if (!userData.isActive) {
-        throw new Error('Account is not active. Please verify your email');
+      // Check if email is verified
+      if (!firebaseUser.emailVerified) {
+        throw new Error('Please verify your email before logging in.');
       }
 
       // Validate existing sessions
