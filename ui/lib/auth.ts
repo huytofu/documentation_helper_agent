@@ -232,21 +232,26 @@ export class AuthService {
         throw new Error('Too many verification attempts. Please try again later.');
       }
 
-      // Verify the email
+      // First verify the email in Firebase Auth
       await auth.applyActionCode(actionCode);
 
-      // Get the user
-      let user = auth.currentUser;
-      if (!user) {
-        // If user is not signed in, try to get the email from the action code
-        const email = await auth.checkActionCode(actionCode);
-        // Find the user by uid from the action code
-        const uid = await auth.verifyActionCode(actionCode);
-        user = { uid } as FirebaseUser;
+      // Get the user's email from the action code
+      const email = await auth.checkActionCode(actionCode);
+      
+      // Find the user document by email
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', await encrypt(email)));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        throw new Error('User not found');
       }
 
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data() as User;
+
       // Update user document
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db, 'users', userData.uid), {
         emailVerified: true,
         isActive: true
       });
