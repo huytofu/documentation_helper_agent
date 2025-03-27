@@ -44,10 +44,10 @@ export class AuthService {
       const userData = userDoc.data() as User;
       // Decrypt sensitive data
       if (userData.apiKey) {
-        userData.apiKey = decrypt(userData.apiKey);
+        userData.apiKey = await decrypt(userData.apiKey);
       }
       if (userData.email) {
-        userData.email = decrypt(userData.email);
+        userData.email = await decrypt(userData.email);
       }
       this.currentUser = userData;
     }
@@ -70,8 +70,8 @@ export class AuthService {
 
       // Generate and encrypt sensitive data
       const apiKey = crypto.randomUUID();
-      const encryptedApiKey = encrypt(apiKey);
-      const encryptedEmail = encrypt(email);
+      const encryptedApiKey = await encrypt(apiKey);
+      const encryptedEmail = await encrypt(email);
 
       // Create user document in Firestore
       const user: User = {
@@ -141,7 +141,7 @@ export class AuthService {
 
       // Decrypt sensitive data
       if (userData.apiKey) {
-        userData.apiKey = decrypt(userData.apiKey);
+        userData.apiKey = await decrypt(userData.apiKey);
       }
 
       this.currentUser = userData;

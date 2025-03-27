@@ -25,7 +25,9 @@ export class RateLimitService {
 
   public async checkRateLimit(userId: string, endpoint: string): Promise<boolean> {
     const now = new Date();
-    const rateLimitRef = doc(db, 'rateLimits', `${userId}_${endpoint}`);
+    const isAnonymous = userId === 'anonymous';
+    const collectionName = isAnonymous ? 'anonymousRateLimits' : 'rateLimits';
+    const rateLimitRef = doc(db, collectionName, `${userId}_${endpoint}`);
     const rateLimitDoc = await getDoc(rateLimitRef);
 
     if (!rateLimitDoc.exists()) {
@@ -71,7 +73,9 @@ export class RateLimitService {
     remaining: number;
     resetTime: Date;
   }> {
-    const rateLimitRef = doc(db, 'rateLimits', `${userId}_${endpoint}`);
+    const isAnonymous = userId === 'anonymous';
+    const collectionName = isAnonymous ? 'anonymousRateLimits' : 'rateLimits';
+    const rateLimitRef = doc(db, collectionName, `${userId}_${endpoint}`);
     const rateLimitDoc = await getDoc(rateLimitRef);
 
     if (!rateLimitDoc.exists()) {

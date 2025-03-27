@@ -10,5 +10,10 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }
+
+    // Allow access to anonymous rate limits
+    match /anonymousRateLimits/{document=**} {
+      allow read, write: if true;
+    }
   }
 } 

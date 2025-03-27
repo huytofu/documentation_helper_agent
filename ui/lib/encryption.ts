@@ -1,23 +1,43 @@
-import crypto from 'crypto';
-
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-here';
-const ALGORITHM = 'aes-256-cbc';
+const ALGORITHM = 'AES-CBC';
 const IV_LENGTH = 16;
 
-export function encrypt(text: string): string {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
+async function getKey(): Promise<CryptoKey> {
+  const keyData = new TextEncoder().encode(ENCRYPTION_KEY);
+  const hash = await crypto.subtle.digest('SHA-256', keyData);
+  return await crypto.subtle.importKey('raw', hash, ALGORITHM, false, ['encrypt', 'decrypt']);
 }
 
-export function decrypt(text: string): string {
-  const [ivHex, encryptedHex] = text.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const encrypted = Buffer.from(encryptedHex, 'hex');
-  const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
-  let decrypted = decipher.update(encrypted);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+export async function encrypt(text: string): Promise<string> {
+  const key = await getKey();
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const encodedText = new TextEncoder().encode(text);
+  
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv },
+    key,
+    encodedText
+  );
+  
+  const encryptedArray = new Uint8Array(encryptedData);
+  const result = new Uint8Array(iv.length + encryptedArray.length);
+  result.set(iv);
+  result.set(encryptedArray, iv.length);
+  
+  return btoa(Array.from(result).map(byte => String.fromCharCode(byte)).join(''));
+}
+
+export async function decrypt(text: string): Promise<string> {
+  const key = await getKey();
+  const data = Uint8Array.from(atob(text), c => c.charCodeAt(0));
+  const iv = data.slice(0, IV_LENGTH);
+  const encrypted = data.slice(IV_LENGTH);
+  
+  const decryptedData = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv },
+    key,
+    encrypted
+  );
+  
+  return new TextDecoder().decode(decryptedData);
 } 
