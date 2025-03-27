@@ -1,5 +1,5 @@
 from typing import Any, Dict
-
+import asyncio
 from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
@@ -7,7 +7,15 @@ from agent.graph.utils.message_utils import get_last_message_type, extract_outpu
 from langchain_core.documents import Document
 from agent.graph.utils.message_utils import get_page_content
 from copilotkit.langgraph import copilotkit_emit_state
-
+from agent.graph.utils.api_utils import (
+    handle_api_error,
+    STANDARD_TIMEOUT,
+    cost_tracker,
+    APIResponse,
+    GenerationResponse
+)
+import logging
+logger = logging.getLogger(__name__)
 
 async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---GENERATE---")
@@ -35,15 +43,46 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     else:
         extra_info = ""
 
-    generation = generation_chain.invoke({
-        "language": language, "extra_info": extra_info, 
-        "documents": joined_documents, "query": query
-    })
-    messages.append(AIMessage(content=generation))
-    retry_count += 1
+    try:
+        # Use asyncio to handle concurrent generation requests
+        generation = await asyncio.wait_for(
+            asyncio.to_thread(
+                generation_chain.invoke,
+                {
+                    "language": language,
+                    "extra_info": extra_info,
+                    "documents": joined_documents,
+                    "query": query
+                }
+            ),
+            timeout=STANDARD_TIMEOUT
+        )
+        
+        # Track API usage
+        cost_tracker.track_usage(
+            'generator',
+            tokens=len(generation.split()),  # Approximate token count
+            cost=0.0  # Update cost based on actual pricing
+        )
+        
+        messages.append(AIMessage(content=generation))
+        retry_count += 1
 
-    # Return only messages and retry_count
-    return {
-        "messages": messages, 
-        "retry_count": retry_count
-    }
+        return {
+            "messages": messages,
+            "retry_count": retry_count
+        }
+    except asyncio.TimeoutError:
+        logger.error("Generation timed out")
+        return {
+            "messages": messages,
+            "retry_count": retry_count,
+            "error": "Generation timed out"
+        }
+    except Exception as e:
+        logger.error(f"Error during generation: {str(e)}")
+        return {
+            "messages": messages,
+            "retry_count": retry_count,
+            "error": str(e)
+        }

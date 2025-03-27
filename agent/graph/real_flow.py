@@ -15,8 +15,41 @@ import os
 import time
 import asyncio
 from typing import Dict, Any
+from dataclasses import dataclass, field
+from threading import Lock
 
 logger = logging.getLogger("graph.real_flow")
+
+# Global lock for state mutations
+state_lock = Lock()
+
+@dataclass
+class FlowState:
+    """Thread-safe state container for flow execution."""
+    iteration_count: int = 0
+    retry_count: int = 0
+    current_node: str = "INITIALIZE"
+    _lock: Lock = field(default_factory=Lock)
+
+    def increment_iteration(self) -> bool:
+        """Atomically increment iteration count and check limit."""
+        with self._lock:
+            self.iteration_count += 1
+            return self.iteration_count < 5  # MAX_ITERATIONS
+
+    def increment_retry(self) -> bool:
+        """Atomically increment retry count and check limit."""
+        with self._lock:
+            self.retry_count += 1
+            return self.retry_count < 2  # MAX_RETRIES
+
+    def set_node(self, node: str) -> None:
+        """Atomically set current node."""
+        with self._lock:
+            self.current_node = node
+
+# Global flow state
+flow_state = FlowState()
 
 def validate_state(state: GraphState) -> bool:
     """Validate that all required fields are present and valid in the state.
@@ -45,12 +78,6 @@ def validate_state(state: GraphState) -> bool:
             "min_length": 0,
             "max_length": 5000,
             "validate": lambda x: isinstance(x, str)
-        },
-        "retry_count": {
-            "type": int,
-            "min_value": 0,
-            "max_value": 5,
-            "validate": lambda x: 0 <= x <= 5
         },
         "current_node": {
             "type": str,
@@ -114,10 +141,8 @@ def validate_state(state: GraphState) -> bool:
 
 def check_iteration_limit(state: GraphState) -> bool:
     """Check if the flow has exceeded maximum iterations."""
-    MAX_ITERATIONS = 5
-    state["iteration_count"] = state.get("iteration_count", 0) + 1
-    if state["iteration_count"] >= MAX_ITERATIONS:
-        logger.error(f"Flow exceeded maximum iterations ({MAX_ITERATIONS})")
+    if not flow_state.increment_iteration():
+        logger.error("Flow exceeded maximum iterations (5)")
         return False
     return True
 

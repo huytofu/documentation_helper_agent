@@ -4,6 +4,12 @@ from langchain.schema import Document
 from langchain_community.tools.tavily_search import TavilySearchResults
 from agent.graph.state import GraphState
 from agent.graph.utils.timeout import timeout
+from agent.graph.utils.api_utils import (
+    handle_api_error, 
+    STANDARD_TIMEOUT,
+    cost_tracker,
+    APIResponse
+)
 
 logger = logging.getLogger("graph.web_search")
 
@@ -18,28 +24,44 @@ def get_content(doc: Document) -> str:
     else:
         return ""
 
-@timeout(30)  # 30 second timeout for web search
-def perform_web_search(query: str) -> list[Document]:
-    """Perform web search with timeout"""
-    return web_search_tool.invoke({"query": query})
+@timeout(STANDARD_TIMEOUT)
+@handle_api_error
+async def perform_web_search(query: str) -> APIResponse:
+    """Perform web search with timeout and error handling."""
+    try:
+        docs = web_search_tool.invoke({"query": query})
+        cost_tracker.track_usage('web_search', requests=1, cost=0.0)  # Update cost based on actual pricing
+        return APIResponse(
+            success=True,
+            data=docs
+        )
+    except Exception as e:
+        logger.error(f"Error during web search: {str(e)}")
+        return APIResponse(
+            success=False,
+            error=str(e),
+            data=[]
+        )
 
-def web_search(state: GraphState) -> Dict[str, Any]:
+async def web_search(state: GraphState) -> Dict[str, Any]:
     logger.info("---WEB SEARCH---")
     query = state.get("query", "")
     documents = state.get("documents", [])
 
     try:
-        docs = perform_web_search(query)
-        web_results = "\n".join([get_content(d) for d in docs[:3]])
-        web_results = Document(page_content=web_results)
-        if documents is not None:
-            documents.append(web_results)
+        response = await perform_web_search(query)
+        if response.success and response.data:
+            docs = response.data
+            web_results = "\n".join([get_content(d) for d in docs[:3]])
+            web_results = Document(page_content=web_results)
+            if documents is not None:
+                documents.append(web_results)
+            else:
+                documents = [web_results]
+            return {"documents": documents, "current_node": "WEB_SEARCH"}
         else:
-            documents = [web_results]
-        return {"documents": documents, "current_node": "WEB_SEARCH"}
-    except TimeoutError:
-        logger.error("Web search timed out")
-        return {"documents": documents, "current_node": "WEB_SEARCH", "error": "Web search timed out"}
+            logger.error(f"Web search failed: {response.error}")
+            return {"documents": documents, "current_node": "WEB_SEARCH", "error": response.error}
     except Exception as e:
-        logger.error(f"Error during web search: {str(e)}")
+        logger.error(f"Unexpected error in web search: {str(e)}")
         return {"documents": documents, "current_node": "WEB_SEARCH", "error": str(e)}

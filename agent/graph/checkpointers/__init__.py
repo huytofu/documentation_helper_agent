@@ -6,6 +6,8 @@ This package provides various checkpointer implementations for LangGraph.
 import os
 from dotenv import load_dotenv
 from langgraph.checkpoint.base import BaseCheckpointer
+from typing import Optional
+from agent.graph.checkpointers.vercel_kv_checkpointer import VercelKVCheckpointer
 
 # Load environment variables
 load_dotenv()
@@ -27,10 +29,6 @@ def get_checkpointer() -> BaseCheckpointer:
         from .vercel_kv_checkpointer import VercelKVCheckpointer
         return VercelKVCheckpointer()
     
-    elif CHECKPOINTER_TYPE == "postgres":
-        from .postgres_checkpointer import PostgresCheckpointer
-        return PostgresCheckpointer()
-    
     else:
         # Default to memory saver
         from langgraph.checkpoint.memory import MemorySaver
@@ -42,7 +40,4 @@ try:
 except ImportError:
     pass
 
-try:
-    from .postgres_checkpointer import PostgresCheckpointer
-except ImportError:
-    pass 
+__all__ = ['VercelKVCheckpointer', 'get_checkpointer'] 
