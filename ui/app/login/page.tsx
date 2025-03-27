@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { LoginForm } from '@/components/auth/LoginForm';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,66 +12,21 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Add polling for email verification
-  useEffect(() => {
-    console.log('Starting verification check polling from login page');
-    
-    const checkVerification = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          // No user, might be logged out or not registered yet
-          return;
-        }
-
-        // Only proceed if email is not verified yet
-        if (!user.emailVerified) {
-          // Reload user to get fresh status
-          await user.reload();
-          console.log('Checking email verification status:', user.emailVerified);
-
-          if (user.emailVerified) {
-            console.log('Email verified, updating Firestore...');
-            
-            // Call our API to update Firestore
-            const response = await fetch('/api/verify-email', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ uid: user.uid }),
-            });
-
-            const data = await response.json();
-            if (data.success) {
-              console.log('Firestore updated successfully');
-            } else {
-              console.error('Failed to update Firestore:', data.error);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking verification:', error);
-      }
-    };
-
-    // Start polling every 1 second
-    const interval = setInterval(checkVerification, 1000);
-
-    // Initial check
-    checkVerification();
-
-    // Cleanup on unmount
-    return () => clearInterval(interval);
-  }, []);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      // Your existing login logic here
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setError('Please verify your email before logging in. Check your inbox for the verification link.');
+        await auth.signOut();
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -80,8 +35,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <LoginForm />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        <form onSubmit={handleLogin}>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-blue-500 text-white p-2 rounded ${
+              loading ? 'opacity-50' : 'hover:bg-blue-600'
+            }`}
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 } 

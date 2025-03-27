@@ -54,7 +54,7 @@ auth.onUserChanged((user: UserRecord | null) => {
   }
 });
 
-// The actual endpoint can be simpler now
+// Add user to pending verifications
 export async function POST(request: Request) {
   try {
     const { uid } = await request.json();
@@ -66,22 +66,63 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Checking user:', uid);
-    const userRecord = await auth.getUser(uid);
-    console.log('User email verified status:', userRecord.emailVerified);
+    // Add to pending verifications collection
+    await db.collection('pendingVerifications').doc(uid).set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'pending'
+    });
 
-    // Force update the document regardless of current state
-    await db.collection('users').doc(uid).set({
-      emailVerified: true,
-      isActive: true,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }); // Use merge to preserve other fields
+    // Start background polling (runs every second for 1 hour max)
+    let attempts = 0;
+    const maxAttempts = 3600; // 1 hour worth of seconds
 
-    console.log('Firestore document updated for user:', uid);
+    const pollVerification = async () => {
+      try {
+        // Check if we should stop polling
+        const pendingDoc = await db.collection('pendingVerifications').doc(uid).get();
+        if (!pendingDoc.exists || pendingDoc.data()?.status === 'completed') {
+          return;
+        }
+
+        attempts++;
+        if (attempts >= maxAttempts) {
+          await db.collection('pendingVerifications').doc(uid).delete();
+          return;
+        }
+
+        // Check user's verification status
+        const userRecord = await auth.getUser(uid);
+        console.log(`Checking verification for user ${uid}, attempt ${attempts}`);
+
+        if (userRecord.emailVerified) {
+          // Update user document
+          await db.collection('users').doc(uid).set({
+            emailVerified: true,
+            isActive: true,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
+          // Mark verification as completed
+          await db.collection('pendingVerifications').doc(uid).delete();
+          console.log(`User ${uid} verified and updated successfully`);
+          return;
+        }
+
+        // Continue polling
+        setTimeout(pollVerification, 1000);
+      } catch (error) {
+        console.error('Error in verification polling:', error);
+        // Continue polling despite error
+        setTimeout(pollVerification, 1000);
+      }
+    };
+
+    // Start polling
+    pollVerification();
 
     return NextResponse.json({
       success: true,
-      message: 'User document updated successfully'
+      message: 'Started verification polling'
     });
 
   } catch (error: any) {

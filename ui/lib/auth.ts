@@ -67,7 +67,7 @@ export class AuthService {
 
       // Configure verification email settings
       const actionCodeSettings = {
-        url: `${window.location.origin}/verify-email`,  // This is where user will be redirected after verification
+        url: `${window.location.origin}/login`,  // Redirect to login after verification
       };
 
       // Send verification email with settings
@@ -100,6 +100,15 @@ export class AuthService {
 
       await setDoc(doc(db, 'users', firebaseUser.uid), user);
       this.currentUser = { ...user, apiKey, email }; // Store decrypted data in memory
+
+      // Add to verification queue
+      await fetch('/api/verify-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ uid: firebaseUser.uid }),
+      });
 
       return this.currentUser;
     } catch (error) {
