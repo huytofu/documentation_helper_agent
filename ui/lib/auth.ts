@@ -69,7 +69,9 @@ export class AuthService {
       await sendEmailVerification(firebaseUser);
 
       // Generate and encrypt sensitive data
-      const apiKey = crypto.randomUUID();
+      const apiKey = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       const encryptedApiKey = await encrypt(apiKey);
       const encryptedEmail = await encrypt(email);
 
@@ -178,7 +180,9 @@ export class AuthService {
     const userAgent = navigator.userAgent;
 
     const session: UserSession = {
-      id: crypto.randomUUID(),
+      id: Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join(''),
       userId: userId,
       createdAt: new Date(),
       expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)), // 24 hours
