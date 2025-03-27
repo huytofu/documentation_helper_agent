@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import type { ListUsersResult, UserRecord } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -13,48 +12,9 @@ if (!admin.apps.length) {
   });
 }
 
-// Set up auth state listener
 const auth = admin.auth();
 const db = admin.firestore();
 
-// Listen to user creation and updates
-auth.listUsers().then(async (listUsersResult: ListUsersResult) => {
-  console.log('Setting up auth state listener');
-  
-  listUsersResult.users.forEach(async (userRecord: UserRecord) => {
-    // Check if user's email is verified
-    if (userRecord.emailVerified) {
-      try {
-        // Update Firestore document
-        await db.collection('users').doc(userRecord.uid).update({
-          emailVerified: true,
-          isActive: true,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log(`Updated Firestore for verified user: ${userRecord.uid}`);
-      } catch (error: unknown) {
-        console.error(`Error updating user ${userRecord.uid}:`, error);
-      }
-    }
-  });
-});
-
-// Set up ongoing listener for user changes
-auth.onUserChanged((user: UserRecord | null) => {
-  if (user && user.emailVerified) {
-    db.collection('users').doc(user.uid).update({
-      emailVerified: true,
-      isActive: true,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      console.log(`Updated Firestore for user: ${user.uid}`);
-    }).catch((error: unknown) => {
-      console.error(`Error updating user ${user.uid}:`, error);
-    });
-  }
-});
-
-// Add user to pending verifications
 export async function POST(request: Request) {
   try {
     const { uid } = await request.json();
