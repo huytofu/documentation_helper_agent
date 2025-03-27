@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "init-db": "ts-node scripts/init-firebase-db.ts"
   },
   "dependencies": {
     "@copilotkit/react-core": "^1.6.0",
@@ -40,6 +41,7 @@
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "ts-node": "^10.9.2"
   }
 }
