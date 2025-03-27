@@ -66,20 +66,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the user from Admin SDK
+    console.log('Checking user:', uid);
     const userRecord = await auth.getUser(uid);
+    console.log('User email verified status:', userRecord.emailVerified);
+
+    // Force update the document regardless of current state
+    await db.collection('users').doc(uid).set({
+      emailVerified: true,
+      isActive: true,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }); // Use merge to preserve other fields
+
+    console.log('Firestore document updated for user:', uid);
 
     return NextResponse.json({
       success: true,
-      emailVerified: userRecord.emailVerified,
-      message: 'User status checked successfully'
+      message: 'User document updated successfully'
     });
 
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error checking user status:', error);
+  } catch (error: any) {
+    console.error('Error:', error);
     return NextResponse.json(
-      { error: errorMessage },
+      { error: error.message },
       { status: 500 }
     );
   }
