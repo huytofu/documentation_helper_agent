@@ -65,8 +65,14 @@ export class AuthService {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // Send email verification
-      await sendEmailVerification(firebaseUser);
+      // Configure verification email settings
+      const actionCodeSettings = {
+        url: `${window.location.origin}/verify-email`,
+        handleCodeInApp: true
+      };
+
+      // Send verification email with custom settings
+      await sendEmailVerification(firebaseUser, actionCodeSettings);
 
       // Generate and encrypt sensitive data
       const apiKey = Array.from(crypto.getRandomValues(new Uint8Array(16)))

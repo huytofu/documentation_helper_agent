@@ -14,14 +14,21 @@ export default function VerifyEmailPage() {
   const authService = AuthService.getInstance();
 
   useEffect(() => {
+    console.log('VerifyEmailPage loaded');
+    console.log('Search params:', Object.fromEntries(searchParams.entries()));
+
     const verifyEmail = async () => {
       try {
         const actionCode = searchParams.get('oobCode');
+        console.log('Action code from URL:', actionCode);
+        
         if (!actionCode) {
           throw new Error('Invalid verification link');
         }
 
+        console.log('Starting email verification...');
         await authService.verifyEmail(actionCode);
+        console.log('Email verification completed successfully');
         setSuccess('Email verified successfully! You can now log in.');
         setTimeout(() => {
           router.push('/login');
