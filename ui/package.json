@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init-db": "ts-node scripts/init-firebase-db.ts"
+    "init-db": "ts-node --project scripts/tsconfig.json scripts/init-firebase-db.ts"
   },
   "dependencies": {
     "@copilotkit/react-core": "^1.6.0",
