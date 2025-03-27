@@ -239,7 +239,7 @@ export class AuthService {
       let user = auth.currentUser;
       if (!user) {
         // If user is not signed in, try to get the email from the action code
-        const email = await auth.verifyPasswordResetCode(actionCode);
+        const email = await auth.checkActionCode(actionCode);
         // Find the user by email
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('email', '==', email));
