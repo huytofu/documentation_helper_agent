@@ -240,15 +240,9 @@ export class AuthService {
       if (!user) {
         // If user is not signed in, try to get the email from the action code
         const email = await auth.checkActionCode(actionCode);
-        // Find the user by email
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', email));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) {
-          throw new Error('User not found');
-        }
-        const userDoc = querySnapshot.docs[0];
-        user = { uid: userDoc.id } as FirebaseUser;
+        // Find the user by uid from the action code
+        const uid = await auth.verifyActionCode(actionCode);
+        user = { uid } as FirebaseUser;
       }
 
       // Update user document
