@@ -166,12 +166,12 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
     
     if provider == "ollama":
         return {
-            "model_id": OLLAMA_MODELS[component],
+            "model": OLLAMA_MODELS[component],
             "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         }
     elif provider == "runpod":
         return {
-            "model_id": os.getenv("RUNPOD_MODEL_ID", MODEL_IDS[component]),
+            "model": os.getenv("RUNPOD_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("RUNPOD_API_KEY"),
             "endpoint_id": os.getenv("RUNPOD_ENDPOINT_ID"),
             "max_tokens": int(os.getenv("RUNPOD_MAX_TOKENS", "2048")),
@@ -193,13 +193,13 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
         }
     elif provider == "inference_client":
         return {
-            "model_id": os.getenv("INFERENCE_MODEL_ID", MODEL_IDS[component]),
+            "model": os.getenv("INFERENCE_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("INFERENCE_API_KEY"),
             "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models")
         }
     else:  # huggingface
         return {
-            "model_id": os.getenv("HUGGINGFACE_MODEL_ID", MODEL_IDS[component]),
+            "model": os.getenv("HUGGINGFACE_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("HUGGINGFACE_API_KEY"),
             "base_url": os.getenv("HUGGINGFACE_BASE_URL", "https://api-inference.huggingface.co/models")
         } 
