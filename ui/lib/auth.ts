@@ -236,9 +236,19 @@ export class AuthService {
       await auth.applyActionCode(actionCode);
 
       // Get the user
-      const user = auth.currentUser;
+      let user = auth.currentUser;
       if (!user) {
-        throw new Error('No user found');
+        // If user is not signed in, try to get the email from the action code
+        const email = await auth.verifyPasswordResetCode(actionCode);
+        // Find the user by email
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          throw new Error('User not found');
+        }
+        const userDoc = querySnapshot.docs[0];
+        user = { uid: userDoc.id } as FirebaseUser;
       }
 
       // Update user document
@@ -247,8 +257,10 @@ export class AuthService {
         isActive: true
       });
 
-      // Reload user data
-      await this.loadUserData(user);
+      // Reload user data if user is signed in
+      if (auth.currentUser) {
+        await this.loadUserData(auth.currentUser);
+      }
     } catch (error) {
       console.error('Email verification error:', error);
       throw error;
