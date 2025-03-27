@@ -1,37 +1,23 @@
-const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'your-secure-encryption-key';
+import crypto from 'crypto';
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-here';
+const ALGORITHM = 'aes-256-cbc';
+const IV_LENGTH = 16;
 
 export function encrypt(text: string): string {
-  try {
-    const textToChars = (text: string) => text.split('').map(c => c.charCodeAt(0));
-    const byteHex = (n: number) => ("0" + Number(n).toString(16)).substr(-2);
-    const applySaltToChar = (code: number) => textToChars(ENCRYPTION_KEY).reduce((a, b) => a ^ b, code);
-
-    return text
-      .split('')
-      .map(textToChars)
-      .map(chars => chars.map(applySaltToChar))
-      .flat()
-      .map(byteHex)
-      .join('');
-  } catch (error) {
-    console.error('Encryption error:', error);
-    throw new Error('Failed to encrypt data');
-  }
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
-export function decrypt(encoded: string): string {
-  try {
-    const textToChars = (text: string) => text.split('').map(c => c.charCodeAt(0));
-    const applySaltToChar = (code: number) => textToChars(ENCRYPTION_KEY).reduce((a, b) => a ^ b, code);
-    
-    return encoded
-      .match(/.{1,2}/g)
-      ?.map(hex => parseInt(hex, 16))
-      .map(applySaltToChar)
-      .map(charCode => String.fromCharCode(charCode))
-      .join('') || '';
-  } catch (error) {
-    console.error('Decryption error:', error);
-    throw new Error('Failed to decrypt data');
-  }
+export function decrypt(text: string): string {
+  const [ivHex, encryptedHex] = text.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const encrypted = Buffer.from(encryptedHex, 'hex');
+  const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+  let decrypted = decipher.update(encrypted);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
 } 
