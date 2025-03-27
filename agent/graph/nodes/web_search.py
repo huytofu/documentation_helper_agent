@@ -25,8 +25,8 @@ def perform_web_search(query: str) -> list[Document]:
 
 def web_search(state: GraphState) -> Dict[str, Any]:
     logger.info("---WEB SEARCH---")
-    query = state["query"]
-    documents = state["documents"]
+    query = state.get("query", "")
+    documents = state.get("documents", [])
 
     try:
         docs = perform_web_search(query)

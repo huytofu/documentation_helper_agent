@@ -11,12 +11,12 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---GENERATE---")
-    query = state["query"]
-    documents = state["documents"]
+    query = state.get("query", "")
+    documents = state.get("documents", [])
     framework = state.get("framework", "")
     language = state.get("language", "")
     retry_count = state.get("retry_count", 0)
-    messages = state["messages"]
+    messages = state.get("messages", [])
 
     # Emit only one "GENERATING" state update before generation
     if config:

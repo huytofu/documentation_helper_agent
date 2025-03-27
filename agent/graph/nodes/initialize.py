@@ -10,7 +10,7 @@ logger = logging.getLogger("graph.graph")
 async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Initialize the state with properties from the request."""
     logger.info("---INITIALIZE---")
-    messages = state["messages"]
+    messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
     
     while last_message_type == "ai":

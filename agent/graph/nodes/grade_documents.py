@@ -19,8 +19,8 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         state (dict): Filtered out irrelevant documents
     """
     logger.info("---CHECK DOCUMENT RELEVANCE TO QUERY---")
-    query = state["query"]
-    documents = state["documents"]
+    query = state.get("query", "")
+    documents = state.get("documents", [])
     
     if not documents:
         logger.info("---NO DOCUMENTS TO GRADE---")

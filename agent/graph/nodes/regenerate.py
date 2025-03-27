@@ -11,11 +11,11 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
-    query = state["query"]
-    documents = state["documents"]
+    query = state.get("query", "")
+    documents = state.get("documents", [])
     framework = state.get("framework", "")
     language = state.get("language", "")
-    messages = state["messages"]
+    messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
     
     if last_message_type == "human":

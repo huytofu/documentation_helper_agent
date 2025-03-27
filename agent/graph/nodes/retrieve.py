@@ -5,8 +5,8 @@ from agent.graph.retrievers import get_retriever
 
 def retrieve(state: GraphState) -> Dict[str, Any]:
     print("---RETRIEVE---")
-    query = state["query"]
-    vectorstore = state["framework"]
+    query = state.get("query", "")
+    vectorstore = state.get("framework", None)
     if vectorstore is None:
         return {"documents": [], "current_node": "RETRIEVE"}
     retriever = get_retriever(vectorstore)

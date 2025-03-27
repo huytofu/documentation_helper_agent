@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     logger.info("---HUMAN IN LOOP---")
-    messages = state["messages"]
+    messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
     
     if last_message_type == "human":
