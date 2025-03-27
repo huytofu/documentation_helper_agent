@@ -15,5 +15,11 @@ service cloud.firestore {
     match /anonymousRateLimits/{document=**} {
       allow read, write: if true;
     }
+
+    // Allow email verification
+    match /users/{userId} {
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['emailVerified', 'isActive']);
+    }
   }
 } 
