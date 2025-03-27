@@ -112,15 +112,18 @@ export class AuthService {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // Check if email is verified
-      if (!firebaseUser.emailVerified) {
-        throw new Error('Please verify your email before logging in');
-      }
-
-      // Check if account is active
+      // Check if account is active and email is verified in Firestore
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       const userData = userDoc.data() as User;
       
+      if (!userData) {
+        throw new Error('User document not found');
+      }
+
+      if (!userData.emailVerified) {
+        throw new Error('Please verify your email before logging in');
+      }
+
       if (!userData.isActive) {
         throw new Error('Account is not active. Please verify your email');
       }
