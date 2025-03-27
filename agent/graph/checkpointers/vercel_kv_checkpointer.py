@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict, Optional, List, Tuple
 import asyncio
 from dotenv import load_dotenv
-from langgraph.checkpoint.base import BaseCheckpointer
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 # Load environment variables
 load_dotenv()
@@ -17,7 +17,7 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-class VercelKVCheckpointer(BaseCheckpointer):
+class VercelKVCheckpointer(BaseCheckpointSaver):
     """LangGraph checkpointer implementation using Vercel KV (Redis).
     
     This checkpointer stores LangGraph state in Vercel KV, allowing for

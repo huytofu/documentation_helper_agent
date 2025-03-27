@@ -5,7 +5,7 @@ This package provides various checkpointer implementations for LangGraph.
 
 import os
 from dotenv import load_dotenv
-from langgraph.checkpoint.base import BaseCheckpointer
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from typing import Optional
 from agent.graph.checkpointers.vercel_kv_checkpointer import VercelKVCheckpointer
 
@@ -15,7 +15,7 @@ load_dotenv()
 # Get the checkpointer type from environment variable
 CHECKPOINTER_TYPE = os.getenv("CHECKPOINTER_TYPE", "memory").lower()
 
-def get_checkpointer() -> BaseCheckpointer:
+def get_checkpointer() -> BaseCheckpointSaver:
     """Get the appropriate checkpointer based on CHECKPOINTER_TYPE environment variable.
     
     Returns:
