@@ -41,11 +41,7 @@ route_prompt = ChatPromptTemplate.from_messages([
 # Create the chain with format instructions
 vectorstore_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm.with_structured_output(VectorstoreRoute)
 
-# Add caching to the router
 @lru_cache(maxsize=1000)
-def cached_router(query: str) -> VectorstoreRoute:
-    """Cached version of the router to avoid redundant LLM calls."""
+def get_vectorstore_route(query: str) -> VectorstoreRoute:
+    """Get the vectorstore route for a query with caching."""
     return vectorstore_router.invoke({"query": query})
-
-# Update the router to use caching
-vectorstore_router.invoke = cached_router

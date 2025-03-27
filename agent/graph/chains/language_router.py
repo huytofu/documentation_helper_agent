@@ -34,11 +34,7 @@ route_prompt = ChatPromptTemplate.from_messages([
 # Create the chain with format instructions
 language_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm.with_structured_output(LanguageRoute)
 
-# Add caching to the router
 @lru_cache(maxsize=1000)
-def cached_router(query: str) -> LanguageRoute:
-    """Cached version of the router to avoid redundant LLM calls."""
-    return language_router.invoke({"query": query})
-
-# Update the router to use caching
-language_router.invoke = cached_router 
+def get_language_route(query: str) -> LanguageRoute:
+    """Get the language route for a query with caching."""
+    return language_router.invoke({"query": query}) 

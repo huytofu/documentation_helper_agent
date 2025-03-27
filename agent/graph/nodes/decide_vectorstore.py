@@ -1,10 +1,9 @@
-from typing import Any, Dict
-from agent.graph.state import GraphState
-from agent.graph.chains.vectorstore_router import vectorstore_router
+from typing import Dict, Any
+from agent.graph.chains.vectorstore_router import get_vectorstore_route
 
-def decide_vectorstore(state: GraphState) -> Dict[str, Any]:
-    print("---DECIDE VECTORSTORE---")
+def decide_vectorstore(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Decide which vectorstore to use based on the query."""
     query = state.get("query", "")
-    result = vectorstore_router.invoke({"query": query})
+    result = get_vectorstore_route(query)
     framework = result.datasource or "none"
     return {"framework": framework, "current_node": "DECIDE_VECTORSTORE"}
