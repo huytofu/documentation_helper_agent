@@ -6,7 +6,7 @@ dotenv.config({ path: resolve(__dirname, '../.env.local') });
 
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { encrypt } from '../lib/encryption';
 
 // Create a test user
@@ -18,6 +18,11 @@ async function createTestUser() {
     // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Mark email as verified in Firebase Auth
+    await updateProfile(user, {
+      emailVerified: true
+    });
 
     // Generate and encrypt sensitive data
     const apiKey = crypto.randomUUID();
