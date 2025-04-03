@@ -6,11 +6,13 @@ import { MessageRole, TextMessage } from "@copilotkit/runtime-client-gql";
 import { AGENT_NAME } from "@/constants";
 import { AgentState } from "@/types/agent";
 import { AuthService } from "@/lib/auth";
+import { User } from "@/types/user";
 
 export function ChatInterface() {
   const isInitialMount = useRef(true);
   const [canChat, setCanChat] = useState(true);
-  const [remainingChats, setRemainingChats] = useState(5);
+  const [remainingChats, setRemainingChats] = useState(0);
+  const [user, setUser] = useState<User | null>(null);
   const authService = AuthService.getInstance();
   
   const { state, run } = useCoAgent<AgentState>({
@@ -20,6 +22,8 @@ export function ChatInterface() {
   useEffect(() => {
     const checkChatAvailability = async () => {
       try {
+        const currentUser = authService.getCurrentUser();
+        setUser(currentUser);
         const canUserChat = await authService.checkChatLimit();
         const remaining = await authService.getRemainingChats();
         setCanChat(canUserChat);
@@ -69,7 +73,7 @@ export function ChatInterface() {
           <div className="h-full flex items-center justify-center p-8 text-center">
             <div className="max-w-md">
               <p className="text-lg text-gray-700 mb-4">
-                Usage exceeds limit of 5 chats per day, please return tomorrow or login with a new account. 
+                Usage exceeds limit of {user?.usageLimit || 20} chats per day, please return tomorrow or login with a new account. 
                 This app is meant to be a demo only and therefore incurred cost is kept to the minimum! 
                 Please show some understanding towards the developer.
               </p>

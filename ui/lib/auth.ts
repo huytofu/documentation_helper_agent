@@ -90,8 +90,7 @@ export class AuthService {
         createdAt: new Date(),
         lastLoginAt: null,
         apiKey: encryptedApiKey,
-        usageLimit: 100, // Default limit
-        currentUsage: 0,
+        usageLimit: 20, // Default limit changed from 100 to 20
         isActive: false, // Will be activated after email verification
         role: 'user',
         chatUsage: {
@@ -394,7 +393,7 @@ export class AuthService {
     }
 
     // Check if user has reached daily limit
-    if (userData.chatUsage.count >= 5) {
+    if (userData.chatUsage.count >= userData.usageLimit) {
       return false;
     }
 
@@ -428,6 +427,6 @@ export class AuthService {
     }
 
     const userData = userDoc.data() as User;
-    return Math.max(0, 5 - userData.chatUsage.count);
+    return Math.max(0, userData.usageLimit - userData.chatUsage.count);
   }
 } 

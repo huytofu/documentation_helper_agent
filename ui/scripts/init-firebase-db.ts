@@ -33,7 +33,6 @@ async function createTestUser() {
       lastLoginAt: null,
       apiKey: encryptedApiKey,
       usageLimit: 100,
-      currentUsage: 0,
       isActive: true,
       role: 'user',
       chatUsage: {

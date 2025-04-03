@@ -8,7 +8,6 @@ export interface User {
   lastLoginAt: Date | null;
   apiKey: string;  // Already encrypted
   usageLimit: number;
-  currentUsage: number;
   isActive: boolean;
   role: 'user' | 'admin';
   chatUsage: {
