@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useCoAgent } from "@copilotkit/react-core";
 import { ProgrammingLanguage } from "@/types";

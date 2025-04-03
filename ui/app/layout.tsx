@@ -2,8 +2,7 @@
 
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { CopilotKit } from '@copilotkit/react-core';
-
+import { CopilotProvider } from '@/providers/CopilotProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,9 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CopilotKit runtimeUrl="/api/copilotkit">
+        <CopilotProvider>
           {children}
-        </CopilotKit>
+        </CopilotProvider>
       </body>
     </html>
   );

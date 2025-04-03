@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useRef, useState } from 'react';
 import { CopilotChat } from "@copilotkit/react-ui";
 import { MessageSquare } from "lucide-react";

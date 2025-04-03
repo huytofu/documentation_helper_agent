@@ -1,4 +1,6 @@
-import { Github } from "lucide-react";
+'use client';
+
+import { GithubIcon } from "lucide-react";
 import Link from "next/link";
 
 export function Header() {
@@ -18,7 +20,7 @@ export function Header() {
               rel="noreferrer"
               className="flex items-center space-x-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
-              <Github className="h-4 w-4" />
+              <GithubIcon className="h-4 w-4" />
               <span>GitHub</span>
             </Link>
           </nav>
