@@ -5,13 +5,16 @@ import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import type { User } from '@/types/user';
 import { AuthService } from '@/lib/auth';
-import { AuthLayout } from '@/components/layout/AuthLayout';
-import { Header } from '@/components/Header';
-import { LanguageSelector } from '@/components/LanguageSelector';
-import { ChatInterface } from '@/components/ChatInterface';
-import { AgentStatePanel } from '@/components/AgentStatePanel';
+import AuthLayout from '@/components/layout/AuthLayout';
+import Header from '@/components/Header';
+import LanguageSelector from '@/components/LanguageSelector';
 import { ProgrammingLanguage } from '@/types';
 import { AlertTriangle } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import components that use CopilotKit features with SSR disabled
+const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
+const AgentStatePanel = dynamic(() => import('@/components/AgentStatePanel'), { ssr: false });
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
