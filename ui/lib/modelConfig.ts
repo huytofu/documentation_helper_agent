@@ -1,4 +1,4 @@
-import { HuggingFaceInference } from "@langchain/community/llms/huggingface";
+import { HuggingFaceInference } from "@langchain/community/llms/hf";
 import { ChatOllama } from "@langchain/ollama";
 
 // Environment flags
@@ -23,7 +23,7 @@ const OLLAMA_CONFIG = {
 };
 
 const HUGGINGFACE_CONFIG = {
-  modelName: "deepseek-ai/deepseek-coder-33b-instruct",
+  model: "deepseek-ai/deepseek-coder-33b-instruct",
   temperature: 0,
   maxTokens: 2048,
   topP: 0.95,
