@@ -18,16 +18,22 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log('Attempting to sign in...');
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      console.log('User signed in:', user.uid);
 
       if (!user.emailVerified) {
         setError('Please verify your email before logging in. Check your inbox for the verification link.');
         await auth.signOut();
+        console.log('Sign out due to unverified email');
       } else {
-        router.push('/dashboard');
+        console.log('Email verified, redirecting to dashboard...');
+        // Use window.location.href for a full page redirect instead of router.push
+        window.location.href = '/dashboard';
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -78,6 +84,11 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        <div className="mt-4 text-center">
+          <a href="/register" className="text-blue-500 hover:text-blue-700">
+            Don't have an account? Register
+          </a>
+        </div>
       </div>
     </div>
   );
