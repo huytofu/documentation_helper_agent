@@ -1,12 +1,15 @@
+'use client';
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { CopilotKit } from '@copilotkit/react-core';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Your App',
-  description: 'Your app description',
+  title: 'Documentation Helper',
+  description: 'AI-powered documentation assistant',
 };
 
 export default function RootLayout({
@@ -17,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        <CopilotKit runtimeUrl="/api/copilotkit">
+          {children}
+        </CopilotKit>
       </body>
     </html>
   );
