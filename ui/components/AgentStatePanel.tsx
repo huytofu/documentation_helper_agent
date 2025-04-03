@@ -14,19 +14,6 @@ export interface AgentState {
   test_counter?: number;
 }
 
-// Helper function to check if two states are equivalent
-const areStatesEqual = (state1: AgentState | null, state2: AgentState | null): boolean => {
-  if (!state1 && !state2) return true;
-  if (!state1 || !state2) return false;
-  
-  return (
-    state1.language === state2.language &&
-    state1.comments === state2.comments &&
-    state1.current_node === state1.current_node &&
-    state1.test_counter === state2.test_counter
-  );
-};
-
 // Function to determine if a node is a terminal node
 const isTerminalNode = (nodeName: string): boolean => {
   return nodeName === "END" || nodeName === "POST_HUMAN_IN_LOOP";
@@ -132,7 +119,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
   );
 };
 
-export function AgentStatePanel() {
+export default function AgentStatePanel() {
   // Get state directly from useCoAgent
   const { state: directState } = useCoAgent<AgentState>({
     name: AGENT_NAME

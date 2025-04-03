@@ -15,7 +15,7 @@ interface LanguageSelectorProps {
   onLanguageChange: (language: ProgrammingLanguage | "") => void;
 }
 
-export function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
+export default function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
   const languages: ProgrammingLanguage[] = [
     "python",
     "javascript",

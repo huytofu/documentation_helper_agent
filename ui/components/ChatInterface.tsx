@@ -10,7 +10,7 @@ import { AgentState } from "@/types/agent";
 import { AuthService } from "@/lib/auth";
 import { User } from "@/types/user";
 
-export function ChatInterface() {
+export default function ChatInterface() {
   const isInitialMount = useRef(true);
   const [canChat, setCanChat] = useState(true);
   const [remainingChats, setRemainingChats] = useState(0);

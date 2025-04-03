@@ -8,7 +8,7 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-export function AuthLayout({ children }: AuthLayoutProps) {
+export default function AuthLayout({ children }: AuthLayoutProps) {
   const router = useRouter();
   const authService = AuthService.getInstance();
 

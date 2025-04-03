@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthService } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export function LoginForm() {
+export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
