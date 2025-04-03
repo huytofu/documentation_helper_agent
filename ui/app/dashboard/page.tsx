@@ -3,35 +3,18 @@
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AuthService } from '@/lib/auth';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import type { User } from '@/types/user';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
   const authService = AuthService.getInstance();
 
   useEffect(() => {
-    // Use a simple function to check cookies directly
-    const checkAuthentication = () => {
-      const isLoggedIn = document.cookie.includes('logged_in=true') || 
-                          document.cookie.includes('firebase:authUser');
-      
-      if (!isLoggedIn) {
-        console.log('No session cookie found, redirecting to login');
-        window.location.href = '/login';
-        return;
-      }
-    };
-    
-    // Check cookies first (synchronous)
-    checkAuthentication();
-    
-    // Then check Firebase auth state (asynchronous)
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Only fetch user data - no need to handle redirects
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
           console.log('User is authenticated:', firebaseUser.uid);
@@ -44,13 +27,14 @@ export default function DashboardPage() {
           setLoading(false);
         }
       } else {
-        console.log('Firebase auth check: No user found, redirecting to login');
-        window.location.href = '/login';
+        // Let middleware handle redirects if not authenticated
+        console.log('No Firebase user found - middleware will handle redirection if needed');
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, [router, authService]);
+  }, [authService]);
 
   if (loading) {
     return (

@@ -20,8 +20,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         method: 'DELETE',
       });
       
-      // Redirect to login
-      window.location.href = '/login';
+      // Navigate to login - middleware will handle the rest
+      router.push('/login');
     } catch (error) {
       console.error('Failed to logout:', error);
     }

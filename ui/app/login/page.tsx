@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -11,6 +11,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  const authError = searchParams.get('error');
+
+  useEffect(() => {
+    // Set error message if redirected with error parameter
+    if (authError) {
+      setError(decodeURIComponent(authError));
+    }
+  }, [authError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +52,9 @@ export default function LoginPage() {
           }),
         });
         
-        // Force navigation to dashboard with a hard redirect
-        window.location.href = '/dashboard';
+        // Let middleware handle redirection - we'll just navigate to the requested path
+        // and middleware will ensure the user is authorized
+        router.push(returnUrl);
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -53,17 +64,7 @@ export default function LoginPage() {
     }
   };
 
-  // Check if we're already logged in
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      if (user && user.emailVerified) {
-        console.log('Already authenticated, redirecting to dashboard');
-        window.location.href = '/dashboard';
-      }
-    });
-    
-    return () => unsubscribe();
-  }, []);
+  // No need for auth state checks here - middleware will handle redirects
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

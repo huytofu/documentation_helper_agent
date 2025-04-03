@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { AuthService } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
   // Check cookies for auth state
@@ -14,17 +13,34 @@ export async function middleware(request: NextRequest) {
   // Public paths that don't require authentication
   const publicPaths = ['/login', '/register', '/verify-email'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
-
+  
+  // Get the URL and query parameters
+  const url = new URL(request.url);
+  const redirectSource = url.searchParams.get('redirectSource') || '';
+  
+  // Prevent redirect loops
+  const preventRedirectLoop = redirectSource === 'middleware';
+  
   // Redirect authenticated users away from public paths (login, register)
-  if (isAuthenticated && isPublicPath) {
-    console.log('Redirecting authenticated user from public path to dashboard');
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (isAuthenticated && isPublicPath && !preventRedirectLoop) {
+    console.log('Middleware: Redirecting authenticated user to dashboard');
+    const dashboardUrl = new URL('/dashboard', request.url);
+    dashboardUrl.searchParams.set('redirectSource', 'middleware');
+    return NextResponse.redirect(dashboardUrl);
   }
 
   // Redirect unauthenticated users to login
   if (!isAuthenticated && !isPublicPath) {
-    console.log('Redirecting unauthenticated user to login');
-    return NextResponse.redirect(new URL('/login', request.url));
+    // Skip API routes and static assets
+    if (!request.nextUrl.pathname.startsWith('/api/') && 
+        !request.nextUrl.pathname.includes('/_next/')) {
+      console.log('Middleware: Redirecting unauthenticated user to login');
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirectSource', 'middleware');
+      // Add original URL as a parameter for potential redirect after login
+      loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   // Allow the request to proceed
@@ -33,13 +49,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Match all paths except static assets and images
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|gif|png|svg)).*)',
   ],
 }; 
