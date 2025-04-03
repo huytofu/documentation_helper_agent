@@ -7,6 +7,11 @@ export async function middleware(request: NextRequest) {
   const loggedInCookie = request.cookies.get('logged_in')?.value;
   const firebaseAuthCookie = request.cookies.get('firebase:authUser')?.value;
   
+  // Check for CopilotKit cookies (any cookie containing "copilotkit" in its name)
+  const hasCopilotKitCookies = Array.from(request.cookies.getAll()).some(
+    cookie => cookie.name.toLowerCase().includes('copilotkit')
+  );
+  
   // Determine authentication status
   const isAuthenticated = !!(authSessionCookie || loggedInCookie || firebaseAuthCookie);
   
@@ -14,12 +19,24 @@ export async function middleware(request: NextRequest) {
   const publicPaths = ['/login', '/register', '/verify-email'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
   
+  // API paths that should be excluded from redirection
+  const apiPaths = ['/api/copilotkit'];
+  const isApiPath = apiPaths.some(path => request.nextUrl.pathname.startsWith(path));
+  
   // Get the URL and query parameters
   const url = new URL(request.url);
   const redirectSource = url.searchParams.get('redirectSource') || '';
   
   // Prevent redirect loops
   const preventRedirectLoop = redirectSource === 'middleware';
+  
+  // Skip redirection for CopilotKit-related requests
+  // 1. If it's a CopilotKit API endpoint
+  // 2. If the request contains CopilotKit cookies
+  if (isApiPath || hasCopilotKitCookies) {
+    console.log('Middleware: Skipping redirection for CopilotKit request');
+    return NextResponse.next();
+  }
   
   // Redirect authenticated users away from public paths (login, register)
   if (isAuthenticated && isPublicPath && !preventRedirectLoop) {
@@ -49,7 +66,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static assets and images
+    // Match all paths except static assets, images, and CopilotKit API endpoints
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|gif|png|svg)).*)',
   ],
 }; 
