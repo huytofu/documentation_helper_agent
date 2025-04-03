@@ -1,30 +1,33 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AuthService } from '@/lib/auth';
-import { cookies } from 'next/headers';
 
 export async function middleware(request: NextRequest) {
-  const authService = AuthService.getInstance();
-  const isAuthenticated = await authService.isAuthenticated();
+  // Check cookies for auth state
+  const authSessionCookie = request.cookies.get('auth_session')?.value;
+  const loggedInCookie = request.cookies.get('logged_in')?.value;
+  const firebaseAuthCookie = request.cookies.get('firebase:authUser')?.value;
   
-  // Check for firebase auth cookie as additional authentication verification
-  const authCookie = request.cookies.get('firebase:authUser');
-  const hasAuthCookie = !!authCookie;
+  // Determine authentication status
+  const isAuthenticated = !!(authSessionCookie || loggedInCookie || firebaseAuthCookie);
   
   // Public paths that don't require authentication
   const publicPaths = ['/login', '/register', '/verify-email'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
-  // Redirect authenticated users away from public paths
-  if ((isAuthenticated || hasAuthCookie) && isPublicPath) {
+  // Redirect authenticated users away from public paths (login, register)
+  if (isAuthenticated && isPublicPath) {
+    console.log('Redirecting authenticated user from public path to dashboard');
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // Redirect unauthenticated users to login
-  if (!isAuthenticated && !hasAuthCookie && !isPublicPath) {
+  if (!isAuthenticated && !isPublicPath) {
+    console.log('Redirecting unauthenticated user to login');
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // Allow the request to proceed
   return NextResponse.next();
 }
 

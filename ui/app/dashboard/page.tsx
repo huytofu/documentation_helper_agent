@@ -15,26 +15,42 @@ export default function DashboardPage() {
   const authService = AuthService.getInstance();
 
   useEffect(() => {
-    const checkAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Use a simple function to check cookies directly
+    const checkAuthentication = () => {
+      const isLoggedIn = document.cookie.includes('logged_in=true') || 
+                          document.cookie.includes('firebase:authUser');
+      
+      if (!isLoggedIn) {
+        console.log('No session cookie found, redirecting to login');
+        window.location.href = '/login';
+        return;
+      }
+    };
+    
+    // Check cookies first (synchronous)
+    checkAuthentication();
+    
+    // Then check Firebase auth state (asynchronous)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           console.log('User is authenticated:', firebaseUser.uid);
+          // Get user data from auth service
           const currentUser = authService.getCurrentUser();
           setUser(currentUser);
-          setLoading(false);
         } catch (error) {
-          console.error('Failed to load user:', error);
+          console.error('Failed to load user data:', error);
+        } finally {
           setLoading(false);
         }
       } else {
-        console.log('No authenticated user found, redirecting to login');
-        router.push('/login');
+        console.log('Firebase auth check: No user found, redirecting to login');
+        window.location.href = '/login';
       }
     });
 
-    // Clean up the auth state listener
-    return () => checkAuth();
-  }, [router]);
+    return () => unsubscribe();
+  }, [router, authService]);
 
   if (loading) {
     return (

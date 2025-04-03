@@ -12,8 +12,16 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
   const handleLogout = async () => {
     try {
+      // First logout from Firebase
       await authService.logout();
-      router.push('/login');
+      
+      // Then clear cookies via API
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+      });
+      
+      // Redirect to login
+      window.location.href = '/login';
     } catch (error) {
       console.error('Failed to logout:', error);
     }

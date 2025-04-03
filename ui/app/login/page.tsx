@@ -30,17 +30,20 @@ export default function LoginPage() {
       } else {
         console.log('Email verified, redirecting to dashboard...');
         
-        // Store auth state in localStorage as a signal for successful login
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('uid', user.uid);
+        // Set session cookie via API
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            uid: user.uid,
+            email: user.email
+          }),
+        });
         
-        // Try both methods for redirection
-        router.push('/dashboard');
-        
-        // As a fallback, use window.location after a short delay
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1000);
+        // Force navigation to dashboard with a hard redirect
+        window.location.href = '/dashboard';
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -50,17 +53,17 @@ export default function LoginPage() {
     }
   };
 
-  // Check if we're logged in on initial load
+  // Check if we're already logged in
   useEffect(() => {
-    const checkAuth = async () => {
-      if (auth.currentUser) {
-        console.log('User already logged in, redirecting to dashboard');
-        router.push('/dashboard');
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user && user.emailVerified) {
+        console.log('Already authenticated, redirecting to dashboard');
+        window.location.href = '/dashboard';
       }
-    };
+    });
     
-    checkAuth();
-  }, [router]);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
