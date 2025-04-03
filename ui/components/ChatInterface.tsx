@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CopilotChat } from '@copilotkit/react-ui';
 import { MessageSquare } from 'lucide-react';
 import { useCoAgent } from '@copilotkit/react-core';
+import { MessageRole, TextMessage } from '@copilotkit/runtime-client-gql';
 import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';

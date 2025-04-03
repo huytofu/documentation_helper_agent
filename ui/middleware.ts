@@ -7,10 +7,24 @@ export async function middleware(request: NextRequest) {
   const loggedInCookie = request.cookies.get('logged_in')?.value;
   const firebaseAuthCookie = request.cookies.get('firebase:authUser')?.value;
   
+  // Get all cookies for debugging
+  const allCookies = Array.from(request.cookies.getAll());
+  
   // Check for CopilotKit cookies (any cookie containing "copilotkit" in its name)
-  const hasCopilotKitCookies = Array.from(request.cookies.getAll()).some(
-    cookie => cookie.name.toLowerCase().includes('copilotkit')
+  const copilotKitCookies = allCookies.filter(
+    cookie => cookie.name.toLowerCase().includes('copilotkit') || 
+              cookie.name.toLowerCase().includes('coagent') ||
+              cookie.name.toLowerCase().includes('copilot_')
   );
+  
+  const hasCopilotKitCookies = copilotKitCookies.length > 0;
+  
+  // Log cookies for debugging, if CopilotKit cookies are present
+  if (hasCopilotKitCookies) {
+    console.log('Middleware: CopilotKit cookies found:', 
+      copilotKitCookies.map(c => `${c.name}=${c.value.substring(0, 10)}...`)
+    );
+  }
   
   // Determine authentication status
   const isAuthenticated = !!(authSessionCookie || loggedInCookie || firebaseAuthCookie);
@@ -22,6 +36,10 @@ export async function middleware(request: NextRequest) {
   // API paths that should be excluded from redirection
   const apiPaths = ['/api/copilotkit'];
   const isApiPath = apiPaths.some(path => request.nextUrl.pathname.startsWith(path));
+
+  // Dashboard-related paths (where CopilotKit is active)
+  const dashboardPaths = ['/dashboard'];
+  const isDashboardPath = dashboardPaths.some(path => request.nextUrl.pathname.startsWith(path));
   
   // Get the URL and query parameters
   const url = new URL(request.url);
@@ -30,11 +48,24 @@ export async function middleware(request: NextRequest) {
   // Prevent redirect loops
   const preventRedirectLoop = redirectSource === 'middleware';
   
-  // Skip redirection for CopilotKit-related requests
-  // 1. If it's a CopilotKit API endpoint
-  // 2. If the request contains CopilotKit cookies
-  if (isApiPath || hasCopilotKitCookies) {
-    console.log('Middleware: Skipping redirection for CopilotKit request');
+  // Special handling for requests with CopilotKit context
+  if (hasCopilotKitCookies) {
+    console.log(`Middleware: Path ${request.nextUrl.pathname} has CopilotKit cookies, preserving context`);
+    
+    // Create a new response that preserves the request
+    const response = NextResponse.next();
+    
+    // Make sure we preserve all CopilotKit cookies in the response
+    copilotKitCookies.forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value);
+    });
+    
+    return response;
+  }
+  
+  // Skip redirection for CopilotKit API endpoints
+  if (isApiPath) {
+    console.log('Middleware: Skipping redirection for CopilotKit API path');
     return NextResponse.next();
   }
   
