@@ -50,10 +50,10 @@ export default function ChatInterface() {
     try {
       await authService.incrementChatUsage();
       const remaining = await authService.getRemainingChats();
-      setRemainingChats(remaining);
-      if (remaining <= 0) {
-        setCanChat(false);
-      }
+      // setRemainingChats(remaining);
+      // if (remaining <= 0) {
+      //   setCanChat(false);
+      // }
     } catch (error) {
       console.error('Error updating chat usage:', error);
     }
