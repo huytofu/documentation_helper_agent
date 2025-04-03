@@ -1,26 +1,51 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthService } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  const authError = searchParams.get('error');
   const authService = AuthService.getInstance();
+
+  useEffect(() => {
+    // Set error message if redirected with error parameter
+    if (authError) {
+      setError(decodeURIComponent(authError));
+    }
+  }, [authError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setLoading(true);
 
     try {
-      await authService.login(email, password);
-      router.push('/dashboard');
+      const user = await authService.login(email, password);
+      
+      // Set session cookie via API
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          uid: user.uid,
+          email: user.email
+        }),
+      });
+      
+      // Navigate to the return URL or dashboard
+      router.push(returnUrl);
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Failed to login');
     } finally {
       setLoading(false);
