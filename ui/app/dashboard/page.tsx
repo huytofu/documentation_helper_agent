@@ -1,27 +1,40 @@
+'use client';
+
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AuthService } from '@/lib/auth';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from '@/types/user';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const authService = AuthService.getInstance();
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Failed to load user:', error);
-      } finally {
-        setLoading(false);
+    const checkAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          console.log('User is authenticated:', firebaseUser.uid);
+          const currentUser = authService.getCurrentUser();
+          setUser(currentUser);
+          setLoading(false);
+        } catch (error) {
+          console.error('Failed to load user:', error);
+          setLoading(false);
+        }
+      } else {
+        console.log('No authenticated user found, redirecting to login');
+        router.push('/login');
       }
-    };
+    });
 
-    loadUser();
-  }, []);
+    // Clean up the auth state listener
+    return () => checkAuth();
+  }, [router]);
 
   if (loading) {
     return (

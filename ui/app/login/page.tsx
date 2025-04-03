@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -29,8 +29,18 @@ export default function LoginPage() {
         console.log('Sign out due to unverified email');
       } else {
         console.log('Email verified, redirecting to dashboard...');
-        // Use window.location.href for a full page redirect instead of router.push
-        window.location.href = '/dashboard';
+        
+        // Store auth state in localStorage as a signal for successful login
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('uid', user.uid);
+        
+        // Try both methods for redirection
+        router.push('/dashboard');
+        
+        // As a fallback, use window.location after a short delay
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -39,6 +49,18 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Check if we're logged in on initial load
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (auth.currentUser) {
+        console.log('User already logged in, redirecting to dashboard');
+        router.push('/dashboard');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
