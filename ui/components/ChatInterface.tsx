@@ -9,6 +9,7 @@ import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
+import { CopilotKit } from '@copilotkit/react-core';
 
 export default function ChatInterface() {
   const isInitialMount = useRef(true);
@@ -69,18 +70,20 @@ export default function ChatInterface() {
       </div>
       <div className="h-[600px]">
         {canChat && isMounted ? (
-          // <CopilotChat
-          //   className="h-full"
-          //   makeSystemMessage={() => 
-          //     `You are a helpful assistant focusing on helping users with their questions, 
-          //     You must always route user queries to available backend agents first for processing. 
-          //     Do not attempt to answer questions directly without consulting the backend agents.}`
-          //   }
-          //   onStopGeneration={handleChatComplete}
-          // />
-          <div>
-            <p>Chat Interface</p>
-          </div>
+          <CopilotKit runtimeUrl="/api/copilotkit" agent={AGENT_NAME}>
+            <CopilotChat
+              className="h-full"
+              makeSystemMessage={() => 
+              `You are a helpful assistant focusing on helping users with their questions, 
+              You must always route user queries to available backend agents first for processing. 
+              Do not attempt to answer questions directly without consulting the backend agents.}`
+            }
+            // onStopGeneration={handleChatComplete}
+          />
+          </CopilotKit>
+          // <div>
+          //   <p>Chat Interface</p>
+          // </div>
         ) : (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <div className="max-w-md">
