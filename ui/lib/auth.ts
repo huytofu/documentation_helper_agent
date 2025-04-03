@@ -135,7 +135,7 @@ export class AuthService {
       // Set persistence to LOCAL to maintain the session across page reloads
       // This ensures Firebase Auth state persists in browser storage
       await setPersistence(auth, browserLocalPersistence);
-            
+
       // Get user document from Firestore
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       const userData = userDoc.data() as User;
@@ -167,12 +167,10 @@ export class AuthService {
       // Create new session
       const session = await this.createSession(firebaseUser.uid);
 
-      // Decrypt sensitive data
-      if (userData.apiKey) {
-        userData.apiKey = await decrypt(userData.apiKey);
-      }
-
-      this.currentUser = userData;
+      // Load the full user data including decrypted fields
+      await this.loadUserData(firebaseUser);
+      
+      // Set the session ID
       this.sessionId = session.id;
 
       // Store auth state in localStorage
@@ -181,7 +179,8 @@ export class AuthService {
         localStorage.setItem('userId', firebaseUser.uid);
       }
 
-      return userData;
+      // Return the full current user object with all fields properly decrypted
+      return this.currentUser as User;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
