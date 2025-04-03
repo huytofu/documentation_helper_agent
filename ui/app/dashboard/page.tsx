@@ -6,10 +6,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import type { User } from '@/types/user';
 import { AuthService } from '@/lib/auth';
 import AuthLayout from '@/components/layout/AuthLayout';
-import Header from '@/components/Header';
-import LanguageSelector from '@/components/LanguageSelector';
 import { ProgrammingLanguage } from '@/types';
-import { AlertTriangle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 // Import CopilotKit component without SSR - fix the path

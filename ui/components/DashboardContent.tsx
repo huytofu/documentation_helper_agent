@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CopilotKit } from '@copilotkit/react-core';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import LanguageSelector from '@/components/LanguageSelector';
 import { AlertTriangle } from 'lucide-react';
 import { ProgrammingLanguage } from '@/types';
 import { User } from '@/types/user';
-import { AGENT_NAME } from '@/constants';
 
 // Dynamically import components that use CopilotKit features
 const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
