@@ -69,15 +69,18 @@ export default function ChatInterface() {
       </div>
       <div className="h-[600px]">
         {canChat && isMounted ? (
-          <CopilotChat
-            className="h-full"
-            makeSystemMessage={() => 
-              `You are a helpful assistant focusing on helping users with their questions, 
-              You must always route user queries to available backend agents first for processing. 
-              Do not attempt to answer questions directly without consulting the backend agents.}`
-            }
-            onStopGeneration={handleChatComplete}
-          />
+          // <CopilotChat
+          //   className="h-full"
+          //   makeSystemMessage={() => 
+          //     `You are a helpful assistant focusing on helping users with their questions, 
+          //     You must always route user queries to available backend agents first for processing. 
+          //     Do not attempt to answer questions directly without consulting the backend agents.}`
+          //   }
+          //   onStopGeneration={handleChatComplete}
+          // />
+          <div>
+            <p>Chat Interface</p>
+          </div>
         ) : (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <div className="max-w-md">
