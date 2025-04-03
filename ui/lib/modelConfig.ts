@@ -1,4 +1,4 @@
-import { ChatHuggingFace } from "@langchain/community/chat_models/huggingface";
+import { HuggingFaceInference } from "@langchain/community/llms/huggingface";
 import { ChatOllama } from "@langchain/ollama";
 
 // Environment flags
@@ -38,7 +38,7 @@ export function getModel() {
   if (USE_OLLAMA) {
     return new ChatOllama(OLLAMA_CONFIG);
   } else if (USE_HUGGINGFACE) {
-    return new ChatHuggingFace({
+    return new HuggingFaceInference({
       ...HUGGINGFACE_CONFIG,
       apiKey: process.env.HUGGINGFACE_API_KEY || ""
     });
