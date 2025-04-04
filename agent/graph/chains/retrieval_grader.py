@@ -1,6 +1,6 @@
 from langchain_core.prompts.chat import ChatPromptTemplate
 from pydantic import BaseModel, Field
-from agent.graph.models.grader import llm
+from agent.graph.models.retrieval_grader import llm
 from agent.graph.utils.timeout import timeout
 
 

@@ -7,7 +7,7 @@ def retrieve(state: GraphState) -> Dict[str, Any]:
     print("---RETRIEVE---")
     query = state.get("query", "")
     vectorstore = state.get("framework", None)
-    if vectorstore is None:
+    if vectorstore in [None, "others"]:
         return {"documents": [], "current_node": "RETRIEVE"}
     retriever = get_retriever(vectorstore)
     if retriever is None:

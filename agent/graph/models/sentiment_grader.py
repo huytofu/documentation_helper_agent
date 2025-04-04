@@ -5,7 +5,7 @@ from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientChatModel
 
 # Get model configuration
-config = get_model_config_for_component("grader")
+config = get_model_config_for_component("sentiment_grader")
 
 # Initialize LLM based on configuration
 if "client" in config:

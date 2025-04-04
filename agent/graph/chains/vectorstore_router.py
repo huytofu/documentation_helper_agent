@@ -8,10 +8,10 @@ from functools import lru_cache
 
 class VectorstoreRoute(BaseModel):
     """Route a query to the appropriate vectorstore"""
-    datasource: Literal["openai", "smolagents", "langgraph", "copilotkit"] = Field(
+    datasource: Literal["openai", "smolagents", "langgraph", "copilotkit", "others"] = Field(
         ...,
         description="""Given a user query determine which vectorstore to use. 
-        Answer must be either 'openai', 'smolagents', 'langgraph', or 'copilotkit' only.""",
+        Answer must be either 'openai', 'smolagents', 'langgraph', 'copilotkit', or 'others' only.""",
     )
 
 # Create the output parser
@@ -30,6 +30,7 @@ Options:
 - "smolagents": ONLY for queries specifically about the SmolAgents framework
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
+- "others": For all other queries
 
 {format_instructions}"""
 

@@ -1,7 +1,7 @@
 from langchain_core.prompts.chat import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain_core.runnables import RunnableSequence
-from agent.graph.models.grader import llm
+from agent.graph.models.sentiment_grader import llm
 
 class GradeSentiment(BaseModel):
 
