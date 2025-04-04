@@ -9,20 +9,21 @@ class LanguageRoute(BaseModel):
     """Route a query to the appropriate programming language"""
     language: Literal["python", "javascript", "none", "others"] = Field(
         ...,
-        description="""Given a user query determine which programming language is mentioned. 
-        Answer must be either 'python', 'javascript', 'none' or 'others' only.""",
+        description="""Answer options for: programming language that is mentioned in the query""",
     )
 
 # Create the output parser
 parser = PydanticOutputParser(pydantic_object=LanguageRoute)
 
 # Create the prompt template with optimized system message
-system = """You are a language detection expert. Analyze the query and determine the programming language.
-Options:
+system = """You are a programming language detection expert. Analyze the query and determine the mentioned programming language.
+You must choose between four options:
 - "python": Python-specific queries
 - "javascript": JavaScript/TypeScript queries
-- "none": No language mentioned
-- "others": Other programming languages
+- "none": No programming language mentioned
+- "others": Other programming languages mentioned
+
+You must not return any answer other than these four.
 
 {format_instructions}"""
 

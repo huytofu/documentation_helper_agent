@@ -8,8 +8,7 @@ class RouteQuery(BaseModel):
     """Route a user query to a vectorstore or websearch"""
     datasource: Literal["vectorstore", "websearch"] = Field(
         ...,
-        description="""Given a user query determine whether to route it to a vectorstore or websearch. 
-        Answer must be either 'vectorstore' or 'websearch' only.""",
+        description="""Answer options for: vectorstore or websearch""",
     )
 
 # Create the output parser
@@ -17,15 +16,14 @@ parser = PydanticOutputParser(pydantic_object=RouteQuery)
 
 # Create the prompt template
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
-Current vectorstores contain information about the Langchain, Langgraph, 
-and Copilokit framework which also includes knowledge about Coagents.
+Current vectorstores contain information about the OpenAI Agents SDK, Smolagents, Langgraph, 
+and Copilokit framework which includes Coagents.
 
-You must choose between:
-- "vectorstore": ONLY for queries specifically about LangChain, LangGraph, or CopilotKit (which includes Coagents) frameworks and their features
+You must choose between two options:
+- "vectorstore": ONLY for queries specifically about LangChain, LangGraph, or CopilotKit (which includes Coagents) frameworks
 - "websearch": For all other queries, including general programming questions, new technologies, or any other topics
 
-(IMPORTANT!) Your answer must be either "vectorstore" or "websearch" only.
-You must not return any answers other than these two.
+You must not return any answer other than these two.
 
 {format_instructions}"""
 
