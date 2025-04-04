@@ -72,6 +72,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
+        messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
         return {
             "messages": messages,
             "retry_count": retry_count,
@@ -79,6 +80,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         }
     except Exception as e:
         logger.error(f"Error during generation: {str(e)}")
+        messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
         return {
             "messages": messages,
             "retry_count": retry_count,

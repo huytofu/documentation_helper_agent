@@ -95,6 +95,7 @@ class APICostTracker:
         if api_type not in self.usage:
             self.usage[api_type] = {'tokens': 0, 'cost': 0.0, 'requests': 0}
 
+        print(tokens, cost, requests)
         self.usage[api_type]['tokens'] += tokens
         self.usage[api_type]['cost'] += cost
         self.usage[api_type]['requests'] += requests

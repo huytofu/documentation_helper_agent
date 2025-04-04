@@ -73,12 +73,6 @@ def validate_state(state: GraphState) -> bool:
             "min_length": 0,
             "validate": lambda x: all(isinstance(doc, str) and len(doc.strip()) > 0 for doc in x)
         },
-        "generation": {
-            "type": str,
-            "min_length": 0,
-            "max_length": 5000,
-            "validate": lambda x: isinstance(x, str)
-        },
         "current_node": {
             "type": str,
             "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
@@ -93,11 +87,6 @@ def validate_state(state: GraphState) -> bool:
             "allowed_values": ["python", "javascript", ""],
             "validate": lambda x: x in ["python", "javascript", ""]
         },
-        "comments": {
-            "type": str,
-            "max_length": 1000,
-            "validate": lambda x: isinstance(x, str)
-        }
     }
 
     # Check each required field
@@ -225,11 +214,6 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         cleanup_resources(state)
         return "end_misery"
-
-def grade_generation_grounded_in_query(state: GraphState) -> str:
-    logger.info("---GRADE GENERATION GROUNDED IN QUERY---")
-    generation = get_last_ai_message_content(state.get("messages", []))
-    # Rest of the function...
 
 def route_query(state: GraphState) -> str:
     logger.info("---ROUTE QUERY---")
