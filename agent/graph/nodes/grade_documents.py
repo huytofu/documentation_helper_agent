@@ -56,7 +56,8 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
             cost_tracker.track_usage(
                 'grader',
                 tokens=len(get_page_content(doc).split()),  # Approximate token count
-                cost=0.0  # Update cost based on actual pricing
+                cost=0.0,  # Update cost based on actual pricing
+                requests=1
             )
             return GradingResponse(
                 success=True,

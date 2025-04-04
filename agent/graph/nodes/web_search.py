@@ -31,7 +31,7 @@ async def perform_web_search(query: str) -> APIResponse:
     """Perform web search with timeout and error handling."""
     try:
         docs = web_search_tool.invoke({"query": query})
-        cost_tracker.track_usage('web_search', requests=1, cost=0.0)  # Update cost based on actual pricing
+        cost_tracker.track_usage('web_search', tokens=0, cost=0.0, requests=1)  # Update cost based on actual pricing
         return APIResponse(
             success=True,
             data=docs
