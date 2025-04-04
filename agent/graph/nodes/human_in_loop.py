@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 
 async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     logger.info("---HUMAN IN LOOP---")
+    if config:
+        generating_state = {
+            "current_node": "HUMAN_IN_LOOP",
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
     
@@ -21,7 +28,6 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     # Create result state with current_node
     result_state = {
         "comments": "",  # Will be updated after interrupt
-        "current_node": "HUMAN_IN_LOOP"
     }
     
     # Temporarily disabled explicit state emission

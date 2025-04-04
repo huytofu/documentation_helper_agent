@@ -10,6 +10,7 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
     APIResponse
 )
+from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.web_search")
 
@@ -43,8 +44,15 @@ async def perform_web_search(query: str) -> APIResponse:
             data=[]
         )
 
-async def web_search(state: GraphState) -> Dict[str, Any]:
+async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     logger.info("---WEB SEARCH---")
+    if config:
+        generating_state = {
+            "current_node": "WEB_SEARCH",
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     query = state.get("query", "")
     documents = state.get("documents", [])
 
@@ -58,10 +66,10 @@ async def web_search(state: GraphState) -> Dict[str, Any]:
                 documents.append(web_results)
             else:
                 documents = [web_results]
-            return {"documents": documents, "current_node": "WEB_SEARCH"}
+            return {"documents": documents}
         else:
             logger.error(f"Web search failed: {response.error}")
-            return {"documents": documents, "current_node": "WEB_SEARCH", "error": response.error}
+            return {"documents": documents, "error": response.error}
     except Exception as e:
         logger.error(f"Unexpected error in web search: {str(e)}")
-        return {"documents": documents, "current_node": "WEB_SEARCH", "error": str(e)}
+        return {"documents": documents, "error": str(e)}

@@ -11,6 +11,13 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
+    if config:
+        generating_state = {
+            "current_node": "REGENERATE",
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     query = state.get("query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
@@ -25,16 +32,6 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     comments = state.get("comments", "")
     retry_count = state.get("retry_count", 0)
-
-    # Emit only one "GENERATING" state update before generation
-    if config:
-        generating_state = {
-            "current_node": "REGENERATING",
-            "language": language,
-            "comments": comments
-        }
-        print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 

@@ -14,6 +14,7 @@
     "@copilotkit/react-textarea": "^1.6.0",
     "@copilotkit/react-ui": "^1.6.0",
     "@copilotkit/runtime": "^1.6.0",
+    "@langchain/community": "^0.2.0",
     "@langchain/core": "^0.3.42",
     "@langchain/ollama": "^0.0.1",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -29,10 +30,10 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^2.6.0",
-    "tailwindcss-animate": "^1.0.7",
-    "@langchain/community": "^0.2.0"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@types/firebase": "^2.4.32",
     "@types/node": "^20.17.19",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -41,7 +42,7 @@
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.7.3",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   }
 }

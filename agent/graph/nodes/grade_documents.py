@@ -13,10 +13,11 @@ from agent.graph.utils.api_utils import (
 )
 import asyncio
 from functools import partial
+from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.grade_documents")
 
-def grade_documents(state: GraphState) -> Dict[str, Any]:
+async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Determines whether the retrieved documents are relevant to the query using parallel processing
     
@@ -27,6 +28,13 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         state (dict): Filtered out irrelevant documents
     """
     logger.info("---CHECK DOCUMENT RELEVANCE TO QUERY---")
+    if config:
+        generating_state = {
+            "current_node": "GRADE_DOCUMENTS",
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     query = state.get("query", "")
     documents = state.get("documents", [])
     
@@ -119,6 +127,5 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
     return {
         "documents": filtered_docs,
         "query": query,
-        "current_node": "GRADE_DOCUMENTS",
         "errors": errors if errors else None
     }

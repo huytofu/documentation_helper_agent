@@ -19,22 +19,20 @@ logger = logging.getLogger(__name__)
 
 async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---GENERATE---")
+    # Emit only one "GENERATE" state update before generation
+    if config:
+        generating_state = {
+            "current_node": "GENERATE",
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     query = state.get("query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
     language = state.get("language", "")
     retry_count = state.get("retry_count", 0)
     messages = state.get("messages", [])
-
-    # Emit only one "GENERATING" state update before generation
-    if config:
-        generating_state = {
-            "current_node": "GENERATING",
-            "language": language,
-            "comments": "NONE"
-        }
-        print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
