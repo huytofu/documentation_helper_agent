@@ -79,6 +79,8 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             "error": "Generation timed out"
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
         messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
         return {

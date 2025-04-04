@@ -18,7 +18,7 @@ logger = logging.getLogger("graph.test_flow")
 
 def validate_state(state: GraphState) -> bool:
     """Validate that all required fields are present in the state."""
-    required_fields = ["query", "documents", "current_node", "language"]
+    required_fields = ["query", "documents", "language"]
     for field in required_fields:
         if field not in state:
             logger.error(f"Missing required state field: {field}")

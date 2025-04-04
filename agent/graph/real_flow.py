@@ -73,15 +73,15 @@ def validate_state(state: GraphState) -> bool:
             "min_length": 0,
             "validate": lambda x: all(isinstance(doc, str) and len(doc.strip()) > 0 for doc in x)
         },
-        "current_node": {
-            "type": str,
-            "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-                              "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-                              "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"],
-            "validate": lambda x: x in ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-                                      "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-                                      "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"]
-        },
+        # "current_node": {
+        #     "type": str,
+        #     "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
+        #                       "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
+        #                       "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"],
+        #     "validate": lambda x: x in ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
+        #                               "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
+        #                               "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"]
+        # },
         "language": {
             "type": str,
             "allowed_values": ["python", "javascript", ""],
