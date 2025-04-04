@@ -51,9 +51,10 @@ RUNPOD_ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")
 # Model IDs
 MODEL_IDS = {
     "embeddings": "BAAI/bge-large-en-v1.5",
-    "router": "mistralai/Mistral-7B-Instruct-v0.3",
+    # "router": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "router": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "sentiment_grader": "mistralai/Mistral-7B-Instruct-v0.3",
-    "answer_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "answer_grader": "mistralai/Mistral-7B-Instruct-v0.3",
     "retrieval_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "hallucinate_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
@@ -62,9 +63,10 @@ MODEL_IDS = {
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
-    "router": "mistral",
-    "sentiment_grader": "mistral",
-    "answer_grader": "mixtral:8x7b",
+    # "router": "mixtral:8x7b",
+    "router": "llama3.1:latest",
+    "sentiment_grader": "mistral:latest",
+    "answer_grader": "mistral:latest",
     "retrieval_grader": "mixtral:8x7b",
     "hallucinate_grader": "mixtral:8x7b",
     "generator": "deepseek-coder:33b"
