@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import "@copilotkit/react-ui/styles.css";
 import { CopilotChat } from '@copilotkit/react-ui';
 import { MessageSquare } from 'lucide-react';
 import { useCoAgent } from '@copilotkit/react-core';
@@ -9,6 +10,7 @@ import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
+
 
 export default function ChatInterface() {
   const isInitialMount = useRef(true);
@@ -76,8 +78,11 @@ export default function ChatInterface() {
       </div>
       <div className="h-[600px]">
         {canChat && isMounted ? (
+          <div className="flex flex-col gap-2">
+          <p className="text-sm text-gray-500">
+            Remaining chats today: {remainingChats}
+          </p>
           <CopilotChat
-            className="h-full"
             makeSystemMessage={() => 
               `You are a helpful assistant focusing on helping users with their questions, 
               You must always route user queries to available backend agents first for processing. 
@@ -85,6 +90,7 @@ export default function ChatInterface() {
             }
             onStopGeneration={handleChatComplete}
           />
+          </div>
         ) : (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <div className="max-w-md">
@@ -96,9 +102,6 @@ export default function ChatInterface() {
                     Usage exceeds limit of {user?.usageLimit || 20} chats per day, please return tomorrow or login with a new account. 
                     This app is meant to be a demo only and therefore incurred cost is kept to the minimum! 
                     Please show some understanding towards the developer.
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Remaining chats today: {remainingChats}
                   </p>
                 </>
               )}

@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useCoAgent } from "@copilotkit/react-core";
-import { ProgrammingLanguage } from "@/types";
-import { AGENT_NAME } from "@/constants";
-import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock } from "lucide-react";
+import { useCoAgent } from '@copilotkit/react-core';
+import { ProgrammingLanguage } from '@/types';
+import { AGENT_NAME } from '@/constants';
+import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock } from 'lucide-react';
 
 // Define the agent state interface
 export interface AgentState {
@@ -129,6 +129,7 @@ export default function AgentStatePanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [updateCount, setUpdateCount] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   
   // Reference to track render count for debugging
   const renderCountRef = useRef(0);
@@ -138,6 +139,15 @@ export default function AgentStatePanel() {
   
   // Timer reference for loading state
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add mount guard
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 50);
+    return () => {
+      clearTimeout(timer);
+      setIsMounted(false);
+    };
+  }, []);
   
   // Handle node changes and loading state
   useEffect(() => {
@@ -187,6 +197,11 @@ export default function AgentStatePanel() {
     console.log("AgentStatePanel: directState changed:", directState);
   }, [directState]);
   
+  // Only render when mounted
+  if (!isMounted) {
+    return <div className="rounded-xl border bg-card/50 p-4 text-center">Loading agent state...</div>;
+  }
+
   // Render component with state from useCoAgent
   return (
     <div className="rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg overflow-hidden">

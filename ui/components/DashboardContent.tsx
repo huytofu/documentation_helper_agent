@@ -7,6 +7,7 @@ import LanguageSelector from '@/components/LanguageSelector';
 import { AlertTriangle } from 'lucide-react';
 import { ProgrammingLanguage } from '@/types';
 import { User } from '@/types/user';
+import { AGENT_NAME } from '@/constants';
 
 // Dynamically import components that use CopilotKit features
 const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
@@ -30,12 +31,21 @@ export default function DashboardContent({
 
   // Set mounted to true when component mounts on client
   useEffect(() => {
-    setMounted(true);
+    // Add a slightly longer delay to ensure context is fully initialized
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Don't render anything with CopilotKit until we're mounted on client
   if (!mounted) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <div className="flex justify-center items-center p-8 h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Initializing dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
