@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Standard timeout settings
 STANDARD_TIMEOUT = 30  # seconds
+GENERATION_TIMEOUT = 60   # seconds
 GRADER_TIMEOUT = 10   # seconds
 
 T = TypeVar('T')

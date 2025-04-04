@@ -9,7 +9,7 @@ from agent.graph.utils.message_utils import get_page_content
 from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
     handle_api_error,
-    STANDARD_TIMEOUT,
+    GENERATION_TIMEOUT,
     cost_tracker,
     APIResponse,
     GenerationResponse
@@ -53,7 +53,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
                     "query": query
                 }
             ),
-            timeout=STANDARD_TIMEOUT
+            timeout=GENERATION_TIMEOUT
         )
         
         # Track API usage
