@@ -9,7 +9,6 @@ import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
-import { CopilotKit } from '@copilotkit/react-core';
 
 export default function ChatInterface() {
   const isInitialMount = useRef(true);
@@ -25,8 +24,12 @@ export default function ChatInterface() {
 
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
+    // Add small delay to ensure component is fully mounted
+    const timer = setTimeout(() => setIsMounted(true), 50);
+    return () => {
+      clearTimeout(timer);
+      setIsMounted(false);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,11 +53,14 @@ export default function ChatInterface() {
   const handleChatComplete = async () => {
     try {
       await authService.incrementChatUsage();
-      const remaining = await authService.getRemainingChats();
-      // setRemainingChats(remaining);
-      // if (remaining <= 0) {
-      //   setCanChat(false);
-      // }
+      // Fetch updated remaining chats but don't update state during render
+      authService.getRemainingChats().then(remaining => {
+        // Update in a safe way outside render cycle
+        if (remaining <= 0) {
+          setCanChat(false);
+        }
+        setRemainingChats(remaining);
+      });
     } catch (error) {
       console.error('Error updating chat usage:', error);
     }
@@ -70,20 +76,15 @@ export default function ChatInterface() {
       </div>
       <div className="h-[600px]">
         {canChat && isMounted ? (
-          <CopilotKit runtimeUrl="/api/copilotkit" agent={AGENT_NAME}>
-            <CopilotChat
-              className="h-full"
-              makeSystemMessage={() => 
+          <CopilotChat
+            className="h-full"
+            makeSystemMessage={() => 
               `You are a helpful assistant focusing on helping users with their questions, 
               You must always route user queries to available backend agents first for processing. 
               Do not attempt to answer questions directly without consulting the backend agents.}`
             }
-            // onStopGeneration={handleChatComplete}
+            onStopGeneration={handleChatComplete}
           />
-          </CopilotKit>
-          // <div>
-          //   <p>Chat Interface</p>
-          // </div>
         ) : (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <div className="max-w-md">
