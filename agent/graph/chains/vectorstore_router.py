@@ -7,11 +7,10 @@ import hashlib
 from functools import lru_cache
 
 class VectorstoreRoute(BaseModel):
-    """Route a query to the appropriate vectorstore"""
+    """Route a query to the appropriate choice of vectorstore"""
     datasource: Literal["openai", "smolagents", "langgraph", "copilotkit", "others"] = Field(
         ...,
-        description="""Given a user query determine which vectorstore to use. 
-        Answer must be either 'openai', 'smolagents', 'langgraph', 'copilotkit', or 'others' only.""",
+        description="""Answer options for: choice of vectorstore""",
     )
 
 # Create the output parser
