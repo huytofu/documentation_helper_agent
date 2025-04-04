@@ -63,11 +63,11 @@ class APICostTracker:
     
     def __init__(self):
         self.usage = {
-            'embeddings': {'tokens': 0, 'cost': 0.0},
-            'router': {'tokens': 0, 'cost': 0.0},
-            'grader': {'tokens': 0, 'cost': 0.0},
-            'generator': {'tokens': 0, 'cost': 0.0},
-            'web_search': {'requests': 0, 'cost': 0.0}
+            'embeddings': {'tokens': 0, 'cost': 0.0, 'requests': 0},
+            'router': {'tokens': 0, 'cost': 0.0, 'requests': 0},
+            'grader': {'tokens': 0, 'cost': 0.0, 'requests': 0},
+            'generator': {'tokens': 0, 'cost': 0.0, 'requests': 0},
+            'web_search': {'tokens': 0, 'cost': 0.0, 'requests': 0}
         }
         self.last_save = datetime.now()
         self.save_interval = 300  # 5 minutes

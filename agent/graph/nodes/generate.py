@@ -43,7 +43,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
 
     try:
         # Use asyncio to handle concurrent generation requests
-        generation = await asyncio.wait_for(
+        llm_generation = await asyncio.wait_for(
             asyncio.to_thread(
                 generation_chain.invoke,
                 {
@@ -59,12 +59,12 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         # Track API usage
         cost_tracker.track_usage(
             'generator',
-            tokens=len(generation.split()),  # Approximate token count
+            tokens=len(llm_generation.split()),  # Approximate token count
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
         
-        messages.append(AIMessage(content=generation))
+        messages.append(AIMessage(content=llm_generation))
         retry_count += 1
 
         return {
@@ -74,6 +74,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
         messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
+        retry_count += 1
         return {
             "messages": messages,
             "retry_count": retry_count,
@@ -84,6 +85,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
         messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
+        retry_count += 1
         return {
             "messages": messages,
             "retry_count": retry_count,
