@@ -34,6 +34,7 @@ export default function ChatInterface() {
     };
   }, []);
 
+  // Periodically check chat availability and update UI
   useEffect(() => {
     const checkChatAvailability = async () => {
       try {
@@ -49,22 +50,22 @@ export default function ChatInterface() {
       }
     };
 
+    // Initial check
     checkChatAvailability();
+
+    // Set up periodic checks (every 30 seconds)
+    const intervalId = setInterval(checkChatAvailability, 30000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleChatComplete = async () => {
     try {
-      await authService.incrementChatUsage();
-      // Fetch updated remaining chats but don't update state during render
-      authService.getRemainingChats().then(remaining => {
-        // Update in a safe way outside render cycle
-        if (remaining <= 0) {
-          setCanChat(false);
-        }
-        setRemainingChats(remaining);
-      });
+      // Remove chat usage tracking as it's now handled in the API route
+      console.log('Chat completed');
     } catch (error) {
-      console.error('Error updating chat usage:', error);
+      console.error('Error in chat completion handler:', error);
     }
   };
 
@@ -78,18 +79,21 @@ export default function ChatInterface() {
       </div>
       <div className="h-[600px]">
         {canChat && isMounted ? (
-          <div className="flex flex-col gap-2">
-          <p className="text-sm text-gray-500">
-            Remaining chats today: {remainingChats}
-          </p>
-          <CopilotChat
-            makeSystemMessage={() => 
-              `You are a helpful assistant focusing on helping users with their questions, 
-              You must always route user queries to available backend agents first for processing. 
-              Do not attempt to answer questions directly without consulting the backend agents.}`
-            }
-            onStopGeneration={handleChatComplete}
-          />
+          <div className="flex flex-col h-full">
+            <p className="text-sm text-gray-500 p-2">
+              Remaining chats today: {remainingChats}
+            </p>
+            <div className="flex-1 overflow-hidden">
+              <CopilotChat
+                className="h-full overflow-y-auto"
+                makeSystemMessage={() => 
+                  `You are a helpful assistant focusing on helping users with their questions, 
+                  You must always route user queries to available backend agents first for processing. 
+                  Do not attempt to answer questions directly without consulting the backend agents.}`
+                }
+                onStopGeneration={handleChatComplete}
+              />
+            </div>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center p-8 text-center">

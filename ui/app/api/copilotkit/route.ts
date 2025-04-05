@@ -8,6 +8,7 @@ import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { ChainValues } from "@langchain/core/utils/types";
 import { API_ENDPOINT, BACKEND_ENDPOINT } from "@/constants";
 import { getModel } from "@/lib/modelConfig";
+import { AuthService } from "@/lib/auth";
 
 // Get the configured model
 const model = getModel();
@@ -36,15 +37,33 @@ const handleSecurityError = (error: any) => {
 const serviceAdapter = new LangChainAdapter({
   chainFn: async ({ messages, state }: ChainFnParameters) => {
     try {
-      // For direct model responses
-      const formattedMessages = messages.map((msg: BaseMessage) => ({
-        role: msg instanceof HumanMessage ? 'user' : 'assistant',
-        content: msg.content
-      }));
-
-      const result = await model.generate([formattedMessages]);
+      // Extract the last user message for generation
+      const lastUserMessage = [...messages].reverse().find(msg => msg instanceof HumanMessage);
+      
+      if (!lastUserMessage) {
+        return new AIMessage({
+          content: "I'm not sure what to respond to. Could you please ask a question?",
+          additional_kwargs: {
+            display_in_chat: true
+          }
+        });
+      }
+      
+      // For ChatOllama models, convert message content to string if needed
+      const messageText = typeof lastUserMessage.content === 'string' 
+        ? lastUserMessage.content 
+        : JSON.stringify(lastUserMessage.content);
+      
+      // Use the message directly - HumanMessage is already properly formatted
+      const response = await model.invoke(messageText);
+      
+      // Convert response to string if it's an AIMessageChunk
+      const responseContent = typeof response === 'string' 
+        ? response 
+        : response.content;
+      
       return new AIMessage({
-        content: result.generations[0][0].text,
+        content: responseContent,
         additional_kwargs: {
           display_in_chat: true
         }
@@ -62,6 +81,30 @@ const runtime = new CopilotRuntime({
     }
   ]
 });
+
+// Track chat usage after a successful response
+async function trackChatUsage(): Promise<void> {
+  try {
+    // Get auth service instance
+    const authService = AuthService.getInstance();
+    
+    // Check if there's an authenticated user
+    if (!authService.getCurrentUser()) {
+      console.log("No authenticated user, skipping chat usage tracking");
+      return;
+    }
+    
+    // Increment chat usage count
+    await authService.incrementChatUsage();
+    
+    // Get and log remaining chats (optional)
+    const remaining = await authService.getRemainingChats();
+    console.log(`Chat usage tracked successfully. Remaining chats: ${remaining}`);
+  } catch (error) {
+    // Log but don't fail the request
+    console.error("Failed to track chat usage:", error);
+  }
+}
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -88,6 +131,14 @@ export const POST = async (req: NextRequest) => {
             'Content-Type': 'application/json',
           }
         }
+      );
+    }
+    
+    // Track usage only after successful responses
+    if (response.status === 200) {
+      // Track usage in the background without blocking the response
+      trackChatUsage().catch(err => 
+        console.error("Background chat tracking failed:", err)
       );
     }
     
