@@ -20,8 +20,8 @@ Current vectorstores contain information about the OpenAI Agents SDK, Smolagents
 and Copilokit framework which includes Coagents.
 
 You must choose between two options:
-- "vectorstore": ONLY for queries specifically about LangChain, LangGraph, or CopilotKit (which includes Coagents) frameworks
-- "websearch": For all other queries, including general programming questions, new technologies, or any other topics
+- "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
+- "websearch": For all other queries, including general programming questions, new technologies, other topics
 
 You must not return any answer other than these two.
 

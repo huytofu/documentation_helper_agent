@@ -30,7 +30,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     query = state.get("query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
-    language = state.get("language", "")
     retry_count = state.get("retry_count", 0)
     messages = state.get("messages", [])
 
@@ -47,7 +46,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             asyncio.to_thread(
                 generation_chain.invoke,
                 {
-                    "language": language,
                     "extra_info": extra_info,
                     "documents": joined_documents,
                     "query": query

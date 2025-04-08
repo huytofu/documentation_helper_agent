@@ -7,7 +7,7 @@ from functools import lru_cache
 
 class LanguageRoute(BaseModel):
     """Route a query to the appropriate programming language"""
-    language: Literal["python", "javascript", "none", "others"] = Field(
+    language: Literal["python", "javascript", "others", "none"] = Field(
         ...,
         description="""Answer options for: programming language that is mentioned in the query""",
     )
@@ -20,8 +20,8 @@ system = """You are a programming language detection expert. Analyze the query a
 You must choose between four options:
 - "python": Python-specific queries
 - "javascript": JavaScript/TypeScript queries
+- "others": Another programming language (that is not python or javascript) is specifically mentioned
 - "none": No programming language mentioned
-- "others": Other programming languages mentioned
 
 You must not return any answer other than these four.
 

@@ -3,7 +3,7 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.generator import llm
 
 system = """
-    You are a master coder who is very good at coding in {language} language {extra_info}.
+    You are a master coder who is very good at coding {extra_info}.
 
     You are provided with the following set of technical documents:
 
@@ -11,8 +11,7 @@ system = """
 
     Please help write code snippet(s) of maximum 200 lines using the provided documents
     to produce the feature or solve the problem described in the user's query. 
-    Code included in the answer must be in {language} language only!
-    You can also add some comments or explanations to help the user understand.
+    Please add some comments or explanations to help the user understand.
     """
 generation_prompt = ChatPromptTemplate.from_messages(
     [

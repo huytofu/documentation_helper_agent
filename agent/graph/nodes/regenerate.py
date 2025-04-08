@@ -41,7 +41,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         extra_info = ""
 
     generation = regeneration_chain.invoke({
-        "language": language, "extra_info": extra_info, 
+        "extra_info": extra_info, 
         "documents": joined_documents, "query": query,
         "generation": generation, "comments": comments
     })

@@ -18,7 +18,7 @@ const DashboardContent = dynamic(
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedLanguage, setSelectedLanguage] = useState<ProgrammingLanguage | "">("");
+  const [selectedLanguage, setSelectedLanguage] = useState<ProgrammingLanguage | "">("python");
   const authService = AuthService.getInstance();
 
   useEffect(() => {

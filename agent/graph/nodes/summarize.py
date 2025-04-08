@@ -1,0 +1,66 @@
+from typing import Any, Dict
+import asyncio
+from agent.graph.chains.summary import summary_chain
+from agent.graph.state import GraphState
+from langchain_core.messages import AIMessage
+from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.api_utils import (
+    handle_api_error,
+    cost_tracker,
+)
+import logging
+logger = logging.getLogger(__name__)
+
+# Define timeout for summarization (30 seconds as requested)
+SUMMARIZE_TIMEOUT = 30
+
+async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+    print("---SUMMARIZE---")
+    # Emit state update for summarization
+    if config:
+        summarizing_state = {
+            "current_node": "SUMMARIZE",
+        }
+        print(f"Emitting summarizing state: {summarizing_state}")
+        await copilotkit_emit_state(config, summarizing_state)
+
+    messages = state.get("messages", [])
+
+    try:
+        # Use asyncio to handle concurrent summarization requests with timeout
+        summary_result = await asyncio.wait_for(
+            asyncio.to_thread(
+                summary_chain.invoke,
+                {
+                    "messages": messages
+                }
+            ),
+            timeout=SUMMARIZE_TIMEOUT
+        )
+        
+        # Track API usage
+        cost_tracker.track_usage(
+            'summarizer',
+            tokens=len(summary_result.split()),  # Approximate token count
+            cost=0.0,  # Update cost based on actual pricing
+            requests=1
+        )
+
+        # Update the query in state with the summarized result
+        return {
+            "query": summary_result
+        }
+    except asyncio.TimeoutError:
+        logger.error("Summarization timed out")
+        return {
+            "error": "Summarization timed out",
+            "query": state.get("query", "")  # Keep original query if summarization fails
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        logger.error(f"Error during summarization: {str(e)}")
+        return {
+            "error": str(e),
+            "query": state.get("query", "")  # Keep original query if summarization fails
+        }
