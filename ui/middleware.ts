@@ -85,8 +85,10 @@ export async function middleware(request: NextRequest) {
       console.log('Middleware: Redirecting unauthenticated user to login');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirectSource', 'middleware');
-      // Add original URL as a parameter for potential redirect after login
-      loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname);
+      // Set returnUrl to dashboard if coming from home page, otherwise use original path
+      loginUrl.searchParams.set('returnUrl', 
+        request.nextUrl.pathname === '/' ? '/dashboard' : request.nextUrl.pathname
+      );
       return NextResponse.redirect(loginUrl);
     }
   }
