@@ -7,6 +7,12 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.graph")
 
+def trim_messages(messages: list, max_messages: int = 8) -> list:
+    """Trim the messages list to contain only the last N messages."""
+    if len(messages) > max_messages:
+        return messages[-max_messages:]
+    return messages
+
 async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Initialize the state with properties from the request."""
     logger.info("---INITIALIZE---")
@@ -18,6 +24,10 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         await copilotkit_emit_state(config, generating_state)
 
     messages = state.get("messages", [])
+    
+    # Trim messages to last 8
+    messages = trim_messages(messages)
+    
     last_message_type = get_last_message_type(messages)
     
     while last_message_type == "ai":
@@ -32,15 +42,15 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     # Create a copy of the state
     state_copy = state.copy()
     
-    # Update state with query
+    # Update state with query and trimmed messages
     state_copy["query"] = query
+    state_copy["messages"] = messages
     
     # Initialize other required fields if they don't exist
     state_copy["documents"] = []
     state_copy["generation"] = ""
     state_copy["comments"] = ""
     state_copy["retry_count"] = 0
-    state_copy["current_node"] = "INITIALIZE"
     
     # Temporarily disabled explicit state emission
     # if config:
@@ -50,6 +60,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     logger.info(f"Initialized state with query: {query}")
     return {
         "query": state_copy["query"],
+        "messages": state_copy["messages"],
         "documents": state_copy["documents"],
         "generation": state_copy["generation"],
         "comments": state_copy["comments"],

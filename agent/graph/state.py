@@ -156,13 +156,8 @@ class InputGraphState(CopilotKitState):
     Represents the state of our graph.
 
     Attributes:
-        question: question
-        framework: framework (vectorstore name)
         language: coding language
         generation: LLM generation
-        web_search: whether to add search
-        retry_count: number of retries
-        documents: list of documents
     """
 
     language: str = ""
@@ -176,14 +171,21 @@ class OutputGraphState(CopilotKitState):
 
     Attributes:
         current_node: current node
-        generation: LLM generation
     """
     current_node: str = ""
 
 class GraphState(InputGraphState, OutputGraphState):
+    """
+    Represents the state of our graph.
+
+    Attributes:
+        query: query
+        framework: framework (vectorstore name)
+        retry_count: number of retries
+        documents: list of documents
+    """
     query: str
     framework: str = ""
     retry_count: int = 0
     documents: List[str] = []
-    
 

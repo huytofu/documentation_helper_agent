@@ -27,7 +27,6 @@ class FlowState:
     """Thread-safe state container for flow execution."""
     iteration_count: int = 0
     retry_count: int = 0
-    current_node: str = "INITIALIZE"
     _lock: Lock = field(default_factory=Lock)
 
     def increment_iteration(self) -> bool:
@@ -41,11 +40,6 @@ class FlowState:
         with self._lock:
             self.retry_count += 1
             return self.retry_count < 2  # MAX_RETRIES
-
-    def set_node(self, node: str) -> None:
-        """Atomically set current node."""
-        with self._lock:
-            self.current_node = node
 
 # Global flow state
 flow_state = FlowState()
@@ -70,7 +64,7 @@ def validate_state(state: GraphState) -> bool:
         "documents": {
             "type": list,
             "min_length": 0,
-            "validate": lambda x: all(isinstance(doc, Document) and len(doc.page_content.strip()) > 0 for doc in x)
+            "validate": lambda x: all(isinstance(doc, Document) and len(doc.page_content.strip()) >= 0 for doc in x)
         },
         # "current_node": {
         #     "type": str,

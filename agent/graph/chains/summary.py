@@ -2,19 +2,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.summarizer import llm
 
-system = """
-    You are a master summarizer who is very good at summarizing a conversation between a user and an AI assistant.
+system = """Extract and rewrite the user's intent from this conversation into a standalone query.
 
-    You are provided with the following set of messages:
+RULES:
+1. Output ONLY the query - no other text
+2. Make it self-contained and clear
+3. No quotes, prefixes, or explanations
 
-    {messages}.
+Example Output: How do I implement authentication in Flask
 
-    Please help to rewrite the user's query into a standalone query based on your summary of the conversation.
-    """
+Conversation to analyze:
+{messages}"""
+
 summary_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Messages: {messages}"),
+        ("human", "Rewrite as a single query. No explanations."),
     ]
 )
 
