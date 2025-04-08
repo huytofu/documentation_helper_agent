@@ -230,7 +230,7 @@ def validate_state(state: Dict[str, Any]) -> Dict[str, Any]:
         raise SecurityError("Invalid state format")
     
     # Validate required fields
-    required_fields = ["query", "documents", "messages", "current_node"]
+    required_fields = ["query", "documents", "messages"]
     for field in required_fields:
         if field not in state:
             raise SecurityError(f"Missing required field: {field}")
