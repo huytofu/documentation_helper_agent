@@ -265,6 +265,8 @@ workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
 # Add other 
+workflow.add_node(IMMEDIATE_MESSAGE_1, immediate_message_1)
+workflow.add_node(IMMEDIATE_MESSAGE_2, immediate_message_2)
 workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
@@ -276,8 +278,6 @@ workflow.add_node(SUMMARIZE, summarize)
 workflow.add_node(HUMAN_IN_LOOP, human_in_loop)
 workflow.add_node(PRE_HUMAN_IN_LOOP, pre_human_in_loop)
 workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
-workflow.add_node(IMMEDIATE_MESSAGE_1, immediate_message_1)
-workflow.add_node(IMMEDIATE_MESSAGE_2, immediate_message_2)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
