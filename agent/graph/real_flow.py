@@ -77,8 +77,8 @@ def validate_state(state: GraphState) -> bool:
         # },
         "language": {
             "type": str,
-            "allowed_values": ["python", "javascript", ""],
-            "validate": lambda x: x in ["python", "javascript", ""]
+            "allowed_values": ["python", "javascript", "others", "none"],
+            "validate": lambda x: x in ["python", "javascript", "others", "none"]
         },
     }
 
