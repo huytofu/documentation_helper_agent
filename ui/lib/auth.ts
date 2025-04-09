@@ -325,6 +325,7 @@ export class AuthService {
   public async isAuthenticated(): Promise<boolean> {
     // First check Firebase Auth state directly
     if (auth.currentUser) {
+      console.log("Firebase Auth currentUser:", auth.currentUser);
       return true;
     }
     
@@ -342,6 +343,7 @@ export class AuthService {
       const firebaseAuth = getCookie('firebase:authUser');
       
       if (authSession || loggedIn || firebaseAuth) {
+        console.log("Authentication cookies found");
         return true;
       }
     }
@@ -358,6 +360,7 @@ export class AuthService {
             if (userDoc.exists()) {
               const userData = userDoc.data() as User;
               this.currentUser = userData;
+              console.log("User data loaded from localStorage:", this.currentUser);
               return true;
             }
           } catch (error) {
@@ -365,12 +368,14 @@ export class AuthService {
           }
         }
       }
+      console.log("No authentication state found");
       return false;
     }
 
     // Validate current session
     const sessionDoc = await getDoc(doc(db, 'sessions', this.sessionId));
     if (!sessionDoc.exists()) {
+      console.log("Session document not found");
       return false;
     }
 
@@ -385,9 +390,11 @@ export class AuthService {
       await updateDoc(doc(db, 'sessions', this.sessionId), {
         isValid: false
       });
+      console.log("Session invalidated due to IP or User-Agent change");
       return false;
     }
 
+    console.log("Session is valid and not expired");
     return session.isValid && session.expiresAt.toDate() > new Date();
   }
 
