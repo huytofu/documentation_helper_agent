@@ -92,7 +92,8 @@ async function trackChatUsage(): Promise<void> {
     const authService = AuthService.getInstance();
     
     // Check if there's an authenticated user
-    if (!authService.getCurrentUser()) {
+    const isAuth = await authService.isAuthenticated();
+    if (!isAuth) {
       console.log("No authenticated user, skipping chat usage tracking");
       return;
     }
