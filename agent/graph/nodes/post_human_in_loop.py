@@ -27,5 +27,6 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
             break
 
     return {
-        "messages": messages
+        "messages": messages,
+        "current_node": "POST_HUMAN_IN_LOOP",
     }
