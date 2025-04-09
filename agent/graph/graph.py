@@ -29,4 +29,4 @@ app = workflow.compile(checkpointer=checkpointer)
 logger.debug("Graph compiled successfully with streaming enabled")
 
 # Uncomment the following line to generate a visual representation of the graph
-# app.get_graph().draw_mermaid_png(output_file_path="graph.png")
+app.get_graph().draw_mermaid_png(output_file_path="graph.png")
