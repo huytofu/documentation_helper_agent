@@ -25,7 +25,7 @@ export default function ChatInterface() {
     name: AGENT_NAME
   });
 
-  const {appendMessage, reloadMessages} = useCopilotChat();
+  const {appendMessage, reloadMessages, setMessages, visibleMessages} = useCopilotChat();
 
   useEffect(() => {
     // Handle last_message_content
@@ -41,6 +41,9 @@ export default function ChatInterface() {
     if (state.reload) {
       console.log("Reloading messages");
       reloadMessages();
+      console.log("Visible messages:", visibleMessages);
+      console.log("State messages:", state.messages);
+      setMessages(state.messages);
       setShouldReload(true);
     }
   }, [state.last_message_content, state.reload, appendMessage, reloadMessages]);
