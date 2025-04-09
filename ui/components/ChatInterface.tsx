@@ -4,8 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import "@copilotkit/react-ui/styles.css";
 import { CopilotChat } from '@copilotkit/react-ui';
 import { MessageSquare } from 'lucide-react';
-import { useCoAgent } from '@copilotkit/react-core';
-import { MessageRole, TextMessage } from '@copilotkit/runtime-client-gql';
+import { useCoAgent, useCopilotChat } from '@copilotkit/react-core';
+import { MessageRole, TextMessage, Role } from '@copilotkit/runtime-client-gql';
 import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
@@ -24,8 +24,15 @@ export default function ChatInterface() {
     name: AGENT_NAME
   });
 
+  const {appendMessage} = useCopilotChat();
+
   if (state.last_message_content) {
     console.log(state.last_message_content);
+    appendMessage( new TextMessage({
+      role: MessageRole.User,
+      content: state.last_message_content
+      })
+    );
   }
 
   // Ensure component is mounted before rendering CopilotChat
