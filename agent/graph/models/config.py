@@ -57,7 +57,7 @@ MODEL_IDS = {
     "answer_grader": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "retrieval_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "hallucinate_grader": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-    "summarizer": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
 
@@ -70,7 +70,7 @@ OLLAMA_MODELS = {
     "answer_grader": "llama3.1:latest",
     "retrieval_grader": "mixtral:8x7b",
     "hallucinate_grader": "llama3.1:70b",
-    "summarizer": "llama3.1:70b",
+    "summarizer": "llama3.1:latest",
     "generator": "deepseek-coder:33b"
 }
 
