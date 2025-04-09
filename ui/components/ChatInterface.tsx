@@ -36,6 +36,7 @@ export default function ChatInterface() {
   }
 
   if (state.reload) {
+    console.log("Reloading messages");
     reloadMessages();
   }
 
