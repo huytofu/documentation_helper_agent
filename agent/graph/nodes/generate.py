@@ -37,7 +37,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     if last_message_type == "human":
         pass
     elif last_message_type == "ai":
-        messages = messages[:-1]
+        messages.append(HumanMessage(content="Seems like answer not grounded in the documents. Please regenerate."))
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 

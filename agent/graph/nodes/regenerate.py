@@ -28,8 +28,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     if last_message_type == "human":
         generation = ""
     elif last_message_type == "ai":
-        messages = messages[:-1]
         generation = messages[-1].content
+        messages.append(HumanMessage(content=f"Seems like answer could me improved.\n\nHere are comments:\n{comments}\n\nPlease regenerate."))
     
     comments = state.get("comments", "")
 
