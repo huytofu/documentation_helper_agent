@@ -3,7 +3,7 @@ from agent.graph.state import GraphState
 from typing import Dict, Any
 from langchain_core.messages import SystemMessage
 
-def immediate_message_2(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def immediate_message_2(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     messages = state.get("messages", [])
     comments = state.get("comments", "")
 

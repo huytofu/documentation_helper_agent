@@ -3,7 +3,7 @@ from agent.graph.state import GraphState
 from typing import Dict, Any
 from langchain_core.messages import SystemMessage
 
-def immediate_message_1(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def immediate_message_1(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     messages = state.get("messages", [])
 
     last_message_type = get_last_message_type(messages)
