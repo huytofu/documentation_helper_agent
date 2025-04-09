@@ -57,11 +57,13 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     query = state.get("query", "")
     documents = state.get("documents", [])
     retry_count = state.get("retry_count", 0)
+    messages = state.get("messages", [])
+    
     if state.get("pass_summarize", True):
         if config:
             generating_state = {
                 "reload": True,
-                "messages": state.get("messages", []),
+                "messages": messages,
             }
             print(f"Emitting generating state: {generating_state}")
             await copilotkit_emit_state(config, generating_state)

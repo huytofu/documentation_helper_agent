@@ -37,15 +37,16 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Emit state if config is provided
     if config:
-        await copilotkit_emit_state(config, {
-            "language": language,
-            "current_node": "INITIALIZE",
-            "rewritten_query": rewritten_query,
-            "query": query,
-            "retry_count": state.get("retry_count", 0),
-            "framework": state.get("framework", ""),
-            "messages": messages
-        })
+        # await copilotkit_emit_state(config, {
+        #     "language": language,
+        #     "current_node": "INITIALIZE",
+        #     "rewritten_query": rewritten_query,
+        #     "query": query,
+        #     "retry_count": state.get("retry_count", 0),
+        #     "framework": state.get("framework", ""),
+        #     "messages": messages
+        # })
+        pass
     
     # Build result
     result = {
