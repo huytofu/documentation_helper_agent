@@ -1,4 +1,5 @@
 export interface AgentState {
+  reload: boolean;
   language: string
   comments: string,
   query: string;

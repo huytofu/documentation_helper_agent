@@ -11,6 +11,7 @@ from agent.graph.utils.api_utils import (
     APIResponse
 )
 from copilotkit.langgraph import copilotkit_emit_state
+import asyncio
 
 logger = logging.getLogger("graph.web_search")
 
@@ -57,8 +58,15 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     documents = state.get("documents", [])
     retry_count = state.get("retry_count", 0)
     if state.get("pass_summarize", True):
+        if config:
+            generating_state = {
+                "reload": True,
+            }
+            print(f"Emitting generating state: {generating_state}")
+            await copilotkit_emit_state(config, generating_state)
         retry_count += 1
-        
+
+    await asyncio.sleep(10)
     try:
         response = await perform_web_search(query)
         if response.success and response.data:

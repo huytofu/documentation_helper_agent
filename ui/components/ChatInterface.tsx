@@ -24,15 +24,19 @@ export default function ChatInterface() {
     name: AGENT_NAME
   });
 
-  const {appendMessage} = useCopilotChat();
+  const {appendMessage, reloadMessages} = useCopilotChat();
 
   if (state.last_message_content) {
     console.log(state.last_message_content);
     appendMessage( new TextMessage({
       role: MessageRole.User,
       content: state.last_message_content
-      })
+      }), {followUp: false}
     );
+  }
+
+  if (state.reload) {
+    reloadMessages();
   }
 
   // Ensure component is mounted before rendering CopilotChat
