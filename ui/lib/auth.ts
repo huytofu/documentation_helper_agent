@@ -328,6 +328,24 @@ export class AuthService {
       return true;
     }
     
+    // Check for authentication cookies directly
+    if (typeof window !== 'undefined') {
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      
+      const authSession = getCookie('auth_session');
+      const loggedIn = getCookie('logged_in');
+      const firebaseAuth = getCookie('firebase:authUser');
+      
+      if (authSession || loggedIn || firebaseAuth) {
+        return true;
+      }
+    }
+    
     // Then check our session data
     if (!this.currentUser || !this.sessionId) {
       // Check localStorage as fallback when user has refreshed page

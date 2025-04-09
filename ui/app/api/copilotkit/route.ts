@@ -112,6 +112,14 @@ async function trackChatUsage(): Promise<void> {
 
 export const POST = async (req: NextRequest) => {
   try {
+    // Extract authentication cookies/headers to check auth state
+    const authSession = req.cookies.get('auth_session')?.value;
+    const loggedIn = req.cookies.get('logged_in')?.value;
+    const firebaseAuth = req.cookies.get('firebase:authUser')?.value;
+    
+    // Check authentication state
+    const isAuthenticated = !!(authSession || loggedIn || firebaseAuth);
+    
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
       serviceAdapter,
@@ -138,12 +146,15 @@ export const POST = async (req: NextRequest) => {
       );
     }
     
-    // Track usage only after successful responses
-    if (response.status === 200) {
+    // Track usage only after successful responses and if authenticated
+    if (response.status === 200 && isAuthenticated) {
+      console.log("User is authenticated, tracking chat usage");
       // Track usage in the background without blocking the response
       trackChatUsage().catch(err => 
         console.error("Background chat tracking failed:", err)
       );
+    } else if (response.status === 200) {
+      console.log("User appears not authenticated based on cookies, auth tracking skipped");
     }
     
     return response;

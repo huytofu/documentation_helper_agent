@@ -1,7 +1,7 @@
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.state import GraphState
 from typing import Dict, Any
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import HumanMessage
 from copilotkit.langgraph import copilotkit_emit_state
 
 async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -20,6 +20,6 @@ async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None
     if last_message_type == "human":
         pass
     elif last_message_type == "ai":
-        messages.append(SystemMessage(content=f"Seems like answer could me improved.\n\nHere are comments:\n{comments}\n\nPlease regenerate."))
+        messages.append(HumanMessage(content=f"SYSTEM: Seems like answer could me improved.\n\nHere are comments:\n{comments}\n\nPlease regenerate."))
 
     return {"messages": messages}

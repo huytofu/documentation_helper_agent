@@ -66,7 +66,24 @@ export async function middleware(request: NextRequest) {
   // Skip redirection for CopilotKit API endpoints
   if (isApiPath) {
     console.log('Middleware: Skipping redirection for CopilotKit API path');
-    return NextResponse.next();
+    const response = NextResponse.next();
+    
+    // Preserve all authentication cookies for API routes
+    const authCookies = allCookies.filter(
+      cookie => cookie.name === 'auth_session' || 
+                cookie.name === 'logged_in' || 
+                cookie.name.includes('firebase:authUser')
+    );
+    
+    // Pass auth cookies to the API route
+    if (authCookies.length > 0) {
+      console.log('Middleware: Preserving auth cookies for CopilotKit API path');
+      authCookies.forEach(cookie => {
+        response.cookies.set(cookie.name, cookie.value);
+      });
+    }
+    
+    return response;
   }
   
   // Redirect authenticated users away from public paths (login, register)
