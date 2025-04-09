@@ -15,7 +15,7 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
             "current_node": "HUMAN_IN_LOOP",
         }
         print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
+        # await copilotkit_emit_state(config, generating_state)
 
     messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
@@ -29,11 +29,6 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     result_state = {
         "comments": "",  # Will be updated after interrupt
     }
-    
-    # Temporarily disabled explicit state emission
-    # if config:
-    #     output_properties = extract_output_state_properties(result_state)
-    #     await copilotkit_emit_state(config, output_properties)
     
     human_in_loop = interrupt(
         "This is our generation: " + generation + 

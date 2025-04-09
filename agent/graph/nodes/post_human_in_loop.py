@@ -13,7 +13,7 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
             "current_node": "POST_HUMAN_IN_LOOP",
         }
         print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
+        # await copilotkit_emit_state(config, generating_state)
 
     # Find and modify the last AI message
     for i in range(len(messages) - 1, -1, -1):

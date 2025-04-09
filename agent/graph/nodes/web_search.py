@@ -52,7 +52,7 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
             "current_node": "WEB_SEARCH",
         }
         print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
+        # await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")
     documents = state.get("documents", [])
@@ -61,12 +61,13 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         if config:
             generating_state = {
                 "reload": True,
+                "messages": state.get("messages", []),
             }
             print(f"Emitting generating state: {generating_state}")
             await copilotkit_emit_state(config, generating_state)
         retry_count += 1
+        await asyncio.sleep(10)
 
-    await asyncio.sleep(10)
     try:
         response = await perform_web_search(query)
         if response.success and response.data:
