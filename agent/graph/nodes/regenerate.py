@@ -18,10 +18,9 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
-    query = state.get("query", "")
+    rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
-    language = state.get("language", "")
     messages = state.get("messages", [])
     last_message_type = get_last_message_type(messages)
     
@@ -42,8 +41,10 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
 
     generation = regeneration_chain.invoke({
         "extra_info": extra_info, 
-        "documents": joined_documents, "query": query,
-        "generation": generation, "comments": comments
+        "documents": joined_documents, 
+        "query": rewritten_query,
+        "generation": generation, 
+        "comments": comments
     })
     messages.append(AIMessage(content=generation))
     retry_count += 1

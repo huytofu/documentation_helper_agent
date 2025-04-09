@@ -57,7 +57,7 @@ MODEL_IDS = {
     "answer_grader": "mistralai/Mistral-7B-Instruct-v0.3",
     "retrieval_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "hallucinate_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    "summarizer": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "summarizer": "microsoft/phi-4",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
 
@@ -70,7 +70,7 @@ OLLAMA_MODELS = {
     "answer_grader": "mistral:latest",
     "retrieval_grader": "mixtral:8x7b",
     "hallucinate_grader": "mixtral:8x7b",
-    "summarizer": "mixtral:8x7b",
+    "summarizer": "phi4:latest",
     "generator": "deepseek-coder:33b"
 }
 

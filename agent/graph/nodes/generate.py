@@ -27,7 +27,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
-    query = state.get("query", "")
+    rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
     retry_count = state.get("retry_count", 0)
@@ -48,7 +48,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
                 {
                     "extra_info": extra_info,
                     "documents": joined_documents,
-                    "query": query
+                    "query": rewritten_query
                 }
             ),
             timeout=GENERATION_TIMEOUT

@@ -6,7 +6,6 @@ from langchain_core.messages import AIMessage
 
 async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---POST HUMAN IN LOOP---")
-    query = state.get("query", "")
     messages = state.get("messages", [])
 
     if config:
@@ -28,6 +27,5 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
             break
 
     return {
-        "query": query,
         "messages": messages
     }

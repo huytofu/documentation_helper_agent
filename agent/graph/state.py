@@ -184,7 +184,8 @@ class GraphState(InputGraphState, OutputGraphState):
         retry_count: number of retries
         documents: list of documents
     """
-    query: str
+    query: str = ""
+    rewritten_query: str = ""
     framework: str = ""
     retry_count: int = 0
     documents: List[str] = []

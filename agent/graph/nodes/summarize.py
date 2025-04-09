@@ -48,13 +48,13 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
 
         # Update the query in state with the summarized result
         return {
-            "query": summary_result
+            "rewritten_query": summary_result.new_query
         }
     except asyncio.TimeoutError:
         logger.error("Summarization timed out")
         return {
             "error": "Summarization timed out",
-            "query": state.get("query", "")  # Keep original query if summarization fails
+            "rewritten_query": state.get("query", "")  # Keep original query if summarization fails
         }
     except Exception as e:
         import traceback
@@ -62,5 +62,5 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         logger.error(f"Error during summarization: {str(e)}")
         return {
             "error": str(e),
-            "query": state.get("query", "")  # Keep original query if summarization fails
+            "rewritten_query": state.get("query", "")  # Keep original query if summarization fails
         }
