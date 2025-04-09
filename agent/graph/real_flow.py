@@ -5,11 +5,11 @@ from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations, grade_hallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from langchain_core.messages import AIMessage
-from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE, IMMEDIATE_MESSAGE_1, IMMEDIATE_MESSAGE_2
+from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE, IMMEDIATE_MESSAGE_ONE, IMMEDIATE_MESSAGE_TWO
 from agent.graph.nodes import (
     generate, regenerate, grade_documents, retrieve, decide_vectorstore, 
     decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, 
-    post_human_in_loop, summarize, immediate_message_1, immediate_message_2
+    post_human_in_loop, summarize, immediate_message_one, immediate_message_two
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
 from concurrent.futures import TimeoutError
@@ -265,8 +265,8 @@ workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
 # Add other 
-workflow.add_node(IMMEDIATE_MESSAGE_1, immediate_message_1)
-workflow.add_node(IMMEDIATE_MESSAGE_2, immediate_message_2)
+workflow.add_node(IMMEDIATE_MESSAGE_ONE, immediate_message_one)
+workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
 workflow.add_node(RETRIEVE, retrieve)
@@ -314,23 +314,23 @@ workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_documents_and_query,
     {
-        "need search web": IMMEDIATE_MESSAGE_1,
+        "need search web": IMMEDIATE_MESSAGE_ONE,
         "end_misery": POST_HUMAN_IN_LOOP,
         "useful": POST_HUMAN_IN_LOOP,
         "not useful": PRE_HUMAN_IN_LOOP,
     },
 )
-workflow.add_edge(IMMEDIATE_MESSAGE_1, WEBSEARCH)
+workflow.add_edge(IMMEDIATE_MESSAGE_ONE, WEBSEARCH)
 workflow.add_edge(PRE_HUMAN_IN_LOOP, HUMAN_IN_LOOP)
 workflow.add_conditional_edges(
     HUMAN_IN_LOOP,
     determine_user_sentiment,
     {
         "good": END,
-        "bad": IMMEDIATE_MESSAGE_2,
+        "bad": IMMEDIATE_MESSAGE_TWO,
     }
 )
-workflow.add_edge(IMMEDIATE_MESSAGE_2, REGENERATE)
+workflow.add_edge(IMMEDIATE_MESSAGE_TWO, REGENERATE)
 workflow.add_edge(REGENERATE, POST_HUMAN_IN_LOOP)
 workflow.add_edge(POST_HUMAN_IN_LOOP, END)
 

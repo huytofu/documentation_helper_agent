@@ -4,7 +4,7 @@ from typing import Dict, Any
 from langchain_core.messages import SystemMessage
 from copilotkit.langgraph import copilotkit_emit_state
 
-async def immediate_message_2(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---IMMEDIATE MESSAGE 2---")
     if config:
         generating_state = {
