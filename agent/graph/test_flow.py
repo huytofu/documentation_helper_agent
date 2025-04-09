@@ -4,8 +4,8 @@ from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
 from agent.graph.chains.query_router import query_router, RouteQuery
 from langchain_core.messages import AIMessage
-from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE
-from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop, summarize
+from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE, IMMEDIATE_MESSAGE_1, IMMEDIATE_MESSAGE_2
+from agent.graph.nodes import generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop, summarize, immediate_message_1, immediate_message_2
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
 from concurrent.futures import TimeoutError
 import logging
@@ -135,6 +135,7 @@ workflow.add_node(SUMMARIZE, summarize)
 workflow.add_node(HUMAN_IN_LOOP, human_in_loop)
 workflow.add_node(PRE_HUMAN_IN_LOOP, pre_human_in_loop)
 workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
+workflow.add_node(IMMEDIATE_MESSAGE_2, immediate_message_2)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
@@ -172,9 +173,10 @@ workflow.add_conditional_edges(
     determine_user_sentiment,
     {
         "good": END,
-        "bad": REGENERATE,
+        "bad": IMMEDIATE_MESSAGE_2,
     }
 )
+workflow.add_edge(IMMEDIATE_MESSAGE_2, REGENERATE)
 workflow.add_edge(REGENERATE, POST_HUMAN_IN_LOOP)
 workflow.add_edge(POST_HUMAN_IN_LOOP, END)
 

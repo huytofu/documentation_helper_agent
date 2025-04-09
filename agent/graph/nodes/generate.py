@@ -32,13 +32,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     framework = state.get("framework", "")
     messages = state.get("messages", [])
 
-    last_message_type = get_last_message_type(messages)
-
-    if last_message_type == "human":
-        pass
-    elif last_message_type == "ai":
-        messages.append(HumanMessage(content="Seems like answer not grounded in the documents. Please regenerate."))
-
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
     if framework and (framework not in ["none", ""]):
@@ -84,7 +77,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         import traceback
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
-        messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
+        messages.append(AIMessage(content="BACKENDS AGENT DEAD! Please try again later."))
         return {
             "messages": messages,
             "error": str(e)
