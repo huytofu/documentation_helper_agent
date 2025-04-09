@@ -54,9 +54,9 @@ MODEL_IDS = {
     # "router": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "router": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "sentiment_grader": "mistralai/Mistral-7B-Instruct-v0.3",
-    "answer_grader": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "answer_grader": "mistralai/Mistral-7B-Instruct-v0.3",
     "retrieval_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    "hallucinate_grader": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "hallucinate_grader": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
@@ -67,9 +67,9 @@ OLLAMA_MODELS = {
     # "router": "mixtral:8x7b",
     "router": "llama3.1:latest",
     "sentiment_grader": "mistral:latest",
-    "answer_grader": "llama3.1:latest",
+    "answer_grader": "mistral:latest",
     "retrieval_grader": "mixtral:8x7b",
-    "hallucinate_grader": "llama3.1:70b",
+    "hallucinate_grader": "llama3.1:latest",
     "summarizer": "llama3.1:latest",
     "generator": "deepseek-coder:33b"
 }
