@@ -56,7 +56,6 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         logger.error("Summarization timed out")
         return {
             "error": "Summarization timed out",
-            "rewritten_query": state.get("query", ""),  # Keep original query if summarization fails
             "pass_summarize": True,
             "summarized": False
         }
@@ -66,7 +65,6 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         logger.error(f"Error during summarization: {str(e)}")
         return {
             "error": str(e),
-            "rewritten_query": state.get("query", ""),  # Keep original query if summarization fails
             "pass_summarize": True,
             "summarized": False
         }

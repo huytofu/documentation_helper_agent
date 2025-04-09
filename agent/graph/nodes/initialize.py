@@ -44,7 +44,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Update state with query and trimmed messages
     state_copy["query"] = query
-    state_copy["rewritten_query"] = ""
+    state_copy["rewritten_query"] = query
     state_copy["pass_summarize"] = False
     state_copy["summarized"] = False
     state_copy["messages"] = messages
