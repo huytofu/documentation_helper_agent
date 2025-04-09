@@ -32,7 +32,7 @@ logger.debug("Graph compiled successfully with streaming enabled")
 # app.get_graph().draw_mermaid_png(output_file_path="graph.png")
 
 # Save Mermaid code to a file for local rendering
-mermaid_code = app.get_graph().get_mermaid()
+mermaid_code = app.get_graph().draw_mermaid()
 mermaid_path = os.path.join(os.path.dirname(__file__), "graph.mmd")
 png_path = os.path.join(os.path.dirname(__file__), "graph.png")
 
