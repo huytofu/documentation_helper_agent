@@ -64,7 +64,7 @@ def validate_state(state: GraphState) -> bool:
         "documents": {
             "type": list,
             "min_length": 0,
-            "validate": lambda x: all(isinstance(doc, Document) and len(doc.page_content.strip()) >= 0 for doc in x)
+            "validate": lambda x: all(isinstance(doc, Document) for doc in x)
         },
         # "current_node": {
         #     "type": str,
