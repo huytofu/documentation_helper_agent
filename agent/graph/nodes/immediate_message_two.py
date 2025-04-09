@@ -6,13 +6,6 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---IMMEDIATE MESSAGE 2---")
-    if config:
-        generating_state = {
-            "current_node": "IMMEDIATE_MESSAGE_2",
-        }
-        print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
-
     messages = state.get("messages", [])
     comments = state.get("comments", "")
 
@@ -21,5 +14,13 @@ async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None
         pass
     elif last_message_type == "ai":
         messages.append(HumanMessage(content=f"SYSTEM: Seems like answer could me improved.\n\nHere are comments:\n{comments}\n\nPlease regenerate."))
+
+    if config:
+        generating_state = {
+            "current_node": "IMMEDIATE_MESSAGE_2",
+            "messages": messages,
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
 
     return {"messages": messages}
