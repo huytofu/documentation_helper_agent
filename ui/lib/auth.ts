@@ -6,7 +6,9 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  applyActionCode,
+  checkActionCode
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, Timestamp, increment } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -266,11 +268,15 @@ export class AuthService {
       console.log('Starting email verification with action code:', actionCode);
 
       // First verify the email in Firebase Auth
-      await auth.applyActionCode(actionCode);
+      await applyActionCode(auth, actionCode);
       console.log('Firebase Auth email verification successful');
 
       // Get the user's email from the action code
-      const email = await auth.checkActionCode(actionCode);
+      const actionCodeInfo = await checkActionCode(auth, actionCode);
+      const email = actionCodeInfo.data.email;
+      if (!email) {
+        throw new Error('No email found in action code');
+      }
       console.log('Retrieved email from action code:', email);
       
       // Find the user document by email
@@ -427,6 +433,8 @@ export class AuthService {
     }
 
     const userData = userDoc.data() as User;
+    console.log("userData.usageLimit", userData.usageLimit);
+    console.log("userData.chatUsage.count", userData.chatUsage.count);
     return Math.max(0, userData.usageLimit - userData.chatUsage.count);
   }
 } 

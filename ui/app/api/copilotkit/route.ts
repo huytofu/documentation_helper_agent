@@ -55,7 +55,10 @@ const serviceAdapter = new LangChainAdapter({
         : JSON.stringify(lastUserMessage.content);
       
       // Use the message directly - HumanMessage is already properly formatted
+      console.log("messageText", messageText);
+      console.log("Awaiting model.invoke from serviceAdapter");
       const response = await model.invoke(messageText);
+      console.log("model.invoke completed");
       
       // Convert response to string if it's an AIMessageChunk
       const responseContent = typeof response === 'string' 

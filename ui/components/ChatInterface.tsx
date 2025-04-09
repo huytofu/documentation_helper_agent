@@ -60,12 +60,16 @@ export default function ChatInterface() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const handleChatComplete = async () => {
-    try {
-      // Remove chat usage tracking as it's now handled in the API route
-      console.log('Chat completed');
-    } catch (error) {
-      console.error('Error in chat completion handler:', error);
+  const handleChatProgress = async (inProgress: boolean) => {
+    if (!inProgress) {
+      try {
+        // Remove chat usage tracking as it's now handled in the API route
+        console.log('Chat completed');
+      } catch (error) {
+        console.error('Error in chat completion handler:', error);
+      }
+    } else {
+      console.log('Chat in progress');
     }
   };
 
@@ -91,7 +95,7 @@ export default function ChatInterface() {
                   You must always route user queries to available backend agents first for processing. 
                   Do not attempt to answer questions directly without consulting the backend agents.}`
                 }
-                onStopGeneration={handleChatComplete}
+                onInProgress={handleChatProgress}
               />
             </div>
           </div>
