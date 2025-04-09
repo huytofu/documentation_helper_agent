@@ -43,5 +43,6 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     
     # Update result state with human input
     result_state["comments"] = human_in_loop
+    result_state["received_human_feedback"] = True
     
     return result_state

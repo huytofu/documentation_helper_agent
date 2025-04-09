@@ -32,6 +32,13 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     framework = state.get("framework", "")
     messages = state.get("messages", [])
 
+    last_message_type = get_last_message_type(messages)
+
+    if last_message_type == "human":
+        pass
+    elif last_message_type == "ai":
+        messages = messages[:-1]
+
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
     if framework and (framework not in ["none", ""]):
