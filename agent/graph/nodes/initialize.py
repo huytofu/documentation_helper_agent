@@ -63,6 +63,9 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     logger.info(f"Initialized state with query: {query}")
     return {
         "query": state_copy["query"],
+        "rewritten_query": state_copy["rewritten_query"],
+        "pass_summarize": state_copy["pass_summarize"],
+        "summarized": state_copy["summarized"],
         "messages": state_copy["messages"],
         "documents": state_copy["documents"],
         "generation": state_copy["generation"],
