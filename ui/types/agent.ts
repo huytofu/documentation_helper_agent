@@ -1,6 +1,9 @@
 export interface AgentState {
+  language: string
+  comments: string,
   query: string;
-  documents: any[];
-  messages: any[];
+  messages: [];
+  test_counter?: number;
   current_node: string;
 } 
+

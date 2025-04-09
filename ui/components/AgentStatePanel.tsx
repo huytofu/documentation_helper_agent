@@ -3,16 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCoAgent } from '@copilotkit/react-core';
 import { ProgrammingLanguage } from '@/types';
+import { AgentState } from '@/types/agent';
 import { AGENT_NAME } from '@/constants';
 import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock } from 'lucide-react';
 
-// Define the agent state interface
-export interface AgentState {
-  language: ProgrammingLanguage | "";
-  comments: string;
-  current_node: string;
-  test_counter?: number;
-}
 
 // Function to determine if a node is a terminal node
 const isTerminalNode = (nodeName: string): boolean => {
