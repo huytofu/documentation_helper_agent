@@ -162,7 +162,7 @@ class InputGraphState(CopilotKitState):
 
     language: str = ""
     comments: str = ""
-    # messages: List[Dict[str, Any]] = []
+    messages: List[Dict[str, Any]] = []
     # copilotkit: Dict[str, Any] = {}
 
 class OutputGraphState(CopilotKitState):
@@ -172,6 +172,7 @@ class OutputGraphState(CopilotKitState):
     Attributes:
         current_node: current node
     """
+    messages: List[Dict[str, Any]] = []
     current_node: str = ""
     rewritten_query: str = ""
     retry_count: int = 0
