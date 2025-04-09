@@ -27,20 +27,23 @@ export default function ChatInterface() {
 
   const {appendMessage, reloadMessages} = useCopilotChat();
 
-  if (state.last_message_content) {
-    console.log(state.last_message_content);
-    appendMessage( new TextMessage({
-      role: MessageRole.User,
-      content: state.last_message_content
-      }), {followUp: false}
-    );
-  }
+  useEffect(() => {
+    // Handle last_message_content
+    if (state.last_message_content) {
+      console.log(state.last_message_content);
+      appendMessage(new TextMessage({
+        role: MessageRole.User,
+        content: state.last_message_content
+      }), {followUp: false});
+    }
 
-  if (state.reload) {
-    console.log("Reloading messages");
-    reloadMessages();
-    setShouldReload(true);
-  }
+    // Handle reload
+    if (state.reload) {
+      console.log("Reloading messages");
+      reloadMessages();
+      setShouldReload(true);
+    }
+  }, [state.last_message_content, state.reload, appendMessage, reloadMessages]);
 
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
