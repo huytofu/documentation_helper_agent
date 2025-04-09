@@ -25,5 +25,5 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
-    await asyncio.sleep(10)
+    #await asyncio.sleep(10)
     return {"messages": messages}

@@ -11,18 +11,22 @@ from copilotkit.langgraph import copilotkit_emit_state
 
 async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
-    if config:
-        generating_state = {
-            "current_node": "REGENERATE",
-        }
-        print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
-
+    
+    # Get state variables
     rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
     messages = state.get("messages", [])
+    retry_count = state.get("retry_count", 0) + 1  # Increment retry count
     
+    if config:
+        generating_state = {
+            "current_node": "REGENERATE",
+            "retry_count": retry_count  # Explicitly include retry_count in state update
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
+
     last_message_type = get_last_message_type(messages)
     if last_message_type == "human":
         generation = ""
@@ -48,7 +52,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     })
     messages.append(AIMessage(content=generation))
 
-    # Return only messages and retry_count
+    # Return updated state with incremented retry_count
     return {
-        "messages": messages
+        "messages": messages,
+        "retry_count": retry_count
     }
