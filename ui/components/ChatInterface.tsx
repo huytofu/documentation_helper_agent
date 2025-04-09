@@ -13,6 +13,7 @@ import { User } from '@/types/user';
 
 
 export default function ChatInterface() {
+  const [shouldReload, setShouldReload] = useState(false);
   const isInitialMount = useRef(true);
   const [isMounted, setIsMounted] = useState(false);
   const [canChat, setCanChat] = useState(true);
@@ -38,6 +39,7 @@ export default function ChatInterface() {
   if (state.reload) {
     console.log("Reloading messages");
     reloadMessages();
+    setShouldReload(true);
   }
 
   // Ensure component is mounted before rendering CopilotChat
@@ -111,6 +113,7 @@ export default function ChatInterface() {
                   You must always route user queries to available backend agents first for processing. 
                   Do not attempt to answer questions directly without consulting the backend agents.}`
                 }
+                key={shouldReload ? 1 : 0}
                 onInProgress={handleChatProgress}
               />
             </div>
