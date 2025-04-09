@@ -173,6 +173,9 @@ class OutputGraphState(CopilotKitState):
         current_node: current node
     """
     current_node: str = ""
+    rewritten_query: str = ""
+    retry_count: int = 0
+    framework: str = ""
 
 class GraphState(InputGraphState, OutputGraphState):
     """
@@ -187,10 +190,7 @@ class GraphState(InputGraphState, OutputGraphState):
         summarized: conversation has been summarized
     """
     query: str = ""
-    rewritten_query: str = ""
     pass_summarize: bool = False
     summarized: bool = False
-    framework: str = ""
-    retry_count: int = 0
     documents: List[str] = []
 

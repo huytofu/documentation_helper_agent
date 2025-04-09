@@ -5,7 +5,7 @@ import { useCoAgent } from '@copilotkit/react-core';
 import { ProgrammingLanguage } from '@/types';
 import { AgentState } from '@/types/agent';
 import { AGENT_NAME } from '@/constants';
-import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock } from 'lucide-react';
+import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock, Search, RefreshCw } from 'lucide-react';
 
 
 // Function to determine if a node is a terminal node
@@ -86,6 +86,44 @@ const StatusContent = ({ state, isLoading, isComplete }: {
         </div>
       </div>
       
+      {state.framework && (
+        <div className="rounded-lg border border-rose-100 bg-rose-50/50 overflow-hidden">
+          <div className="bg-rose-100/50 px-3 py-2 border-b border-rose-100 flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-rose-600" />
+            <h3 className="text-sm font-medium text-rose-700">Vectorstore</h3>
+          </div>
+          <div className="p-3 text-sm">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
+              {state.framework}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {state.query && (
+        <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 overflow-hidden">
+          <div className="bg-indigo-100/50 px-3 py-2 border-b border-indigo-100 flex items-center gap-2">
+            <Search className="h-4 w-4 text-indigo-600" />
+            <h3 className="text-sm font-medium text-indigo-700">Original Query</h3>
+          </div>
+          <div className="p-3 text-sm whitespace-pre-wrap font-mono">
+            {state.query}
+          </div>
+        </div>
+      )}
+      
+      {state.rewritten_query && (
+        <div className="rounded-lg border border-teal-100 bg-teal-50/50 overflow-hidden">
+          <div className="bg-teal-100/50 px-3 py-2 border-b border-teal-100 flex items-center gap-2">
+            <Search className="h-4 w-4 text-teal-600" />
+            <h3 className="text-sm font-medium text-teal-700">Rewritten Query</h3>
+          </div>
+          <div className="p-3 text-sm whitespace-pre-wrap font-mono">
+            {state.rewritten_query}
+          </div>
+        </div>
+      )}
+      
       {state.comments && (
         <div className="rounded-lg border border-green-100 bg-green-50/50 overflow-hidden">
           <div className="bg-green-100/50 px-3 py-2 border-b border-green-100 flex items-center gap-2">
@@ -106,6 +144,20 @@ const StatusContent = ({ state, isLoading, isComplete }: {
           </div>
           <div className="p-3 text-sm">
             {state.test_counter}
+          </div>
+        </div>
+      )}
+      
+      {state.retry_count !== undefined && (
+        <div className="rounded-lg border border-orange-100 bg-orange-50/50 overflow-hidden">
+          <div className="bg-orange-100/50 px-3 py-2 border-b border-orange-100 flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-orange-600" />
+            <h3 className="text-sm font-medium text-orange-700">Retry Count</h3>
+          </div>
+          <div className="p-3 text-sm">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+              {state.retry_count}
+            </span>
           </div>
         </div>
       )}
