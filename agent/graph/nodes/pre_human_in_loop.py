@@ -9,7 +9,7 @@ async def pre_human_in_loop(state: GraphState, config: Dict[str, Any] = None) ->
             "current_node": "PRE_HUMAN_IN_LOOP",
         }
         print(f"Emitting generating state: {generating_state}")
-        await copilotkit_emit_state(config, generating_state)
+        # await copilotkit_emit_state(config, generating_state)
 
     need_human_feedback = state.get("need_human_feedback", False)
     received_human_feedback = state.get("received_human_feedback", False)
