@@ -250,7 +250,7 @@ def determine_user_sentiment(state: GraphState) -> str:
 def skip_summarize_or_not(state: GraphState) -> str:
     logger.info("---SKIP SUMMARIZE OR NOT---")
     pass_summarize = state.get("pass_summarize", False)
-    if pass_summarize:
+    if not pass_summarize:
         return SUMMARIZE
     else:
         return GENERATE
