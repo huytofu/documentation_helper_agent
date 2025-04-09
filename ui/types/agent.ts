@@ -8,6 +8,7 @@ export interface AgentState {
   messages: [];
   test_counter?: number;
   current_node: string;
+  last_message_content: string;
 } 
 
 

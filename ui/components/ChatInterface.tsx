@@ -24,6 +24,10 @@ export default function ChatInterface() {
     name: AGENT_NAME
   });
 
+  if (state.last_message_content) {
+    console.log(state.last_message_content);
+  }
+
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
     // Add small delay to ensure component is fully mounted
