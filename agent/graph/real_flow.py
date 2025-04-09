@@ -159,7 +159,8 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     
     query = state.get("query", "")
     documents = state.get("documents", [])
-    generation = state.get("generation", "")
+    messages = state.get("messages", [])
+    generation = get_last_ai_message_content(messages)
     score = {}
 
     hallucination_counter = 0
@@ -201,9 +202,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     else:
         logger.info("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         retry_count = state.get("retry_count", 0)
-        if retry_count == 0:
-            return "not supported"
-        elif retry_count < 2:
+        if retry_count < 1:
             return "need search web"
         logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
         cleanup_resources(state)
@@ -248,6 +247,13 @@ def determine_user_sentiment(state: GraphState) -> str:
         # Always clean up resources before ending
         cleanup_resources(state)
 
+def skip_summarize_or_not(state: GraphState) -> str:
+    logger.info("---SKIP SUMMARIZE OR NOT---")
+    if state.get("pass_summarize", False):
+        return SUMMARIZE
+    else:
+        return GENERATE
+
 # Create the graph without executor parameter
 workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
@@ -288,13 +294,19 @@ workflow.add_conditional_edges(
         SUMMARIZE: SUMMARIZE
     }
 )
-workflow.add_edge(WEBSEARCH, SUMMARIZE)
+workflow.add_conditional_edges(
+    WEBSEARCH,
+    skip_summarize_or_not,
+    {
+        GENERATE: GENERATE,
+        SUMMARIZE: SUMMARIZE
+    }
+)
 workflow.add_edge(SUMMARIZE, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_documents_and_query,
     {
-        "not supported": GENERATE,
         "need search web": WEBSEARCH,
         "end_misery": POST_HUMAN_IN_LOOP,
         "useful": POST_HUMAN_IN_LOOP,

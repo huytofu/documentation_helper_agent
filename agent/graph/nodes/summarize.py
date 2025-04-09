@@ -41,20 +41,24 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         # Track API usage
         cost_tracker.track_usage(
             'summarizer',
-            tokens=len(summary_result.split()),  # Approximate token count
+            tokens=len(summary_result.new_query.split()),  # Approximate token count
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
 
         # Update the query in state with the summarized result
         return {
-            "rewritten_query": summary_result.new_query
+            "rewritten_query": summary_result.new_query,
+            "pass_summarize": True,
+            "summarized": True
         }
     except asyncio.TimeoutError:
         logger.error("Summarization timed out")
         return {
             "error": "Summarization timed out",
-            "rewritten_query": state.get("query", "")  # Keep original query if summarization fails
+            "rewritten_query": state.get("query", ""),  # Keep original query if summarization fails
+            "pass_summarize": True,
+            "summarized": False
         }
     except Exception as e:
         import traceback
@@ -62,5 +66,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         logger.error(f"Error during summarization: {str(e)}")
         return {
             "error": str(e),
-            "rewritten_query": state.get("query", "")  # Keep original query if summarization fails
+            "rewritten_query": state.get("query", ""),  # Keep original query if summarization fails
+            "pass_summarize": True,
+            "summarized": False
         }

@@ -30,7 +30,6 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         generation = messages[-1].content
     
     comments = state.get("comments", "")
-    retry_count = state.get("retry_count", 0)
 
     joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
 
@@ -47,10 +46,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         "comments": comments
     })
     messages.append(AIMessage(content=generation))
-    retry_count += 1
 
     # Return only messages and retry_count
     return {
-        "messages": messages, 
-        "retry_count": retry_count
+        "messages": messages
     }

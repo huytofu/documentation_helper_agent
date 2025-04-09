@@ -183,9 +183,13 @@ class GraphState(InputGraphState, OutputGraphState):
         framework: framework (vectorstore name)
         retry_count: number of retries
         documents: list of documents
+        pass_summarize: graph execution has passed summarize node
+        summarized: conversation has been summarized
     """
     query: str = ""
     rewritten_query: str = ""
+    pass_summarize: bool = False
+    summarized: bool = False
     framework: str = ""
     retry_count: int = 0
     documents: List[str] = []
