@@ -191,5 +191,5 @@ class GraphState(InputGraphState, OutputGraphState):
     """
     pass_summarize: bool = False
     summarized: bool = False
-    documents = []
+    documents: List[Any] = []
 
