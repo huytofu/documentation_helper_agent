@@ -24,6 +24,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     language = state.get("language", "python")
     comments = state.get("comments", "")
     framework = state.get("framework", "")
+    retry_count = state.get("retry_count", 0)
     
     # Simplified query and rewritten_query initialization
     query = state.get("query", "")
@@ -35,10 +36,9 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     # Set rewritten_query to query if not provided
     rewritten_query = state.get("rewritten_query", query)
 
-    documents = state.get("documents", [])
     pass_summarize = state.get("pass_summarize", False)
     summarized = state.get("summarized", False)
-    retry_count = state.get("retry_count", 0)
+    documents = state.get("documents", [])
     
     # Emit state if config is provided
     if config:

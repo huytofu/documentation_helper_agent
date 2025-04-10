@@ -1,5 +1,3 @@
-import { Document } from "@langchain/core/documents";
-
 export interface AgentState {
   reload: boolean;
   last_message_content: string;
@@ -13,7 +11,7 @@ export interface AgentState {
   test_counter?: number;
   pass_summarize: boolean;
   summarized: boolean;
-  documents: Document[];
+  documents: any[];
 } 
 
 
