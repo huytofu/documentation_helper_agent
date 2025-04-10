@@ -63,7 +63,7 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         if config:
             generating_state = {
                 "reload": True,
-                "latest_messages": messages,
+                "last_message_content": messages[-1].content,
             }
             print(f"Emitting generating state: {generating_state}")
             await copilotkit_emit_state(config, generating_state)
