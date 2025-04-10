@@ -9,9 +9,9 @@ export interface AgentState {
   framework: string;
   retry_count: number;
   test_counter?: number;
-  pass_summarize: boolean;
-  summarized: boolean;
-  documents: any[];
+  // pass_summarize: boolean;
+  // summarized: boolean;
+  // documents: any[];
 } 
 
 
