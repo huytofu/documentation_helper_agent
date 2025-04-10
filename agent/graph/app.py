@@ -208,7 +208,6 @@ sdk = CopilotKitRemoteEndpoint(
                     "requires_langgraph": True,
                     "timestamp": "auto"
                 },
-                "stream_mode": "all"
             }
         )
     ],

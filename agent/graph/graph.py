@@ -23,10 +23,9 @@ logger.debug("Graph module initialized")
 checkpointer = get_checkpointer()
 logger.info(f"Using checkpointer: {checkpointer.__class__.__name__}")
 
-# Compile the workflow centrally with streaming enabled
 # The compiled app is used to manage the workflow execution
 app = workflow.compile(checkpointer=checkpointer)
-logger.debug("Graph compiled successfully with streaming enabled")
+logger.debug("Graph compiled successfully")
 
 # Uncomment the following line to generate a visual representation of the graph
 # app.get_graph().draw_mermaid_png(output_file_path="graph.png")
