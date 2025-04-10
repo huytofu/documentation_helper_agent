@@ -35,7 +35,8 @@ export default function ChatInterface() {
         role: MessageRole.User,
         content: state.last_message_content
       }), {followUp: false});
-      reloadMessages();
+      // reloadMessages();
+      // setShouldReload(true);
     }
 
     // Handle reload
@@ -45,10 +46,10 @@ export default function ChatInterface() {
       console.log("State messages:", state.latest_messages);
       console.log("State:", state);
       setMessages(state.latest_messages);
-      reloadMessages();
+      // reloadMessages();
       // setShouldReload(true);
     }
-  }, [state.last_message_content, state.reload, appendMessage, reloadMessages]);
+  }, [state.last_message_content, state.reload, appendMessage, setMessages, reloadMessages, setShouldReload]);
 
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
