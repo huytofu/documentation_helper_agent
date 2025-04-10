@@ -12,6 +12,7 @@ export interface AgentState {
   pass_summarize: boolean;
   summarized: boolean;
   documents: any[];
+  latest_messages: any[];
 } 
 
 

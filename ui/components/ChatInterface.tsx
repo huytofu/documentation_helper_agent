@@ -42,9 +42,10 @@ export default function ChatInterface() {
     if (state.reload) {
       console.log("Reloading messages");
       console.log("Visible messages:", visibleMessages);
-      console.log("State messages:", state.messages);
+      console.log("State messages:", state.latest_messages);
       console.log("State:", state);
-      // setMessages(state.messages);
+      setMessages(state.latest_messages);
+      reloadMessages();
       // setShouldReload(true);
     }
   }, [state.last_message_content, state.reload, appendMessage, reloadMessages]);
