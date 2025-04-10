@@ -8,6 +8,7 @@ import atexit
 from pathlib import Path
 import fcntl
 import time
+from langchain_core.messages import BaseMessage
 
 logger = logging.getLogger("graph.state")
 
@@ -172,7 +173,7 @@ class OutputGraphState(CopilotKitState):
     Attributes:
         current_node: current node
     """
-    messages: List[Dict[str, Any]] = []
+    messages: List[BaseMessage] = []
     current_node: str = ""
     rewritten_query: str = ""
     retry_count: int = 0
