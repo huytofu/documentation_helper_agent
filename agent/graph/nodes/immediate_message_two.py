@@ -1,8 +1,8 @@
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.state import GraphState
 from typing import Dict, Any
-from langchain_core.messages import HumanMessage
-from copilotkit.langgraph import copilotkit_emit_state
+from langchain_core.messages import HumanMessage, AIMessage
+from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
 import asyncio
 
 async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -15,16 +15,21 @@ async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None
         content = ""
         pass
     elif last_message_type == "ai":
-        content = f"SYSTEM: Seems like answer could me improved.\n\nHere are comments:\n{comments}\n\nPlease regenerate."
-        messages.append(HumanMessage(content=content))
+        content = f'''
+        <b>SYSTEM: Seems like answer could me improved.</b>\n\n
+        <b>Here are user's comments:</b>\n{comments}\n\n
+        <b>Please regenerate.</b>
+        '''
+        messages.append(AIMessage(content=content))
 
     if config:
         generating_state = {
             "current_node": "IMMEDIATE_MESSAGE_2",
-            "last_message_content": content,
+            **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_message(config, content)
 
     #await asyncio.sleep(10)
     return {"messages": messages}

@@ -25,40 +25,6 @@ export default function ChatInterface() {
     name: AGENT_NAME
   });
 
-  const {appendMessage, reloadMessages, setMessages, visibleMessages} = useCopilotChat();
-
-  useEffect(() => {
-    // Handle last_message_content
-    if (state.last_message_content) {
-      console.log(state.last_message_content);
-      // appendMessage(new TextMessage({
-      //   role: MessageRole.User,
-      //   content: state.last_message_content
-      // }), {followUp: false});
-      // reloadMessages();
-      // setShouldReload(true);
-    }
-
-    // Handle reload
-    if (state.reload) {
-      console.log("Reloading messages");
-      console.log("Visible messages:", visibleMessages);
-      console.log("State last_message_content:", state.last_message_content);
-      console.log("State:", state);
-      // appendMessage(new TextMessage({
-      //   role: MessageRole.User,
-      //   content: state.last_message_content
-      // }), {followUp: true});
-      // visibleMessages.push(new TextMessage({
-      //   role: MessageRole.User,
-      //   content: state.last_message_content
-      // }));
-      // reloadMessages();
-      // setShouldReload(true);
-      // console.log("Visible messages:", visibleMessages);
-    }
-  }, [state.last_message_content, state.reload, appendMessage, setMessages, reloadMessages, setShouldReload]);
-
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
     // Add small delay to ensure component is fully mounted
