@@ -31,10 +31,10 @@ export default function ChatInterface() {
     // Handle last_message_content
     if (state.last_message_content) {
       console.log(state.last_message_content);
-      appendMessage(new TextMessage({
-        role: MessageRole.User,
-        content: state.last_message_content
-      }), {followUp: false});
+      // appendMessage(new TextMessage({
+      //   role: MessageRole.User,
+      //   content: state.last_message_content
+      // }), {followUp: false});
       // reloadMessages();
       // setShouldReload(true);
     }
@@ -49,13 +49,13 @@ export default function ChatInterface() {
       //   role: MessageRole.User,
       //   content: state.last_message_content
       // }), {followUp: true});
-      visibleMessages.push(new TextMessage({
-        role: MessageRole.User,
-        content: state.last_message_content
-      }));
-      reloadMessages();
-      setShouldReload(true);
-      console.log("Visible messages:", visibleMessages);
+      // visibleMessages.push(new TextMessage({
+      //   role: MessageRole.User,
+      //   content: state.last_message_content
+      // }));
+      // reloadMessages();
+      // setShouldReload(true);
+      // console.log("Visible messages:", visibleMessages);
     }
   }, [state.last_message_content, state.reload, appendMessage, setMessages, reloadMessages, setShouldReload]);
 
