@@ -35,12 +35,12 @@ export default function ChatInterface() {
         role: MessageRole.User,
         content: state.last_message_content
       }), {followUp: false});
+      reloadMessages();
     }
 
     // Handle reload
     if (state.reload) {
       console.log("Reloading messages");
-      reloadMessages();
       console.log("Visible messages:", visibleMessages);
       console.log("State messages:", state.messages);
       console.log("State:", state);
