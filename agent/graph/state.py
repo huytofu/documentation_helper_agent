@@ -173,7 +173,7 @@ class OutputGraphState(CopilotKitState):
     Attributes:
         current_node: current node
     """
-    messages: List[BaseMessage] = []
+    messages = []
     current_node: str = ""
     rewritten_query: str = ""
     retry_count: int = 0
@@ -194,5 +194,5 @@ class GraphState(InputGraphState, OutputGraphState):
     query: str = ""
     pass_summarize: bool = False
     summarized: bool = False
-    documents: List[str] = []
+    documents = []
 
