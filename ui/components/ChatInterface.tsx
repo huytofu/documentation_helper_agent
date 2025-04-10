@@ -45,10 +45,14 @@ export default function ChatInterface() {
       console.log("Visible messages:", visibleMessages);
       console.log("State last_message_content:", state.last_message_content);
       console.log("State:", state);
-      appendMessage(new TextMessage({
+      // appendMessage(new TextMessage({
+      //   role: MessageRole.User,
+      //   content: state.last_message_content
+      // }), {followUp: true});
+      visibleMessages.push(new TextMessage({
         role: MessageRole.User,
         content: state.last_message_content
-      }), {followUp: true});
+      }));
       reloadMessages();
       setShouldReload(true);
       console.log("Visible messages:", visibleMessages);
