@@ -163,8 +163,6 @@ class InputGraphState(CopilotKitState):
 
     language: str = ""
     comments: str = ""
-    # messages: List[Dict[str, Any]] = []
-    # copilotkit: Dict[str, Any] = {}
 
 class OutputGraphState(CopilotKitState):
     """
@@ -173,8 +171,8 @@ class OutputGraphState(CopilotKitState):
     Attributes:
         current_node: current node
     """
-    messages = []
     current_node: str = ""
+    query: str = ""
     rewritten_query: str = ""
     retry_count: int = 0
     framework: str = ""
@@ -191,7 +189,6 @@ class GraphState(InputGraphState, OutputGraphState):
         pass_summarize: graph execution has passed summarize node
         summarized: conversation has been summarized
     """
-    query: str = ""
     pass_summarize: bool = False
     summarized: bool = False
     documents = []

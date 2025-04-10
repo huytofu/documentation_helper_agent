@@ -58,7 +58,7 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     documents = state.get("documents", [])
     retry_count = state.get("retry_count", 0)
     messages = state.get("messages", [])
-    
+
     if state.get("pass_summarize", True):
         if config:
             generating_state = {

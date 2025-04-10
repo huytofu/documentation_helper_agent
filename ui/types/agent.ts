@@ -1,15 +1,19 @@
+import { Document } from "@langchain/core/documents";
+
 export interface AgentState {
   reload: boolean;
+  last_message_content: string;
   language: string
   comments: string,
+  current_node: string;
   query: string;
   rewritten_query: string;
   framework: string;
   retry_count: number;
-  messages: any[];
   test_counter?: number;
-  current_node: string;
-  last_message_content: string;
+  pass_summarize: boolean;
+  summarized: boolean;
+  documents: Document[];
 } 
 
 

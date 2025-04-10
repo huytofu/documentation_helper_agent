@@ -22,7 +22,8 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Extract basic state
     language = state.get("language", "python")
-    documents = state.get("documents", [])
+    comments = state.get("comments", "")
+    framework = state.get("framework", "")
     
     # Simplified query and rewritten_query initialization
     query = state.get("query", "")
@@ -31,9 +32,13 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         last_message_type = get_last_message_type(messages)
         if last_message_type == "human":
             query = messages[-1].content
-    
     # Set rewritten_query to query if not provided
     rewritten_query = state.get("rewritten_query", query)
+
+    documents = state.get("documents", [])
+    pass_summarize = state.get("pass_summarize", False)
+    summarized = state.get("summarized", False)
+    retry_count = state.get("retry_count", 0)
     
     # Emit state if config is provided
     if config:
@@ -51,9 +56,14 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     # Build result
     result = {
         "language": language,
-        "documents": documents,
+        "comments": comments,
         "current_node": "INITIALIZE",
-        "messages": messages
+        "framework": framework,
+        "retry_count": retry_count,
+        "messages": messages,
+        "pass_summarize": pass_summarize,
+        "summarized": summarized,
+        "documents": documents,
     }
     
     if query:
