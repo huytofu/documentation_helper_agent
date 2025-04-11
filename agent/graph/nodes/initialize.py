@@ -3,6 +3,7 @@ from typing import Any, Dict
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage
 from agent.graph.utils.message_utils import get_last_message_type
+from agent.graph.utils.firebase_utils import save_conversation_message_api
 
 logger = logging.getLogger("graph.graph")
 
@@ -32,6 +33,17 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         if last_message_type == "human":
             query = messages[-1].content
     # Set rewritten_query to query if not provided
+
+    # Save the query as a question in the database if available
+    user_id = state.get("user_id", "")
+    if query and user_id:
+        try:
+            logger.info(f"Saving query as question for user {user_id}")
+            await save_conversation_message_api(user_id, "question", query)
+            logger.info(f"Successfully saved query for user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to save query to database: {e}")
+
     
     pass_summarize = False
     summarized = False

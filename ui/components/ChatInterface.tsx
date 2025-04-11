@@ -10,6 +10,7 @@ import { AGENT_NAME } from '@/constants';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
+import { getUserId } from '@/lib/userUtils';
 
 
 export default function ChatInterface() {
@@ -20,6 +21,7 @@ export default function ChatInterface() {
   const [remainingChats, setRemainingChats] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const authService = AuthService.getInstance();
+  const { visibleMessages } = useCopilotChat();
   
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
@@ -60,10 +62,40 @@ export default function ChatInterface() {
   const handleChatProgress = async (inProgress: boolean) => {
     if (!inProgress) {
       try {
-        // Remove chat usage tracking as it's now handled in the API route
-        console.log('Chat completed');
+        // Save the assistant's response to the database when chat completes
+        if (visibleMessages.length > 0) {
+          // Get the last message (which should be the assistant's response)
+          const lastMessage = visibleMessages[visibleMessages.length - 1];
+          
+          // Type guard to check if it's an assistant message
+          if ('role' in lastMessage && lastMessage.role === 'assistant') {
+            console.log('Saving assistant response to database');
+            
+            // Get message content with type safety
+            const messageContent = 'content' in lastMessage ? 
+              (typeof lastMessage.content === 'string' ? lastMessage.content : JSON.stringify(lastMessage.content)) : 
+              '';
+            
+            if (messageContent) {
+              // Send to the API endpoint
+              await fetch('/api/conversations', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  content: messageContent,
+                  user_id: getUserId(),
+                  type: 'answer'
+                })
+              });
+              
+              console.log('Assistant response saved successfully');
+            }
+          }
+        }
       } catch (error) {
-        console.error('Error in chat completion handler:', error);
+        console.error('Error saving chat response:', error);
       }
     } else {
       console.log('Chat in progress');

@@ -15,6 +15,7 @@ import { auth, db } from './firebase';
 import { User, UserSession } from '@/types/user';
 import { encrypt, decrypt } from './encryption';
 import { RateLimitService } from './rateLimit';
+import { getUserId } from './userUtils';
 
 export class AuthService {
   private static instance: AuthService;
@@ -352,19 +353,19 @@ export class AuthService {
     if (!this.currentUser || !this.sessionId) {
       // Check localStorage as fallback when user has refreshed page
       if (typeof window !== 'undefined' && localStorage.getItem('isLoggedIn') === 'true') {
-        const userId = localStorage.getItem('userId');
-        if (userId) {
+        const userId = getUserId();
+        if (userId && !userId.startsWith('anon_')) {
           // Attempt to load user data from Firestore
           try {
             const userDoc = await getDoc(doc(db, 'users', userId));
             if (userDoc.exists()) {
               const userData = userDoc.data() as User;
               this.currentUser = userData;
-              console.log("User data loaded from localStorage:", this.currentUser);
+              console.log("User data loaded from getUserId:", this.currentUser);
               return true;
             }
           } catch (error) {
-            console.error('Error checking authentication state from localStorage:', error);
+            console.error('Error checking authentication state from userId:', error);
           }
         }
       }

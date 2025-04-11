@@ -338,36 +338,95 @@ async def log_requests(request: Request, call_next):
             if header.lower() not in sensitive_headers:
                 logger.info(f"  {header}: {value}")
     
+    # Extract user ID and update request state
+    request, user_id = await extract_user_id_and_update_state(request)
+    
+    response = await call_next(request)
+    logger.info("=== End Request ===\n")
+    return response
+
+def update_request_state(body_json: dict, user_id: str | None) -> dict:
+    """Update request body with consolidated state including properties and user_id."""
+    # Ensure state exists
+    if "state" not in body_json:
+        body_json["state"] = {}
+    
+    # Merge properties into state if they exist
+    if "properties" in body_json:
+        body_json["state"].update(body_json["properties"])
+    
+    # Add user_id to state if found
+    if user_id:
+        body_json["state"]["user_id"] = user_id
+        logger.info(f"Added user_id to state: {user_id}")
+    
+    return body_json
+
+async def extract_user_id_and_update_state(request: Request) -> tuple[Request, str | None]:
+    """
+    Extract user_id from request and update state in request body.
+    
+    This function consolidates all user_id extraction logic in one place:
+    1. Extract from user_id cookie
+    2. Extract from Firebase auth cookie
+    3. Extract from x-user-id header
+    
+    Returns:
+        Updated request and extracted user_id
+    """
+    user_id = None
+    
+    # 1. Try user_id cookie (simplest direct path)
+    user_id = request.cookies.get("user_id")
+    if user_id:
+        logger.info(f"Found user_id in cookie: {user_id}")
+    
+    # 2. Try Firebase auth cookie
+    if not user_id:
+        firebase_auth = request.cookies.get("firebase:authUser")
+        if firebase_auth:
+            try:
+                # Parse firebase auth cookie (JSON with possible domain prefix)
+                if ":" in firebase_auth:
+                    firebase_auth = firebase_auth.split(":", 1)[1]
+                auth_data = json.loads(firebase_auth)
+                user_id = auth_data.get("uid")
+                if user_id:
+                    logger.info(f"Extracted user_id from Firebase auth: {user_id}")
+            except Exception as e:
+                logger.error(f"Error parsing Firebase auth cookie: {str(e)}")
+    
+    # 3. Try custom header
+    if not user_id and request.headers.get("x-user-id"):
+        user_id = request.headers.get("x-user-id")
+        logger.info(f"Using user_id from custom header: {user_id}")
+    
+    # Parse and update request body if present
     body = await request.body()
     if body:
         try:
             body_json = json.loads(body)
             if os.getenv("ENVIRONMENT") == "development":
-                # Sanitize sensitive data
+                # Sanitize sensitive data for logging
                 sanitized_body = _sanitize_sensitive_data(body_json)
                 logger.info("Sanitized Body:")
                 logger.info(json.dumps(sanitized_body, indent=2))
             
-            # Extract properties and assign to state if they exist
-            if "properties" in body_json:
-                properties = body_json["properties"]
-                if "state" not in body_json:
-                    body_json["state"] = {}
-                body_json["state"].update(properties)
+            # Update body with combined state
+            body_json = update_request_state(body_json, user_id)
                 
-                if os.getenv("ENVIRONMENT") == "development":
-                    logger.info("Updated Body with properties in state:")
-                    logger.info(json.dumps(_sanitize_sensitive_data(body_json), indent=2))
-                
-                # Create a new request with the modified body
-                request._body = json.dumps(body_json).encode()
-        except:
+            if os.getenv("ENVIRONMENT") == "development":
+                logger.info("Updated Body with consolidated state:")
+                logger.info(json.dumps(_sanitize_sensitive_data(body_json), indent=2))
+            
+            # Create a new request with the modified body
+            request._body = json.dumps(body_json).encode()
+        except Exception as e:
+            logger.error(f"Error processing request body: {str(e)}")
             if os.getenv("ENVIRONMENT") == "development":
                 logger.info("Raw body (sanitized): [REDACTED]")
     
-    response = await call_next(request)
-    logger.info("=== End Request ===\n")
-    return response
+    return request, user_id
 
 def _sanitize_sensitive_data(data: Any) -> Any:
     """Sanitize sensitive data in request/response bodies."""
@@ -402,4 +461,60 @@ async def health_check():
     }
 
 # Add logging for agent initialization
-logger.info("FastAPI application initialized with LangGraph agent for Vercel") 
+logger.info("FastAPI application initialized with LangGraph agent for Vercel")
+
+# Add conversation endpoint
+@app.post("/conversation")
+async def save_conversation(
+    request: Request,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Endpoint to save conversation history.
+    
+    This endpoint is called from the frontend API to save user questions
+    and assistant answers in the database.
+    """
+    try:
+        # Extract user ID and update request state
+        request, user_id = await extract_user_id_and_update_state(request)
+        
+        # Parse request body
+        data = await request.json()
+        
+        # Log the request (but sanitize any sensitive information)
+        safe_data = _sanitize_sensitive_data(data)
+        logger.info(f"Conversation save request received: {safe_data}")
+        
+        # Add user_id to data if found and not already present
+        if user_id and not data.get("user_id"):
+            data["user_id"] = user_id
+            logger.info(f"Added user_id to conversation data: {user_id}")
+        
+        # Import database utils (only when needed to avoid circular imports)
+        from agent.graph.utils.firebase_utils import handle_conversation_history_request
+        
+        # Forward the request to the database handler
+        result = handle_conversation_history_request(data)
+        
+        # Check if the operation was successful
+        if not result.get("success", False):
+            error_message = result.get("error", "Unknown database error")
+            logger.error(f"Failed to save conversation: {error_message}")
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": error_message}
+            )
+            
+        # Return successful response
+        return JSONResponse(
+            status_code=200,
+            content={"success": True, "message_id": result.get("message_id")}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in conversation endpoint: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Server error: {str(e)}"}
+        ) 
