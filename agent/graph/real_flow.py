@@ -12,41 +12,19 @@ from agent.graph.nodes import (
     post_human_in_loop, summarize, immediate_message_one, immediate_message_two
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
+from agent.graph.utils.flow_state import check_iteration_limit
 from concurrent.futures import TimeoutError
 import logging
 import os
 import time
 import asyncio
 from typing import Dict, Any
-from dataclasses import dataclass, field
 from threading import Lock
 
 logger = logging.getLogger("graph.real_flow")
 
 # Global lock for state mutations
 state_lock = Lock()
-
-@dataclass
-class FlowState:
-    """Thread-safe state container for flow execution."""
-    iteration_count: int = 0
-    retry_count: int = 0
-    _lock: Lock = field(default_factory=Lock)
-
-    def increment_iteration(self) -> bool:
-        """Atomically increment iteration count and check limit."""
-        with self._lock:
-            self.iteration_count += 1
-            return self.iteration_count < 5  # MAX_ITERATIONS
-
-    def increment_retry(self) -> bool:
-        """Atomically increment retry count and check limit."""
-        with self._lock:
-            self.retry_count += 1
-            return self.retry_count < 2  # MAX_RETRIES
-
-# Global flow state
-flow_state = FlowState()
 
 def validate_state(state: GraphState) -> bool:
     """Validate that all required fields are present and valid in the state.
@@ -126,13 +104,6 @@ def validate_state(state: GraphState) -> bool:
             
     return True
 
-def check_iteration_limit(state: GraphState) -> bool:
-    """Check if the flow has exceeded maximum iterations."""
-    if not flow_state.increment_iteration():
-        logger.error("Flow exceeded maximum iterations (5)")
-        return False
-    return True
-
 def get_last_ai_message_content(messages):
     # Reverse through messages to find the last AI message
     for message in reversed(messages):
@@ -157,7 +128,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         return "end_misery"
         
     # Check iteration limit
-    if not check_iteration_limit(state):
+    if not check_iteration_limit():
         cleanup_resources(state)
         return "end_misery"
     
