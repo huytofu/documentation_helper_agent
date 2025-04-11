@@ -2,7 +2,6 @@ export interface AgentState {
   language: string
   comments: string,
   current_node: string;
-  query: string;
   rewritten_query: string;
   framework: string;
   retry_count: number;

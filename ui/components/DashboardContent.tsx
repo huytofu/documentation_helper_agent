@@ -8,6 +8,8 @@ import { AlertTriangle } from 'lucide-react';
 import { ProgrammingLanguage } from '@/types';
 import { User } from '@/types/user';
 import { AGENT_NAME } from '@/constants';
+import { useCoAgent } from '@copilotkit/react-core';
+import { AgentState } from '@/types/agent';
 
 // Dynamically import components that use CopilotKit features
 const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
@@ -16,18 +18,26 @@ const AgentStatePanel = dynamic(() => import('@/components/AgentStatePanel'), { 
 interface DashboardContentProps {
   user: User | null;
   selectedLanguage: ProgrammingLanguage | "";
-  onLanguageChange: (language: ProgrammingLanguage | "") => void;
   hasExceededLimit: boolean;
 }
 
 export default function DashboardContent({ 
   user, 
   selectedLanguage, 
-  onLanguageChange,
   hasExceededLimit 
 }: DashboardContentProps) {
   // State to track if we're mounted on the client
   const [mounted, setMounted] = useState(false);
+  const {state, setState} = useCoAgent<AgentState>({
+    name: AGENT_NAME
+  });
+
+  const onLanguageChange = (language: ProgrammingLanguage | "") => {
+    setState({
+      ...state,
+      language: language
+    });
+  };
 
   // Set mounted to true when component mounts on client
   useEffect(() => {

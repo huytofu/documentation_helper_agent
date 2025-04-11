@@ -100,18 +100,6 @@ const StatusContent = ({ state, isLoading, isComplete }: {
         </div>
       )}
       
-      {/* {state.query && (
-        <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 overflow-hidden">
-          <div className="bg-indigo-100/50 px-3 py-2 border-b border-indigo-100 flex items-center gap-2">
-            <Search className="h-4 w-4 text-indigo-600" />
-            <h3 className="text-sm font-medium text-indigo-700">Original Query</h3>
-          </div>
-          <div className="p-3 text-sm whitespace-pre-wrap font-mono">
-            {state.query}
-          </div>
-        </div>
-      )} */}
-      
       {state.rewritten_query && (
         <div className="rounded-lg border border-teal-100 bg-teal-50/50 overflow-hidden">
           <div className="bg-teal-100/50 px-3 py-2 border-b border-teal-100 flex items-center gap-2">

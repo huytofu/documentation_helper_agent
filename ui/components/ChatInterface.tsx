@@ -21,7 +21,7 @@ export default function ChatInterface() {
   const [user, setUser] = useState<User | null>(null);
   const authService = AuthService.getInstance();
   
-  const { state, run } = useCoAgent<AgentState>({
+  const { state: directState } = useCoAgent<AgentState>({
     name: AGENT_NAME
   });
 
