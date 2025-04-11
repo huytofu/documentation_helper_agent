@@ -100,7 +100,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
         </div>
       )}
       
-      {state.query && (
+      {/* {state.query && (
         <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 overflow-hidden">
           <div className="bg-indigo-100/50 px-3 py-2 border-b border-indigo-100 flex items-center gap-2">
             <Search className="h-4 w-4 text-indigo-600" />
@@ -110,7 +110,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
             {state.query}
           </div>
         </div>
-      )}
+      )} */}
       
       {state.rewritten_query && (
         <div className="rounded-lg border border-teal-100 bg-teal-50/50 overflow-hidden">
@@ -267,9 +267,6 @@ export default function AgentStatePanel() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-xs text-muted-foreground bg-white/50 px-2 py-1 rounded-full">
-            Updates: {updateCount}
-          </div>
           {isComplete && (
             <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" />
