@@ -15,7 +15,7 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         pass
     elif last_message_type == "ai":
         content = '''
-        <b>SYSTEM: Seems like answer not grounded in the documents. Please regenerate.</b>/n
+        <b>SYSTEM: Seems like answer not grounded in the documents.</b>/n
         <b>SYSTEM: Please regenerate.</b>
         '''
         messages.append(AIMessage(content=content))
@@ -29,5 +29,5 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         await copilotkit_emit_state(config, generating_state)
         await copilotkit_emit_message(config, content)
         await asyncio.sleep(10)
-        
+
     return {"messages": messages}

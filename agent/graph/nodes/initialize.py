@@ -3,7 +3,6 @@ from typing import Any, Dict
 from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage
 from agent.graph.utils.message_utils import get_last_message_type
-from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.graph")
 
@@ -40,24 +39,10 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     summarized = state.get("summarized", False)
     documents = state.get("documents", [])
     
-    # Emit state if config is provided
-    if config:
-        # await copilotkit_emit_state(config, {
-        #     "language": language,
-        #     "current_node": "INITIALIZE",
-        #     "rewritten_query": rewritten_query,
-        #     "query": query,
-        #     "retry_count": state.get("retry_count", 0),
-        #     "framework": state.get("framework", ""),
-        #     "messages": messages
-        # })
-        pass
-    
     # Build result
     result = {
         "language": language,
         "comments": comments,
-        "current_node": "INITIALIZE",
         "framework": framework,
         "retry_count": retry_count,
         "messages": messages,

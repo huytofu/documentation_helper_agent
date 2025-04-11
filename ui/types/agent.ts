@@ -1,6 +1,4 @@
 export interface AgentState {
-  reload: boolean;
-  last_message_content: string;
   language: string
   comments: string,
   current_node: string;
@@ -12,7 +10,6 @@ export interface AgentState {
   pass_summarize: boolean;
   summarized: boolean;
   documents: any[];
-  latest_messages: any[];
 } 
 
 

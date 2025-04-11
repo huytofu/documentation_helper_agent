@@ -30,10 +30,10 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
     logger.info("---CHECK DOCUMENT RELEVANCE TO QUERY---")
     if config:
         generating_state = {
-            "current_node": "GRADE_DOCUMENTS",
+            "current_node": "GRADE_DOCUMENTS", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")
     documents = state.get("documents", [])

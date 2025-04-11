@@ -22,10 +22,10 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     # Emit only one "GENERATE" state update before generation
     if config:
         generating_state = {
-            "current_node": "GENERATE",
+            "current_node": "GENERATE", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])

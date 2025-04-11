@@ -21,10 +21,10 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     if config:
         generating_state = {
-            "current_node": "REGENERATE",
+            "current_node": "REGENERATE", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     last_message_type = get_last_message_type(messages)
     if last_message_type == "human":

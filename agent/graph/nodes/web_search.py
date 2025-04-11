@@ -10,6 +10,7 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
     APIResponse
 )
+from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.web_search")
 
@@ -47,10 +48,10 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     logger.info("---WEB SEARCH---")
     if config:
         generating_state = {
-            "current_node": "WEB_SEARCH",
+            "current_node": "WEB_SEARCH", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")
     documents = state.get("documents", [])

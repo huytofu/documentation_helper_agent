@@ -3,6 +3,7 @@ from agent.graph.state import GraphState
 from time import sleep
 from copilotkit.langgraph import copilotkit_emit_state
 from langchain_core.messages import AIMessage
+from agent.graph.utils.flow_state import reset_flow_state
 
 async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---POST HUMAN IN LOOP---")
@@ -10,10 +11,10 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
 
     if config:
         generating_state = {
-            "current_node": "POST_HUMAN_IN_LOOP",
+            "current_node": "POST_HUMAN_IN_LOOP", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     # Find and modify the last AI message
     for i in range(len(messages) - 1, -1, -1):
@@ -25,6 +26,10 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
             # Replace the message with updated content
             messages[i] = AIMessage(content=new_content)
             break
+
+    # Reset flow_state counters since we're at the end of the conversation
+    reset_flow_state()
+    print("Flow state counters reset")
 
     return {
         "messages": messages,

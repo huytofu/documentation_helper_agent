@@ -7,10 +7,10 @@ async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     print("---RETRIEVE---")
     if config:
         generating_state = {
-            "current_node": "RETRIEVE",
+            "current_node": "RETRIEVE", **state
         }
         print(f"Emitting generating state: {generating_state}")
-        # await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")
     vectorstore = state.get("framework", None)
