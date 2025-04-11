@@ -18,13 +18,6 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
-    messages = state.get("messages", [])
-    last_message_type = get_last_message_type(messages)
-    
-    if last_message_type == "human":
-        generation = ""
-    elif last_message_type == "ai":
-        generation = messages[-1].content
     
     # Create result state with current_node
     result_state = {
@@ -32,7 +25,7 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     }
     
     human_in_loop = interrupt(
-        "This is our generation: " + generation + 
+        "We have an answer to your question.<br>" + 
         "But it may not answer your question.<br>" + 
         "Please provide a critical feedback on the generation.",
     )

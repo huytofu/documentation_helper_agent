@@ -8,6 +8,7 @@ import { AuthService } from '@/lib/auth';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { ProgrammingLanguage } from '@/types';
 import dynamic from 'next/dynamic';
+import { useLangGraphInterrupt } from '@copilotkit/react-core';
 
 // Import CopilotKit component without SSR - fix the path
 const DashboardContent = dynamic(
@@ -20,6 +21,21 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState<ProgrammingLanguage | "">("python");
   const authService = AuthService.getInstance();
+
+  useLangGraphInterrupt<string>({
+    render: ({ event, resolve }) => (
+      <div>
+        <p>{event.value}</p>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          resolve((e.target as HTMLFormElement).response.value);
+        }}>
+          <input type="text" name="response" placeholder="Enter your response" />
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    )
+  });
 
   useEffect(() => {
     // Fetch user data
