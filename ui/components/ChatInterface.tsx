@@ -78,7 +78,7 @@ export default function ChatInterface() {
             
             if (messageContent) {
               // Send to the API endpoint
-              await fetch('/api/conversations', {
+              await fetch('/api/conversation', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'

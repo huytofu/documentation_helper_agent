@@ -3,7 +3,7 @@ import { BACKEND_ENDPOINT } from '@/constants';
 import { getUserId } from '@/lib/userUtils';
 
 /**
- * API endpoint for saving conversation history
+ * API endpoint for saving conversation history (singular version)
  * This route forwards requests to the Python backend
  */
 export async function POST(request: NextRequest) {
@@ -39,8 +39,9 @@ export async function POST(request: NextRequest) {
     }
     
     // If user_id is not provided, try to get it from userUtils
-    if (!user_id && typeof window !== 'undefined') {
+    if (!user_id) {
       user_id = getUserId();
+      console.log('Using user ID from userUtils:', user_id);
     }
     
     // Prepare payload for the backend
@@ -51,10 +52,10 @@ export async function POST(request: NextRequest) {
     };
     
     // Get the endpoint for conversation history
-    // Replace with the correct endpoint for your Python backend
     const backendUrl = `${BACKEND_ENDPOINT}/conversation`;
     
     console.log('Sending conversation data to backend:', payload);
+    console.log('Backend URL:', backendUrl);
     
     // Send request to backend
     const response = await fetch(backendUrl, {
