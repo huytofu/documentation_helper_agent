@@ -464,7 +464,7 @@ async def health_check():
 logger.info("FastAPI application initialized with LangGraph agent for Vercel")
 
 # Add conversation endpoint
-@app.post("/conversation")
+@app.post("/api/conversation")
 async def save_conversation(
     request: Request,
     api_key: str = Depends(verify_api_key)
