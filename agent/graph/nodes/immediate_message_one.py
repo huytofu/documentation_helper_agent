@@ -22,8 +22,8 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
 
     if config:
         generating_state = {
-            "current_node": "IMMEDIATE_MESSAGE_1",
-            **state
+            **state,
+            "current_node": "IMMEDIATE_MESSAGE_1"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

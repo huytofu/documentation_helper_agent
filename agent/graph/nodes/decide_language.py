@@ -7,7 +7,8 @@ async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> D
     print("---DECIDE LANGUAGE---")
     if config:
         generating_state = {
-            "current_node": "DECIDE_LANGUAGE", **state
+            **state,
+            "current_node": "DECIDE_LANGUAGE"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

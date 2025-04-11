@@ -12,7 +12,8 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     logger.info("---HUMAN IN LOOP---")
     if config:
         generating_state = {
-            "current_node": "HUMAN_IN_LOOP", **state
+            **state,
+            "current_node": "HUMAN_IN_LOOP"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

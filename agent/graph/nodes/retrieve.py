@@ -7,7 +7,8 @@ async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     print("---RETRIEVE---")
     if config:
         generating_state = {
-            "current_node": "RETRIEVE", **state
+            **state,
+            "current_node": "RETRIEVE"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

@@ -22,7 +22,8 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     # Emit only one "GENERATE" state update before generation
     if config:
         generating_state = {
-            "current_node": "GENERATE", **state
+            **state,
+            "current_node": "GENERATE"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

@@ -6,7 +6,8 @@ async def pre_human_in_loop(state: GraphState, config: Dict[str, Any] = None) ->
     print("---PRE HUMAN IN LOOP---")
     if config:
         generating_state = {
-            "current_node": "PRE_HUMAN_IN_LOOP", **state
+            **state,
+            "current_node": "PRE_HUMAN_IN_LOOP"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)

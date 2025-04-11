@@ -19,7 +19,8 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
     # Emit state update for summarization
     if config:
         summarizing_state = {
-            "current_node": "SUMMARIZE", **state
+            **state,
+            "current_node": "SUMMARIZE"
         }
         print(f"Emitting summarizing state: {summarizing_state}")
         await copilotkit_emit_state(config, summarizing_state)

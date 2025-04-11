@@ -21,7 +21,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     if config:
         generating_state = {
-            "current_node": "REGENERATE", **state
+            **state,
+            "current_node": "REGENERATE"
         }
         print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
