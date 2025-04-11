@@ -18,12 +18,14 @@ const AgentStatePanel = dynamic(() => import('@/components/AgentStatePanel'), { 
 interface DashboardContentProps {
   user: User | null;
   selectedLanguage: ProgrammingLanguage | "";
+  onLanguageChange: (language: ProgrammingLanguage | "") => void;
   hasExceededLimit: boolean;
 }
 
 export default function DashboardContent({ 
   user, 
   selectedLanguage, 
+  onLanguageChange: parentOnLanguageChange,
   hasExceededLimit 
 }: DashboardContentProps) {
   // State to track if we're mounted on the client
@@ -32,7 +34,11 @@ export default function DashboardContent({
     name: AGENT_NAME
   });
 
-  const onLanguageChange = (language: ProgrammingLanguage | "") => {
+  const handleLanguageChange = (language: ProgrammingLanguage | "") => {
+    // Update parent state
+    parentOnLanguageChange(language);
+    
+    // Update agent state
     setState({
       ...state,
       language: language
@@ -69,7 +75,7 @@ export default function DashboardContent({
         <div className="mb-6">
         <LanguageSelector 
             selectedLanguage={selectedLanguage} 
-            onLanguageChange={onLanguageChange} 
+            onLanguageChange={handleLanguageChange} 
         />
         </div>
 
@@ -102,7 +108,7 @@ export default function DashboardContent({
             {/* Agent State Panel - Takes 1/4 of the width on large screens */}
             <div className="lg:col-span-1 flex items-center">
               <div className="w-full">
-                <AgentStatePanel />
+                <AgentStatePanel directState={state}/>
               </div>
             </div>
         </div>

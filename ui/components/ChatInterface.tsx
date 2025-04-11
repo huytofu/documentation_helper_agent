@@ -21,10 +21,6 @@ export default function ChatInterface() {
   const [user, setUser] = useState<User | null>(null);
   const authService = AuthService.getInstance();
   
-  const { state: directState } = useCoAgent<AgentState>({
-    name: AGENT_NAME
-  });
-
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
     // Add small delay to ensure component is fully mounted

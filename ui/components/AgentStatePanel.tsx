@@ -153,11 +153,12 @@ const StatusContent = ({ state, isLoading, isComplete }: {
   );
 };
 
-export default function AgentStatePanel() {
+interface AgentStatePanelProps {
+  directState: AgentState;
+}
+
+export default function AgentStatePanel({ directState }: AgentStatePanelProps) {
   // Get state directly from useCoAgent
-  const { state: directState } = useCoAgent<AgentState>({
-    name: AGENT_NAME
-  });
   
   // State for tracking loading and updates
   const [isLoading, setIsLoading] = useState(false);
