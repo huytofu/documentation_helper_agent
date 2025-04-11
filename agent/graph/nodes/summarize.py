@@ -17,6 +17,13 @@ SUMMARIZE_TIMEOUT = 30
 async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---SUMMARIZE---")
     # Emit state update for summarization
+    query = state.get("query", "")
+    if "Please write code in" in query:
+        desired_language = query.split("Please write code in")[-1]
+        instructions = f"Please write code in {desired_language}"
+    else:
+        instructions = ""
+
     if config:
         summarizing_state = {
             **state,
@@ -33,7 +40,8 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
             asyncio.to_thread(
                 summary_chain.invoke,
                 {
-                    "messages": messages
+                    "messages": messages,
+                    "important_instructions": instructions
                 }
             ),
             timeout=SUMMARIZE_TIMEOUT
@@ -48,11 +56,19 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         )
 
         # Update the query in state with the summarized result
-        return {
-            "rewritten_query": summary_result.new_query,
-            "pass_summarize": True,
-            "summarized": True
-        }
+        rewritten_query = summary_result.new_query
+
+        if rewritten_query == "":
+            return {
+                "pass_summarize": True,
+                "summarized": True
+            }
+        else:
+            return {
+                "rewritten_query": rewritten_query,
+                "pass_summarize": True,
+                "summarized": True
+            }
     except asyncio.TimeoutError:
         logger.error("Summarization timed out")
         return {
