@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     };
     
     // Get the endpoint for conversation history
-    const backendUrl = `${BACKEND_ENDPOINT}/conversation`;
+    const backendUrl = `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/conversation`;
     
     console.log('Sending conversation data to backend:', payload);
     console.log('Backend URL:', backendUrl);
