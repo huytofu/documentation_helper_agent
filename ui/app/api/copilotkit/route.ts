@@ -113,31 +113,23 @@ async function trackChatUsage(): Promise<void> {
 export const POST = async (req: NextRequest) => {
   try {
     // Extract authentication cookies/headers to check auth state
-    console.log("req.cookies", req.cookies);
     const authSession = req.cookies.get('auth_session')?.value;
-    if (authSession) {
-      if (req.body) {
-        const body = await req.json();
-        body.auth_session = authSession;
-        req = new NextRequest(req.url, {
-          method: req.method,
-          headers: req.headers,
-          body: JSON.stringify(body)
-        });
-      } else {
-        const body = { auth_session: authSession };
-        req = new NextRequest(req.url, {
-          method: req.method,
-          headers: req.headers,
-          body: JSON.stringify(body)
-        });
-      }
-    }
     const loggedIn = req.cookies.get('logged_in')?.value;
     const firebaseAuth = req.cookies.get('firebase:authUser')?.value;
     
     // Check authentication state
     const isAuthenticated = !!(authSession || loggedIn || firebaseAuth);
+    
+    // Only modify request body if we have auth session
+    if (authSession) {
+      const body = req.body ? await req.json() : {};
+      body.auth_session = authSession;
+      req = new NextRequest(req.url, {
+        method: req.method,
+        headers: req.headers,
+        body: JSON.stringify(body)
+      });
+    }
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
