@@ -114,7 +114,6 @@ export const POST = async (req: NextRequest) => {
   try {
     // Extract authentication cookies/headers to check auth state
     console.log("req.cookies", req.cookies);
-    console.log("req.body", req.body);
     const authSession = req.cookies.get('auth_session')?.value;
     if (authSession) {
       if (req.body) {
