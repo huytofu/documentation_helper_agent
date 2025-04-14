@@ -35,6 +35,8 @@ from starlette.middleware.base import RequestResponseEndpoint
 import time
 from collections import defaultdict
 import hashlib
+import sys
+import inspect
 
 # Configure root logger
 logging.basicConfig(
@@ -55,6 +57,9 @@ logger.info("Initializing FastAPI application for Vercel...")
 
 # Create FastAPI app
 app = FastAPI()
+
+# Debug log the app instance
+logger.info(f"FastAPI app instance: {id(app)} at {app}")
 
 # Security Configuration
 MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE", "1048576"))  # 1MB
@@ -464,10 +469,8 @@ async def health_check():
 logger.info("FastAPI application initialized with LangGraph agent for Vercel")
 
 # Add conversation endpoint - POST only
-@app.post("/api/conversation")
-async def save_conversation(
-    request: Request
-):
+@app.post("/conversation")
+async def save_conversation(request: Request):
     """
     Endpoint to save conversation history.
     
@@ -475,6 +478,9 @@ async def save_conversation(
     and assistant answers in the database.
     """
     print("save_conversation endpoint called")
+    # Log the request info to debug
+    logger.info(f"Processing conversation request at /conversation, method={request.method}")
+    
     try:
         # Extract user ID and update request state
         request, user_id = await extract_user_id_and_update_state(request)
@@ -517,4 +523,16 @@ async def save_conversation(
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": f"Server error: {str(e)}"}
-        ) 
+        )
+
+# Add a simple test endpoint to check if FastAPI is working correctly
+@app.get("/test")
+async def test_endpoint():
+    """Simple test endpoint to verify that the FastAPI app is accessible."""
+    return {"message": "FastAPI is working!"}
+
+# At the bottom of your file, add this if statement to directly run with uvicorn
+if __name__ == "__main__":
+    import uvicorn
+    logger.info("Starting uvicorn server directly from app.py")
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
