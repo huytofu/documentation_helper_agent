@@ -9,6 +9,9 @@ import { ChainValues } from "@langchain/core/utils/types";
 import { API_ENDPOINT, BACKEND_ENDPOINT } from "@/constants";
 import { getModel } from "@/lib/modelConfig";
 import { AuthService } from "@/lib/auth";
+import { getDoc, doc, updateDoc, increment } from "firebase/firestore";
+import { User } from "@/types/user";
+import { db } from "@/lib/firebase";
 
 // Get the configured model
 const model = getModel();
@@ -85,29 +88,6 @@ const runtime = new CopilotRuntime({
   ]
 });
 
-// Track chat usage after a successful response
-async function trackChatUsage(isAuthenticated: boolean): Promise<void> {
-  try {
-    // Get auth service instance
-    const authService = AuthService.getInstance();
-    
-    // Check if there's an authenticated user
-    if (!isAuthenticated) {
-      console.log("No authenticated user, skipping chat usage tracking");
-      return;
-    }
-    
-    // Increment chat usage count
-    await authService.incrementChatUsage();
-    
-    // Get and log remaining chats (optional)
-    const remaining = await authService.getRemainingChats();
-    console.log(`Chat usage tracked successfully. Remaining chats: ${remaining}`);
-  } catch (error) {
-    // Log but don't fail the request
-    console.error("Failed to track chat usage:", error);
-  }
-}
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -116,38 +96,19 @@ export const POST = async (req: NextRequest) => {
     const loggedIn = req.cookies.get('logged_in')?.value;
     const firebaseAuth = req.cookies.get('firebase:authUser')?.value;
     
+    // Parse Firebase auth cookie to get user ID
+    let userId: string | undefined;
+    if (firebaseAuth) {
+      try {
+        const authData = JSON.parse(firebaseAuth);
+        userId = authData.uid;
+      } catch (error) {
+        console.error("Error parsing Firebase auth cookie:", error);
+      }
+    }
+    
     // Check authentication state
     const isAuthenticated = !!(authSession || loggedIn || firebaseAuth);
-    
-    // Only modify request body if we have auth session
-    // if (authSession) {
-    //   try {
-    //     const body = req.body ? await req.json() : {};
-    //     console.log("Original request body:", body);
-    //     body.auth_session = authSession;
-    //     console.log("Modified request body:", body);
-    //     req = new NextRequest(req.url, {
-    //       method: req.method,
-    //       headers: req.headers,
-    //       body: JSON.stringify(body)
-    //     });
-    //   } catch (error) {
-    //     console.error("Error parsing request body:", error);
-    //     return new Response(
-    //       JSON.stringify({
-    //         error: "invalid_request",
-    //         message: "Invalid request body format",
-    //         display_in_chat: true
-    //       }),
-    //       {
-    //         status: 400,
-    //         headers: {
-    //           'Content-Type': 'application/json',
-    //         }
-    //       }
-    //     );
-    //   }
-    // }
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
@@ -174,18 +135,6 @@ export const POST = async (req: NextRequest) => {
         }
       );
     }
-    
-    // Track usage only after successful responses and if authenticated
-    if (response.status === 200 && isAuthenticated) {
-      console.log("User is authenticated, tracking chat usage");
-      // Track usage in the background without blocking the response
-      trackChatUsage(isAuthenticated).catch(err => 
-        console.error("Background chat tracking failed:", err)
-      );
-    } else if (response.status === 200) {
-      console.log("User appears not authenticated based on cookies, auth tracking skipped");
-    }
-    
     return response;
   } catch (error: any) {
     // Handle security errors

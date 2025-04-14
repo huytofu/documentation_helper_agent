@@ -68,16 +68,33 @@ export default function ChatInterface() {
           const lastMessage = visibleMessages[visibleMessages.length - 1];
           
           // Type guard to check if it's an assistant message
-          if ('role' in lastMessage && lastMessage.role === 'assistant') {
+          if ('role' in lastMessage && 
+              lastMessage.role === 'assistant' && 
+              'content' in lastMessage) {
             console.log('Saving assistant response to database');
             
             // Get message content with type safety
-            const messageContent = 'content' in lastMessage ? 
-              (typeof lastMessage.content === 'string' ? lastMessage.content : JSON.stringify(lastMessage.content)) : 
-              '';
+            const messageContent = typeof lastMessage.content === 'string' 
+              ? lastMessage.content 
+              : JSON.stringify(lastMessage.content);
             
             if (messageContent) {
-              // Send to the API endpoint
+              // Check if this is a successful response (no error_type)
+              const isError = 'error_type' in (lastMessage as any).additional_kwargs || {};
+              
+              // Only track chat usage for successful responses
+              if (!isError) {
+                try {
+                  await authService.incrementChatUsage();
+                  const remaining = await authService.getRemainingChats();
+                  setRemainingChats(remaining);
+                  console.log('Chat usage incremented. Remaining chats:', remaining);
+                } catch (error) {
+                  console.error('Error tracking chat usage:', error);
+                }
+              }
+
+              // Send to the API endpoint regardless of success/error
               await fetch('/api/conversation', {
                 method: 'POST',
                 headers: {
@@ -86,12 +103,14 @@ export default function ChatInterface() {
                 body: JSON.stringify({
                   content: messageContent,
                   user_id: getUserId(),
-                  type: 'answer'
+                  type: isError ? 'error' : 'answer'
                 })
               });
               
               console.log('Assistant response saved successfully');
             }
+          } else {
+            console.log('Skipping chat usage tracking - last message was not from assistant');
           }
         }
       } catch (error) {
