@@ -37,6 +37,10 @@ from collections import defaultdict
 import hashlib
 import sys
 import inspect
+from agent.graph.utils.api_utils import (
+    _sanitize_sensitive_data,
+    extract_user_id_and_update_state
+)
 
 # Configure root logger
 logging.basicConfig(
@@ -330,121 +334,32 @@ async def chat_batch(
 # Add request logging middleware with sanitization
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Middleware to log incoming requests with sanitization."""
-    logger.info("\n=== Incoming Request ===")
-    logger.info(f"URL: {request.url}")
-    logger.info(f"Method: {request.method}")
+    """Middleware to log requests and responses."""
+    # Log request details
+    logger.info(f"Request: {request.method} {request.url.path}")
+    logger.info(f"Headers: {dict(request.headers)}")
     
-    # Only log non-sensitive headers in development
-    if os.getenv("ENVIRONMENT") == "development":
-        sensitive_headers = {"authorization", "cookie", "x-api-key"}
-        logger.info("Headers:")
-        for header, value in request.headers.items():
-            if header.lower() not in sensitive_headers:
-                logger.info(f"  {header}: {value}")
+    # Get request body if it exists
+    try:
+        body = await request.json()
+        # Sanitize sensitive data before logging
+        sanitized_body = _sanitize_sensitive_data(body)
+        logger.info(f"Request body: {sanitized_body}")
+        
+        # Extract user_id and update state
+        updated_body = extract_user_id_and_update_state(body)
+        # Update the request with the modified body
+        request._body = json.dumps(updated_body).encode()
+    except Exception as e:
+        logger.warning(f"Could not parse request body: {e}")
     
-    # Extract user ID and update request state
-    request, user_id = await extract_user_id_and_update_state(request)
-    
+    # Process the request
     response = await call_next(request)
-    logger.info("=== End Request ===\n")
+    
+    # Log response details
+    logger.info(f"Response status: {response.status_code}")
+    
     return response
-
-def update_request_state(body_json: dict, user_id: str | None) -> dict:
-    """Update request body with consolidated state including properties and user_id."""
-    # Ensure state exists
-    if "state" not in body_json:
-        body_json["state"] = {}
-    
-    # Merge properties into state if they exist
-    if "properties" in body_json:
-        body_json["state"].update(body_json["properties"])
-    
-    # Add user_id to state if found
-    if user_id:
-        body_json["state"]["user_id"] = user_id
-        logger.info(f"Added user_id to state: {user_id}")
-    
-    return body_json
-
-async def extract_user_id_and_update_state(request: Request) -> tuple[Request, str | None]:
-    """
-    Extract user_id from request and update state in request body.
-    
-    This function consolidates all user_id extraction logic in one place:
-    1. Extract from user_id cookie
-    2. Extract from Firebase auth cookie
-    3. Extract from x-user-id header
-    
-    Returns:
-        Updated request and extracted user_id
-    """
-    user_id = None
-    
-    # 1. Try user_id cookie (simplest direct path)
-    user_id = request.cookies.get("user_id")
-    if user_id:
-        logger.info(f"Found user_id in cookie: {user_id}")
-    
-    # 2. Try Firebase auth cookie
-    if not user_id:
-        firebase_auth = request.cookies.get("firebase:authUser")
-        if firebase_auth:
-            try:
-                # Parse firebase auth cookie (JSON with possible domain prefix)
-                if ":" in firebase_auth:
-                    firebase_auth = firebase_auth.split(":", 1)[1]
-                auth_data = json.loads(firebase_auth)
-                user_id = auth_data.get("uid")
-                if user_id:
-                    logger.info(f"Extracted user_id from Firebase auth: {user_id}")
-            except Exception as e:
-                logger.error(f"Error parsing Firebase auth cookie: {str(e)}")
-    
-    # 3. Try custom header
-    if not user_id and request.headers.get("x-user-id"):
-        user_id = request.headers.get("x-user-id")
-        logger.info(f"Using user_id from custom header: {user_id}")
-    
-    # Parse and update request body if present
-    body = await request.body()
-    if body:
-        try:
-            body_json = json.loads(body)
-            if os.getenv("ENVIRONMENT") == "development":
-                # Sanitize sensitive data for logging
-                sanitized_body = _sanitize_sensitive_data(body_json)
-                logger.info("Sanitized Body:")
-                logger.info(json.dumps(sanitized_body, indent=2))
-            
-            # Update body with combined state
-            body_json = update_request_state(body_json, user_id)
-                
-            if os.getenv("ENVIRONMENT") == "development":
-                logger.info("Updated Body with consolidated state:")
-                logger.info(json.dumps(_sanitize_sensitive_data(body_json), indent=2))
-            
-            # Create a new request with the modified body
-            request._body = json.dumps(body_json).encode()
-        except Exception as e:
-            logger.error(f"Error processing request body: {str(e)}")
-            if os.getenv("ENVIRONMENT") == "development":
-                logger.info("Raw body (sanitized): [REDACTED]")
-    
-    return request, user_id
-
-def _sanitize_sensitive_data(data: Any) -> Any:
-    """Sanitize sensitive data in request/response bodies."""
-    if isinstance(data, dict):
-        sensitive_keys = {"api_key", "password", "token", "secret"}
-        return {
-            k: "[REDACTED]" if any(sk in k.lower() for sk in sensitive_keys)
-            else _sanitize_sensitive_data(v)
-            for k, v in data.items()
-        }
-    elif isinstance(data, list):
-        return [_sanitize_sensitive_data(item) for item in data]
-    return data
 
 # Add CopilotKit endpoint with API key protection
 add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")

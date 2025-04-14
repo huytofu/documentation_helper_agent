@@ -2,7 +2,7 @@
 
 import logging
 from typing import Any, Dict, Optional, TypeVar, Generic, List
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import json
 from datetime import datetime
@@ -25,7 +25,8 @@ class APIResponse(BaseModel, Generic[T]):
     data: Optional[T] = None
     timestamp: datetime = datetime.now()
 
-    @validator('data')
+    @field_validator('data')
+    @classmethod
     def validate_data(cls, v):
         if v is None and not cls.error:
             raise ValueError('Data cannot be None when there is no error')
@@ -36,7 +37,8 @@ class GradingResponse(APIResponse[bool]):
     binary_score: bool = False
     confidence: float = 0.0
 
-    @validator('binary_score')
+    @field_validator('binary_score')
+    @classmethod
     def validate_binary_score(cls, v):
         if not isinstance(v, bool):
             raise ValueError('binary_score must be a boolean')
@@ -52,7 +54,8 @@ class GenerationResponse(APIResponse[str]):
     content: str = ""
     metadata: Dict[str, Any] = {}
 
-    @validator('content')
+    @field_validator('content')
+    @classmethod
     def validate_content(cls, v):
         if not v or len(v.strip()) == 0:
             raise ValueError('Content cannot be empty')
@@ -172,4 +175,41 @@ def get_default_response(api_type: str) -> APIResponse:
             success=False,
             error=f"API call failed for {api_type}",
             data=None
-        ) 
+        )
+
+def _sanitize_sensitive_data(data: Any) -> Any:
+    """Sanitize sensitive data in request/response bodies."""
+    if isinstance(data, dict):
+        sensitive_keys = {"api_key", "password", "token", "secret"}
+        return {
+            k: "[REDACTED]" if any(sk in k.lower() for sk in sensitive_keys)
+            else _sanitize_sensitive_data(v)
+            for k, v in data.items()
+        }
+    elif isinstance(data, list):
+        return [_sanitize_sensitive_data(item) for item in data]
+    return data
+
+def extract_user_id_and_update_state(request_body: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract user_id from request and update state.
+    
+    Args:
+        request_body: The request body containing state and user_id
+        
+    Returns:
+        Updated request body with user_id in state
+    """
+    # Extract user_id from request body
+    user_id = request_body.get("user_id")
+    
+    # Get state from request body
+    state = request_body.get("state", {})
+    
+    # Update state with user_id if present
+    if user_id:
+        state["user_id"] = user_id
+    
+    # Update request body with modified state
+    request_body["state"] = state
+    
+    return request_body
