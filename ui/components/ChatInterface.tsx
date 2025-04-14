@@ -80,7 +80,8 @@ export default function ChatInterface() {
             
             if (messageContent) {
               // Check if this is a successful response (no error_type)
-              const isError = 'error_type' in (lastMessage as any).additional_kwargs || {};
+              const additionalKwargs = (lastMessage as any).additional_kwargs || {};
+              const isError = 'error_type' in additionalKwargs;
               
               // Only track chat usage for successful responses
               if (!isError) {

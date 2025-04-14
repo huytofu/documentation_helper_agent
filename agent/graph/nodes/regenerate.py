@@ -1,4 +1,5 @@
 from typing import Any, Dict
+import asyncio
 
 from agent.graph.chains.regeneration import regeneration_chain
 from agent.graph.state import GraphState
@@ -7,6 +8,15 @@ from agent.graph.utils.message_utils import get_last_message_type, extract_outpu
 from langchain_core.documents import Document
 from agent.graph.utils.message_utils import get_page_content
 from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.api_utils import (
+    handle_api_error,
+    GENERATION_TIMEOUT,
+    cost_tracker,
+    APIResponse,
+    GenerationResponse
+)
+import logging
+logger = logging.getLogger(__name__)
 
 
 async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -43,17 +53,68 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     else:
         extra_info = ""
 
-    generation = regeneration_chain.invoke({
-        "extra_info": extra_info, 
-        "documents": joined_documents, 
-        "query": rewritten_query,
-        "generation": generation, 
-        "comments": comments
-    })
-    messages.append(AIMessage(content=generation))
+    try:
+        # Use asyncio to handle concurrent generation requests
+        llm_generation = await asyncio.wait_for(
+            asyncio.to_thread(
+                regeneration_chain.invoke,
+                {
+                    "extra_info": extra_info,
+                    "documents": joined_documents,
+                    "query": rewritten_query,
+                    "generation": generation,
+                    "comments": comments
+                }
+            ),
+            timeout=GENERATION_TIMEOUT
+        )
+        
+        # Track API usage
+        cost_tracker.track_usage(
+            'generator',
+            tokens=len(llm_generation.split()),  # Approximate token count
+            cost=0.0,  # Update cost based on actual pricing
+            requests=1
+        )
+        
+        messages.append(AIMessage(
+            content=llm_generation,
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": None
+            }
+        ))
 
-    # Return updated state with incremented retry_count
-    return {
-        "messages": messages,
-        "retry_count": retry_count
-    }
+        return {
+            "messages": messages
+        }
+    except asyncio.TimeoutError:
+        logger.error("Generation timed out")
+        messages.append(AIMessage(
+            content="BACKEND AGENT DEAD! Please try again later.",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "timeout",
+                "error_message": "Generation timed out"
+            }
+        ))
+        return {
+            "messages": messages,
+            "error": "Generation timed out"
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        logger.error(f"Error during generation: {str(e)}")
+        messages.append(AIMessage(
+            content="BACKENDS AGENT DEAD! Please try again later.",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "internal",
+                "error_message": str(e)
+            }
+        ))
+        return {
+            "messages": messages,
+            "error": str(e)
+        }

@@ -22,10 +22,14 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
         if isinstance(messages[i], AIMessage):
             # Get the original content
             original_content = messages[i].content
+            additional_kwargs = messages[i].additional_kwargs
             # Create new content with the reminder
             new_content = f"{original_content}\n\nPlease be reminded that only last 8 messages are retained in chat to save token cost."
             # Replace the message with updated content
-            messages[i] = AIMessage(content=new_content)
+            messages[i] = AIMessage(
+                content=new_content,
+                additional_kwargs=additional_kwargs
+            )
             break
 
     # Reset flow_state counters since we're at the end of the conversation

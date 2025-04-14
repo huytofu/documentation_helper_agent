@@ -62,14 +62,27 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             requests=1
         )
         
-        messages.append(AIMessage(content=llm_generation))
+        messages.append(AIMessage(
+            content=llm_generation,
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": None
+            }
+        ))
 
         return {
             "messages": messages
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
-        messages.append(AIMessage(content="BACKEND AGENT DEAD! Please try again later."))
+        messages.append(AIMessage(
+            content="BACKEND AGENT DEAD! Please try again later.",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "timeout",
+                "error_message": "Generation timed out"
+            }
+        ))
         return {
             "messages": messages,
             "error": "Generation timed out"
@@ -78,7 +91,14 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         import traceback
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
-        messages.append(AIMessage(content="BACKENDS AGENT DEAD! Please try again later."))
+        messages.append(AIMessage(
+            content="BACKENDS AGENT DEAD! Please try again later.",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "internal",
+                "error_message": str(e)
+            }
+        ))
         return {
             "messages": messages,
             "error": str(e)
