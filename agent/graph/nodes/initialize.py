@@ -51,6 +51,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Build result
     result = {
+        "current_node": "INITIALIZE",
         "language": language,
         "comments": comments,
         "framework": framework,
