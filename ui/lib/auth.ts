@@ -439,7 +439,8 @@ export class AuthService {
 
     const userRef = doc(db, 'users', this.currentUser.uid);
     await updateDoc(userRef, {
-      'chatUsage.count': increment(1)
+      'chatUsage.count': increment(1),
+      'chatUsage.lastReset': serverTimestamp()
     });
 
     // Update local state
