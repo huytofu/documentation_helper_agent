@@ -200,6 +200,7 @@ def extract_user_id_and_update_state(request_body: Dict[str, Any]) -> Dict[str, 
         Updated request body with user_id in state
     """
     # Extract user_id from request body
+    print("request_body", request_body)
     user_id = request_body.get("user_id")
     
     # Get state from request body

@@ -120,34 +120,34 @@ export const POST = async (req: NextRequest) => {
     const isAuthenticated = !!(authSession || loggedIn || firebaseAuth);
     
     // Only modify request body if we have auth session
-    if (authSession) {
-      try {
-        const body = req.body ? await req.json() : {};
-        console.log("Original request body:", body);
-        body.auth_session = authSession;
-        console.log("Modified request body:", body);
-        req = new NextRequest(req.url, {
-          method: req.method,
-          headers: req.headers,
-          body: JSON.stringify(body)
-        });
-      } catch (error) {
-        console.error("Error parsing request body:", error);
-        return new Response(
-          JSON.stringify({
-            error: "invalid_request",
-            message: "Invalid request body format",
-            display_in_chat: true
-          }),
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
-        );
-      }
-    }
+    // if (authSession) {
+    //   try {
+    //     const body = req.body ? await req.json() : {};
+    //     console.log("Original request body:", body);
+    //     body.auth_session = authSession;
+    //     console.log("Modified request body:", body);
+    //     req = new NextRequest(req.url, {
+    //       method: req.method,
+    //       headers: req.headers,
+    //       body: JSON.stringify(body)
+    //     });
+    //   } catch (error) {
+    //     console.error("Error parsing request body:", error);
+    //     return new Response(
+    //       JSON.stringify({
+    //         error: "invalid_request",
+    //         message: "Invalid request body format",
+    //         display_in_chat: true
+    //       }),
+    //       {
+    //         status: 400,
+    //         headers: {
+    //           'Content-Type': 'application/json',
+    //         }
+    //       }
+    //     );
+    //   }
+    // }
     
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
       runtime,
