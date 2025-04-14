@@ -463,11 +463,10 @@ async def health_check():
 # Add logging for agent initialization
 logger.info("FastAPI application initialized with LangGraph agent for Vercel")
 
-# Add conversation endpoint
+# Add conversation endpoint - POST only
 @app.post("/api/conversation")
 async def save_conversation(
-    request: Request,
-    api_key: str = Depends(verify_api_key)
+    request: Request
 ):
     """
     Endpoint to save conversation history.
@@ -475,6 +474,7 @@ async def save_conversation(
     This endpoint is called from the frontend API to save user questions
     and assistant answers in the database.
     """
+    print("save_conversation endpoint called")
     try:
         # Extract user ID and update request state
         request, user_id = await extract_user_id_and_update_state(request)
