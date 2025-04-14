@@ -22,19 +22,23 @@ def get_firestore_db():
         return firebase_admin.get_app()
     except ValueError:
         # Initialize Firebase Admin with service account from environment
-        # Check if running on Vercel or local
-        if os.environ.get("VERCEL_ENV"):
-            # Vercel environment - use environment variables
-            service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
-            if service_account_json:
+        service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
+        if service_account_json:
+            try:
+                # Parse the JSON string from environment variable
                 service_account_info = json.loads(service_account_json)
                 cred = credentials.Certificate(service_account_info)
-            else:
-                raise ValueError("FIREBASE_SERVICE_ACCOUNT environment variable is required in Vercel")
+            except json.JSONDecodeError:
+                logger.error("Failed to parse FIREBASE_SERVICE_ACCOUNT as JSON")
+                raise
         else:
-            # Local environment - look for service account file
+            # Fallback to service account file if environment variable not set
             service_account_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS') or 'serviceAccountKey.json'
-            cred = credentials.Certificate(service_account_path)
+            try:
+                cred = credentials.Certificate(service_account_path)
+            except FileNotFoundError:
+                logger.error(f"Service account file not found at {service_account_path}")
+                raise
             
         # Initialize the app
         firebase_admin.initialize_app(cred)
