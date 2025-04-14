@@ -15,8 +15,8 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         pass
     elif last_message_type == "ai":
         content = '''
-        <b>SYSTEM: Seems like answer not grounded in the documents.</b>/n
-        <b>SYSTEM: Please regenerate.</b>
+        SYSTEM: Seems like answer not grounded in the documents.
+        SYSTEM: Please regenerate.
         '''
         messages.append(AIMessage(content=content))
 

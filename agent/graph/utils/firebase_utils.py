@@ -25,11 +25,14 @@ def get_firestore_db():
         service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
         if service_account_json:
             try:
+                # Remove any surrounding quotes and handle escaped characters
+                service_account_json = service_account_json.strip("'\"")
                 # Parse the JSON string from environment variable
                 service_account_info = json.loads(service_account_json)
                 cred = credentials.Certificate(service_account_info)
-            except json.JSONDecodeError:
-                logger.error("Failed to parse FIREBASE_SERVICE_ACCOUNT as JSON")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT as JSON: {str(e)}")
+                logger.error(f"Raw value: {service_account_json[:100]}...")  # Log first 100 chars
                 raise
         else:
             # Fallback to service account file if environment variable not set

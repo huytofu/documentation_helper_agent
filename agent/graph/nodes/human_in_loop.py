@@ -25,9 +25,9 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     }
     
     human_in_loop = interrupt(
-        "We have an answer to your question.<br>" + 
-        "But it may not answer your question.<br>" + 
-        "Please provide a critical feedback on the generation.",
+        "We have an answer to your question.\n" + 
+        "But it may not answer your question.\n" + 
+        "Please provide a critical feedback on the generation.\n"
     )
     
     # Update result state with human input

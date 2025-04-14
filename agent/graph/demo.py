@@ -72,6 +72,53 @@ async def log_requests(request: Request, call_next):
     for header, value in request.headers.items():
         logger.info(f"  {header}: {value}")
     
+    # Extract user ID and update request state
+    request, user_id = await extract_user_id_and_update_state(request)
+    
+    response = await call_next(request)
+    logger.info("=== End Request ===\n")
+    return response
+
+async def extract_user_id_and_update_state(request: Request) -> tuple[Request, str | None]:
+    """
+    Extract user_id from request and update state in request body.
+    
+    This function consolidates all user_id extraction logic in one place:
+    1. Extract from user_id cookie
+    2. Extract from Firebase auth cookie
+    3. Extract from x-user-id header
+    
+    Returns:
+        Updated request and extracted user_id
+    """
+    user_id = None
+    
+    # 1. Try user_id cookie (simplest direct path)
+    user_id = request.cookies.get("user_id")
+    if user_id:
+        logger.info(f"Found user_id in cookie: {user_id}")
+    
+    # 2. Try Firebase auth cookie
+    if not user_id:
+        firebase_auth = request.cookies.get("firebase:authUser")
+        if firebase_auth:
+            try:
+                # Parse firebase auth cookie (JSON with possible domain prefix)
+                if ":" in firebase_auth:
+                    firebase_auth = firebase_auth.split(":", 1)[1]
+                auth_data = json.loads(firebase_auth)
+                user_id = auth_data.get("uid")
+                if user_id:
+                    logger.info(f"Extracted user_id from Firebase auth: {user_id}")
+            except Exception as e:
+                logger.error(f"Error parsing Firebase auth cookie: {str(e)}")
+    
+    # 3. Try custom header
+    if not user_id and request.headers.get("x-user-id"):
+        user_id = request.headers.get("x-user-id")
+        logger.info(f"Using user_id from custom header: {user_id}")
+    
+    # Parse and update request body if present
     body = await request.body()
     if body:
         try:
@@ -79,23 +126,45 @@ async def log_requests(request: Request, call_next):
             logger.info("Original Body:")
             logger.info(json.dumps(body_json, indent=2))
             
-            # Extract properties and assign to state if they exist
-            if "properties" in body_json:
-                properties = body_json["properties"]
-                if "state" not in body_json:
-                    body_json["state"] = {}
-                body_json["state"].update(properties)
-                logger.info("Updated Body with properties in state:")
-                logger.info(json.dumps(body_json, indent=2))
+            # Update body with combined state
+            body_json = update_request_state(body_json, user_id)
                 
-                # Create a new request with the modified body
-                request._body = json.dumps(body_json).encode()
-        except:
+            logger.info("Updated Body with consolidated state:")
+            logger.info(json.dumps(body_json, indent=2))
+            
+            # Create a new request with the modified body
+            request._body = json.dumps(body_json).encode()
+        except Exception as e:
+            logger.error(f"Error processing request body: {str(e)}")
             logger.info(f"Raw body: {body}")
     
-    response = await call_next(request)
-    logger.info("=== End Request ===\n")
-    return response
+    return request, user_id
+
+def update_request_state(body_json: dict, user_id: str | None) -> dict:
+    """
+    Update request state with user_id and other properties.
+    
+    Args:
+        body_json: The request body JSON
+        user_id: The extracted user ID
+        
+    Returns:
+        Updated request body
+    """
+    # Initialize state if not present
+    if "state" not in body_json:
+        body_json["state"] = {}
+    
+    # Add user_id to state if available
+    if user_id:
+        body_json["state"]["user_id"] = user_id
+    
+    # Extract properties and assign to state if they exist
+    if "properties" in body_json:
+        properties = body_json["properties"]
+        body_json["state"].update(properties)
+    
+    return body_json
 
 add_fastapi_endpoint(app, sdk, "/copilotkitagent")
 
