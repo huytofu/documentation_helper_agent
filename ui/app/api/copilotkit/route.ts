@@ -86,14 +86,13 @@ const runtime = new CopilotRuntime({
 });
 
 // Track chat usage after a successful response
-async function trackChatUsage(): Promise<void> {
+async function trackChatUsage(isAuthenticated: boolean): Promise<void> {
   try {
     // Get auth service instance
     const authService = AuthService.getInstance();
     
     // Check if there's an authenticated user
-    const isAuth = await authService.isAuthenticated();
-    if (!isAuth) {
+    if (!isAuthenticated) {
       console.log("No authenticated user, skipping chat usage tracking");
       return;
     }
@@ -161,7 +160,7 @@ export const POST = async (req: NextRequest) => {
     if (response.status === 200 && isAuthenticated) {
       console.log("User is authenticated, tracking chat usage");
       // Track usage in the background without blocking the response
-      trackChatUsage().catch(err => 
+      trackChatUsage(isAuthenticated).catch(err => 
         console.error("Background chat tracking failed:", err)
       );
     } else if (response.status === 200) {
