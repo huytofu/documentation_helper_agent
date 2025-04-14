@@ -190,25 +190,21 @@ def _sanitize_sensitive_data(data: Any) -> Any:
         return [_sanitize_sensitive_data(item) for item in data]
     return data
 
-def extract_user_id_and_update_state(request_body: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract user_id from request and update state.
+def extract_properties_and_update_state(request_body: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract properties from request and update state.
     
     Args:
-        request_body: The request body containing state and user_id
+        request_body: The request body containing state and properties
         
     Returns:
-        Updated request body with user_id in state
+        Updated request body with properties in state
     """
-    # Extract user_id from request body
-    print("request_body", request_body)
-    user_id = request_body.get("user_id")
-    
-    # Get state from request body
     state = request_body.get("state", {})
+    properties = request_body.get("properties", {})
     
     # Update state with user_id if present
-    if user_id:
-        state["user_id"] = user_id
+    for key, value in properties.items():
+        state[key] = value
     
     # Update request body with modified state
     request_body["state"] = state

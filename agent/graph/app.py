@@ -39,7 +39,7 @@ import sys
 import inspect
 from agent.graph.utils.api_utils import (
     _sanitize_sensitive_data,
-    extract_user_id_and_update_state
+    extract_properties_and_update_state
 )
 
 # Configure root logger
@@ -347,7 +347,7 @@ async def log_requests(request: Request, call_next):
         logger.info(f"Request body: {sanitized_body}")
         
         # Extract user_id and update state
-        updated_body = extract_user_id_and_update_state(body)
+        updated_body = extract_properties_and_update_state(body)
         # Update the request with the modified body
         request._body = json.dumps(updated_body).encode()
     except Exception as e:
@@ -398,7 +398,7 @@ async def save_conversation(request: Request):
     
     try:
         # Extract user ID and update request state
-        request, user_id = await extract_user_id_and_update_state(request)
+        request, user_id = await extract_properties_and_update_state(request)
         
         # Parse request body
         data = await request.json()

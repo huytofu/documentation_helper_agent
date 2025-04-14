@@ -9,6 +9,7 @@ export interface AgentState {
   pass_summarize: boolean;
   summarized: boolean;
   documents: any[];
+  user_id: string;
 } 
 
 

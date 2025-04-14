@@ -3,6 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { AuthService } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getUserId } from '@/lib/userUtils';
+import { AGENT_NAME } from '@/constants';
+import { useCoAgent } from '@copilotkit/react-core';
+import { AgentState } from '@/types/agent';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -14,6 +18,9 @@ export default function LoginForm() {
   const returnUrl = searchParams.get('returnUrl') || '/dashboard';
   const authError = searchParams.get('error');
   const authService = AuthService.getInstance();
+  const { state, setState } = useCoAgent<AgentState>({
+    name: AGENT_NAME
+  });
 
   useEffect(() => {
     // Set error message if redirected with error parameter
@@ -31,7 +38,7 @@ export default function LoginForm() {
       const user = await authService.login(email, password);
       
       // Set session cookie via API
-      await fetch('/api/auth/session', {
+      const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,6 +48,18 @@ export default function LoginForm() {
           email: user.email
         }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to set session cookie');
+      } else {
+        console.log('Session cookie set successfully');
+        const firebase_uid = getUserId();
+        console.log('Firebase UID:', firebase_uid);
+        setState({
+          ...state,
+          user_id: firebase_uid
+        });
+      }
       
       // Navigate to the return URL or dashboard
       router.push(returnUrl);
