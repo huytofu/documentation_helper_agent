@@ -469,7 +469,7 @@ async def health_check():
 logger.info("FastAPI application initialized with LangGraph agent for Vercel")
 
 # Add conversation endpoint - POST only
-@app.post("/conversation")
+@app.post("/api/conversation")
 async def save_conversation(request: Request):
     """
     Endpoint to save conversation history.
@@ -526,7 +526,7 @@ async def save_conversation(request: Request):
         )
 
 # Add a simple test endpoint to check if FastAPI is working correctly
-@app.get("/test")
+@app.get("/api/test")
 async def test_endpoint():
     """Simple test endpoint to verify that the FastAPI app is accessible."""
     return {"message": "FastAPI is working!"}

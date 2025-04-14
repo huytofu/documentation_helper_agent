@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_ENDPOINT, BACKEND_ENDPOINT_2, BACKEND_ENDPOINT_3, BACKEND_ENDPOINT_4 } from '@/constants';
+import { BACKEND_ENDPOINT, BACKEND_ENDPOINT_2, BACKEND_ENDPOINT_3 } from '@/constants';
 import { getUserId } from '@/lib/userUtils';
 
 /**
@@ -52,14 +52,20 @@ export async function POST(request: NextRequest) {
     };
     
     // Set up the possible backend URLs to try in sequence
-    const backendUrls = [
-      `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/conversation`,
-      `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/conversation`,
-      `${BACKEND_ENDPOINT_4.split('/copilotkitagent')[0]}/conversation`,
-      `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/api/conversation`,
-      `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/api/conversation`,
-      `${BACKEND_ENDPOINT_4.split('/copilotkitagent')[0]}/api/conversation`
-    ];
+    let backendUrls;
+    if (process.env.NODE_ENV === 'development') {
+      backendUrls = [
+        `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/conversation`,
+        `${BACKEND_ENDPOINT_2.split('/copilotkitagent')[0]}/conversation`,
+        `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/conversation`
+      ];
+    } else {
+      backendUrls = [
+        `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/api/conversation`,
+        `${BACKEND_ENDPOINT_2.split('/copilotkitagent')[0]}/api/conversation`,
+        `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/api/conversation`
+      ];
+    }
     
     console.log('Sending conversation data to backend:', payload);
     

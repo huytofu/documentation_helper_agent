@@ -208,6 +208,43 @@ async def test():
         logger.error(f"Error in test endpoint: {str(e)}", exc_info=True)
         return {"status": "error", "error": str(e)}
 
+# Add conversation API endpoint
+@app.post("/conversation")
+async def save_conversation(request: Request):
+    """
+    Endpoint to save conversation history.
+    
+    This endpoint is called from the frontend API to save user questions
+    and assistant answers in the database.
+    """
+    logger.info("Conversation endpoint called at /api/conversation")
+    
+    try:
+        # Parse request body
+        data = await request.json()
+        
+        # Log the request data
+        logger.info(f"Conversation save request received: {data}")
+        
+        # Import database utils
+        from agent.graph.utils.firebase_utils import handle_conversation_history_request
+        
+        # Forward the request to the database handler
+        result = handle_conversation_history_request(data)
+        
+        # Check if the operation was successful
+        if not result.get("success", False):
+            error_message = result.get("error", "Unknown database error")
+            logger.error(f"Failed to save conversation: {error_message}")
+            return {"success": False, "error": error_message}
+            
+        # Return successful response
+        return {"success": True, "message_id": result.get("message_id")}
+        
+    except Exception as e:
+        logger.error(f"Error in conversation endpoint: {str(e)}")
+        return {"success": False, "error": f"Server error: {str(e)}"}
+
 # Add logging for agent initialization
 logger.info("Initialized LangGraph agent")
 
