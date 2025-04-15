@@ -93,7 +93,7 @@ export class AuthService {
         createdAt: new Date(),
         lastLoginAt: null,
         apiKey: encryptedApiKey,
-        usageLimit: 20, // Default limit changed from 100 to 20
+        usageLimit: 10, // Default limit changed from 20 to 10
         isActive: false, // Will be activated after email verification
         role: 'user',
         chatUsage: {
