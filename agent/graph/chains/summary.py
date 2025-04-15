@@ -31,4 +31,4 @@ summary_prompt = ChatPromptTemplate.from_messages(
 ).partial(format_instructions=format_instructions)
 
 # Create the chain with parsing
-summary_chain = summary_prompt | llm | Summary
+summary_chain = summary_prompt | llm | output_parser
