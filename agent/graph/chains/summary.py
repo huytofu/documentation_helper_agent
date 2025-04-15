@@ -4,17 +4,18 @@ from agent.graph.models.summarizer import llm
 from pydantic import BaseModel, Field
 
 class Summary(BaseModel):
-    """The standalone query based on summary of the conversation"""
-    new_query: str = Field(description="The standalone query")
+    """The output query which is a more meaningful rewritten version of the human user's last message"""
+    rewritten_query: str = Field(description="The output query which is a more meaningful version of the human user's last message")
 
 system = """you are given an input conversation between a human user and an AI assistant.
-Summarize the conversation into a standalone query as if asked by the user.
+Based on the conversation, rewrite the last message from the user into a more meaningful
+standalone query with better context while keeping the original meaning.
 
 RULES:
-1. The more recent the message in the conversation, the more weight it has.
-2. Messages from the human user has more weight than the AI assistant.
-3. Output ONLY the standalone query without any quotes, prefixes, or explanations.
-4. Make the standalone query self-contained and clear
+1. Messages in the conversation that are more recent are more important.
+2. Output ONLY the rewritten standalone query.
+3. The output should be self-contained and clear.
+4. The output should not have any quotes, prefixes, or explanations.
 
 """
 
