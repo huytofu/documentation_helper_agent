@@ -433,21 +433,35 @@ export class AuthService {
 
     const userData = userDoc.data() as User;
     const now = new Date();
-    const lastReset = new Date(userData.chatUsage.lastReset);
+    
+    // Convert Firestore timestamp to Date if needed
+    const lastReset = userData.chatUsage.lastReset instanceof Timestamp 
+      ? userData.chatUsage.lastReset.toDate() 
+      : new Date(userData.chatUsage.lastReset);
+
+    // Format dates to compare just the date portion (YYYY-MM-DD)
+    const nowStr = now.toISOString().split('T')[0];
+    const lastResetStr = lastReset.toISOString().split('T')[0];
+    
+    console.log('Date comparison:', {
+      now: nowStr,
+      lastReset: lastResetStr,
+      currentCount: userData.chatUsage.count
+    });
 
     // Reset count if it's a new day
-    if (now.getDate() !== lastReset.getDate() || 
-        now.getMonth() !== lastReset.getMonth() || 
-        now.getFullYear() !== lastReset.getFullYear()) {
+    if (nowStr !== lastResetStr) {
+      console.log('Resetting chat count - new day detected');
       await updateDoc(doc(db, 'users', this.currentUser.uid), {
         'chatUsage.count': 0,
-        'chatUsage.lastReset': now
+        'chatUsage.lastReset': Timestamp.fromDate(now)
       });
       return true;
     }
 
     // Check if user has reached daily limit
     if (userData.chatUsage.count >= userData.usageLimit) {
+      console.log('User has reached daily limit:', userData.chatUsage.count);
       return false;
     }
 
@@ -464,8 +478,8 @@ export class AuthService {
     try {
       console.log('Incrementing chat usage for user:', this.currentUser.uid);
       
-      // Use client-side timestamp for consistency
-      const now = new Date();
+      // Use Firestore Timestamp for consistency
+      const now = Timestamp.fromDate(new Date());
       
       // Perform the update
       await updateDoc(userRef, {
@@ -481,7 +495,9 @@ export class AuthService {
       // Update local state with verified data
       if (this.currentUser.chatUsage) {
         this.currentUser.chatUsage.count = updatedData.chatUsage.count;
-        this.currentUser.chatUsage.lastReset = updatedData.chatUsage.lastReset;
+        this.currentUser.chatUsage.lastReset = updatedData.chatUsage.lastReset instanceof Timestamp 
+          ? updatedData.chatUsage.lastReset.toDate()
+          : new Date(updatedData.chatUsage.lastReset);
       }
     } catch (error: any) {
       console.error('Error incrementing chat usage:', error);
