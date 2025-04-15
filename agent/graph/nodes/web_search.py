@@ -49,9 +49,9 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     if config:
         generating_state = {
             **state,
-            "current_node": "WEB_SEARCH"
+            "current_node": "WEBSEARCH"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")

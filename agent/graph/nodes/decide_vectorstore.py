@@ -11,7 +11,7 @@ async def decide_vectorstore(state: GraphState, config: Dict[str, Any] = None) -
             **state,
             "current_node": "DECIDE_VECTORSTORE"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     

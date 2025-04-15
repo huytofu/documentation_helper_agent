@@ -48,7 +48,7 @@ async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None
             "current_node": "IMMEDIATE_MESSAGE_2",
             "documents": raw_documents  # Use raw documents in state
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
         await copilotkit_emit_message(config, content)
         #await asyncio.sleep(10)

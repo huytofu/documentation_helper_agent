@@ -33,7 +33,7 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
             **state,
             "current_node": "GRADE_DOCUMENTS"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")

@@ -10,7 +10,7 @@ async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             **state,
             "current_node": "RETRIEVE"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     query = state.get("query", "")

@@ -25,7 +25,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             **state,
             "current_node": "GENERATE"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     rewritten_query = state.get("rewritten_query", "")

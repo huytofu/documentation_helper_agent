@@ -22,7 +22,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
             **state,
             "current_node": "INITIALIZE"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
     
     # Get and trim messages

@@ -15,7 +15,7 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
             **state,
             "current_node": "HUMAN_IN_LOOP"
         }
-        print(f"Emitting generating state: {generating_state}")
+        # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
 
     
