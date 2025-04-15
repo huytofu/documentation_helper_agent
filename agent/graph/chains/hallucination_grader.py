@@ -12,17 +12,20 @@ class GradeHallucinations(BaseModel):
         description="Generation is grounded in documents, 'true' or 'false'"
     )
 
-def parse_hallucination(text: str) -> GradeHallucinations:
+def parse_hallucination(message) -> GradeHallucinations:
+    # Extract content from AIMessage
+    content = message.content if hasattr(message, 'content') else str(message)
+    
     try:
         # Try to parse as JSON first
-        data = json.loads(text)
+        data = json.loads(content)
         return GradeHallucinations(**data)
     except json.JSONDecodeError:
         # If not JSON, try to parse yes/no response
-        text = text.strip().lower()
-        if text == "true":
+        content = content.strip().lower()
+        if content == "true":
             return GradeHallucinations(binary_score=True)
-        elif text == "false":
+        elif content == "false":
             return GradeHallucinations(binary_score=False)
         else:
             # Default to False if we can't parse

@@ -23,14 +23,17 @@ RULES:
 
 """
 
-def parse_summary(text: str) -> Summary:
+def parse_summary(message) -> Summary:
+    # Extract content from AIMessage
+    content = message.content if hasattr(message, 'content') else str(message)
+    
     try:
         # Try to parse as JSON first
-        data = json.loads(text)
+        data = json.loads(content)
         return Summary(**data)
     except json.JSONDecodeError:
         # If not JSON, wrap the text in the required format
-        return Summary(rewritten_query=text.strip())
+        return Summary(rewritten_query=content.strip())
 
 summary_prompt = ChatPromptTemplate.from_messages(
     [

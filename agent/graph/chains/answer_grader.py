@@ -10,17 +10,20 @@ class GradeAnswer(BaseModel):
         description="Answer addresses the query, 'true' or 'false'"
     )
 
-def parse_answer(text: str) -> GradeAnswer:
+def parse_answer(message) -> GradeAnswer:
+    # Extract content from AIMessage
+    content = message.content if hasattr(message, 'content') else str(message)
+    
     try:
         # Try to parse as JSON first
-        data = json.loads(text)
+        data = json.loads(content)
         return GradeAnswer(**data)
     except json.JSONDecodeError:
         # If not JSON, try to parse yes/no response
-        text = text.strip().lower()
-        if text == "true":
+        content = content.strip().lower()
+        if content == "true":
             return GradeAnswer(binary_score=True)
-        elif text == "false":
+        elif content == "false":
             return GradeAnswer(binary_score=False)
         else:
             # Default to False if we can't parse

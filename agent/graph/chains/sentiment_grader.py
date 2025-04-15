@@ -9,17 +9,20 @@ class GradeSentiment(BaseModel):
         description="Comments are positive, 'true' or 'false'"
     )
 
-def parse_sentiment(text: str) -> GradeSentiment:
+def parse_sentiment(message) -> GradeSentiment:
+    # Extract content from AIMessage
+    content = message.content if hasattr(message, 'content') else str(message)
+    
     try:
         # Try to parse as JSON first
-        data = json.loads(text)
+        data = json.loads(content)
         return GradeSentiment(**data)
     except json.JSONDecodeError:
         # If not JSON, try to parse yes/no response
-        text = text.strip().lower()
-        if text == "true":
+        content = content.strip().lower()
+        if content == "true":
             return GradeSentiment(binary_score=True)
-        elif text == "false":
+        elif content == "false":
             return GradeSentiment(binary_score=False)
         else:
             # Default to False if we can't parse
