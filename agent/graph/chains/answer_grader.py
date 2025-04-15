@@ -33,9 +33,9 @@ system = """You are a grader assessing whether an answer addresses or resolves t
 
     (IMPORTANT!) Your answer must be either 'true' or 'false' only!
     You MUST output your response in the following JSON format:
-    {
+    {{
         "binary_score": true/false
-    }
+    }}
     """
 answer_prompt = ChatPromptTemplate.from_messages(
     [

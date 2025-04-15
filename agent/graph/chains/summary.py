@@ -17,9 +17,9 @@ RULES:
 2. The rewritten query should be self-contained and clear.
 3. The rewritten query should not have any quotes, prefixes, or explanations.
 4. You MUST output in the following JSON format:
-{
+{{
     "rewritten_query": "your rewritten query here"
-}
+}}
 
 """
 

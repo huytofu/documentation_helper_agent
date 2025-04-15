@@ -35,9 +35,9 @@ system = """You are a grader assessing whether a generation is grounded in the p
 
     (IMPORTANT!) Your answer must be either 'true' or 'false' only!
     You MUST output your response in the following JSON format:
-    {
+    {{
         "binary_score": true/false
-    }
+    }}
     """
 hallucination_prompt = ChatPromptTemplate.from_messages(
     [

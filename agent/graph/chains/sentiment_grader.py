@@ -32,9 +32,9 @@ system = """You are a grader assessing whether comments are positive or negative
 
     (IMPORTANT!) Your answer must be either 'true' or 'false' only!
     You MUST output your response in the following JSON format:
-    {
+    {{
         "binary_score": true/false
-    }
+    }}
     """
 sentiment_prompt = ChatPromptTemplate.from_messages(
     [
