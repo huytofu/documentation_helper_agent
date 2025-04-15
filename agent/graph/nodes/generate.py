@@ -14,6 +14,7 @@ from agent.graph.utils.api_utils import (
     APIResponse,
     GenerationResponse
 )
+from agent.graph.utils.message_utils import convert_to_raw_documents
 import logging
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,9 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     framework = state.get("framework", "")
     messages = state.get("messages", [])
 
-    joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
+    raw_documents = convert_to_raw_documents(documents)
+
+    joined_documents = "\n\n".join([get_page_content(doc) for doc in raw_documents[:3]])
 
     if framework and (framework not in ["none", ""]):
         extra_info = f"and is expert at the {framework} framework"
@@ -71,7 +74,8 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         ))
 
         return {
-            "messages": messages
+            "messages": messages,
+            "documents": raw_documents
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
@@ -85,6 +89,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         ))
         return {
             "messages": messages,
+            "documents": raw_documents,
             "error": "Generation timed out"
         }
     except Exception as e:
@@ -101,5 +106,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         ))
         return {
             "messages": messages,
+            "documents": raw_documents,
             "error": str(e)
         }

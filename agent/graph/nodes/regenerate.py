@@ -15,6 +15,7 @@ from agent.graph.utils.api_utils import (
     APIResponse,
     GenerationResponse
 )
+from agent.graph.utils.message_utils import convert_to_raw_documents
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,9 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     documents = state.get("documents", [])
     framework = state.get("framework", "")
     messages = state.get("messages", [])
-    retry_count = state.get("retry_count", 0) + 1  # Increment retry count
+
+    # Convert documents to raw format
+    raw_documents = convert_to_raw_documents(documents)
     
     if config:
         generating_state = {
@@ -46,7 +49,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     comments = state.get("comments", "")
 
-    joined_documents = "\n\n".join([get_page_content(doc) for doc in documents[:3]])
+    joined_documents = "\n\n".join([get_page_content(doc) for doc in raw_documents[:3]])
 
     if framework and (framework not in ["none", ""]):
         extra_info = f"and is expert at the {framework} framework"
@@ -86,7 +89,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         ))
 
         return {
-            "messages": messages
+            "messages": messages,
+            "documents": raw_documents
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
@@ -100,6 +104,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         ))
         return {
             "messages": messages,
+            "documents": raw_documents,
             "error": "Generation timed out"
         }
     except Exception as e:
@@ -116,5 +121,6 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         ))
         return {
             "messages": messages,
+            "documents": raw_documents,
             "error": str(e)
         }

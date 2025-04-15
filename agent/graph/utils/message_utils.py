@@ -4,6 +4,21 @@ from typing import Dict, Any, Set
 import inspect
 from agent.graph.state import OutputGraphState
 
+def convert_to_raw_documents(documents):
+    """Convert LangChain documents to raw format."""
+    raw_documents = []
+    for doc in documents:
+        if isinstance(doc, dict) and "lc" in doc:  # LangChain serialized format
+            raw_doc = {
+                "metadata": doc.get("kwargs", {}).get("metadata", {}),
+                "page_content": doc.get("kwargs", {}).get("page_content", ""),
+                "type": doc.get("kwargs", {}).get("type", "Document")
+            }
+        else:  # Already in raw format
+            raw_doc = doc
+        raw_documents.append(raw_doc)
+    return raw_documents
+
 def trim_messages(messages: list, max_messages: int = 8) -> list:
     """Trim the messages list to contain only the last N messages."""
     if len(messages) > max_messages:
