@@ -133,7 +133,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
         </div>
       )}
       
-      {state.retry_count !== undefined && (
+      {/* {state.retry_count !== undefined && (
         <div className="rounded-lg border border-orange-100 bg-orange-50/50 overflow-hidden">
           <div className="bg-orange-100/50 px-3 py-2 border-b border-orange-100 flex items-center gap-2">
             <RefreshCw className="h-4 w-4 text-orange-600" />
@@ -145,7 +145,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
             </span>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
@@ -249,14 +249,14 @@ export default function AgentStatePanel({ directState }: AgentStatePanelProps) {
             Agent Status
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           {isComplete && (
             <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" />
               <span>Complete</span>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
       
       {directState ? (

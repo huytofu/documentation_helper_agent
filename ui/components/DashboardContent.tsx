@@ -121,15 +121,15 @@ export default function DashboardContent({
             </div>
         </div>
         ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-16rem)]">
             {/* Chat Interface - Takes 3/4 of the width on large screens */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 h-full">
               <ChatInterface state={state} setState={setState} />
             </div>
             
             {/* Agent State Panel - Takes 1/4 of the width on large screens */}
-            <div className="lg:col-span-1 flex items-center">
-              <div className="w-full">
+            <div className="lg:col-span-1 h-full">
+              <div className="h-full">
                 <AgentStatePanel directState={state}/>
               </div>
             </div>
