@@ -163,6 +163,7 @@ class InputGraphState(CopilotKitState):
 
     language: str = ""
     comments: str = ""
+    user_id: str = ""
 
 class OutputGraphState(CopilotKitState):
     """

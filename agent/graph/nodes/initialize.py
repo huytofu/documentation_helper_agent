@@ -27,21 +27,18 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Get and trim messages
     messages = trim_messages(state.get("messages", []))
-    
-    # Extract basic state
-    language = state.get("language", "python")
-    comments = ""
-    framework = ""
-    retry_count = 0
-    
     # Simplified query and rewritten_query initialization
     if messages:
         # Extract query from last human message
         last_message_type = get_last_message_type(messages)
         if last_message_type == "human":
             query = messages[-1].content
-    # Set rewritten_query to query if not provided
-
+    
+    # Extract basic state
+    language = state.get("language", "python")
+    comments = ""
+    framework = ""
+    retry_count = 0
     pass_summarize = False
     summarized = False
     documents = []
@@ -61,6 +58,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     # Save the query as a question in the database if available
     user_id = state.get("user_id", "")
     if query:
+        # Set rewritten_query to query if not provided
         result["query"] = query
         result["rewritten_query"] = query
         if user_id:
