@@ -19,11 +19,10 @@ def simplify_messages(messages: list) -> list:
     """Simplify messages to only include human messages and assistant messages."""
     simplified_messages = []
     for message in messages:
-        print(message)
         if message.type == "human":
-            simplified_messages.append({"role": "user", "content": message.content, "timestamp": message.createdAt})
+            simplified_messages.append({"role": "user", "content": message.content})
         elif message.type in ["assistant", "ai"]:
-            simplified_messages.append({"role": "assistant", "content": message.content, "timestamp": message.createdAt})
+            simplified_messages.append({"role": "assistant", "content": message.content})
     return simplified_messages
 
 async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
