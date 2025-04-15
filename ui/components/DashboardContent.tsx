@@ -35,16 +35,6 @@ export default function DashboardContent({
     name: AGENT_NAME
   });
 
-  const handleLanguageChange = (language: ProgrammingLanguage | "") => {
-    // Update parent state
-    parentOnLanguageChange(language);
-    
-    // Update agent state
-    setState({
-      ...state,
-      language: language
-    });
-  };
 
   // Set mounted to true when component mounts on client
   useEffect(() => {
@@ -55,24 +45,16 @@ export default function DashboardContent({
 
   useEffect(() => {
     if (mounted) {
-      if (selectedLanguage) {
-        setState({
-          ...state,
-          language: selectedLanguage
-        });
-        console.log("Set Agent State Language to: ", selectedLanguage);
-      }
-      const user_id = getUserId();
-      if (user_id) {
-        setState({
-          ...state,
-          user_id: user_id
-        });
-        console.log("Set Agent State User ID to: ", user_id);
-      }
-      
+      // Update state with selectedLanguage and user_id
+      const newState = {
+        ...state,
+        language: selectedLanguage || "python",  // Ensure we always have a default language
+        user_id: getUserId() || ""
+      };
+      setState(newState);
+      console.log("Updated Agent State:", newState);
     }
-  }, [mounted]);
+  }, [mounted, selectedLanguage]);
 
   // Don't render anything with CopilotKit until we're mounted on client
   if (!mounted) {
@@ -97,7 +79,7 @@ export default function DashboardContent({
         <div className="mb-6">
         <LanguageSelector 
             selectedLanguage={selectedLanguage} 
-            onLanguageChange={handleLanguageChange} 
+            onLanguageChange={parentOnLanguageChange} 
         />
         </div>
 

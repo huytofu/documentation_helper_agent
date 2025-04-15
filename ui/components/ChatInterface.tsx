@@ -48,14 +48,18 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
         setRemainingChats(remaining);
       } catch (error) {
         console.error('Error checking chat availability:', error);
-        setCanChat(false);
+        // Only set canChat to false if it's a usage limit error
+        // For other errors (like Firestore connection), keep canChat as true
+        if (error instanceof Error && error.message.includes('usage limit')) {
+          setCanChat(false);
+        }
       }
     };
 
     // Initial check
     checkChatAvailability();
 
-    // Set up periodic checks (every 60 seconds)
+    // Set up periodic checks (every 15 seconds)
     const intervalId = setInterval(checkChatAvailability, 15000);
     
     // Clean up interval on unmount
