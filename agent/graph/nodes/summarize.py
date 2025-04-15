@@ -63,7 +63,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         # Track API usage
         cost_tracker.track_usage(
             'summarizer',
-            tokens=len(summary_result.new_query.split()),  # Approximate token count
+            tokens=len(summary_result.rewritten_query.split()),  # Approximate token count
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
