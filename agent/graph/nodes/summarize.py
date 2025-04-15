@@ -61,15 +61,23 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         )
         
         # Track API usage
+        if summary_result is not None:
+            try:
+                result_text = summary_result.rewritten_query
+            except Exception as e:
+                result_text = summary_result["rewritten_query"]
+        else:
+            result_text = ""
+
         cost_tracker.track_usage(
             'summarizer',
-            tokens=len(summary_result.rewritten_query.split()),  # Approximate token count
+            tokens=len(result_text.split()),  # Approximate token count
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
 
         # Update the query in state with the summarized result
-        rewritten_query = summary_result.rewritten_query
+        rewritten_query = result_text
 
         if rewritten_query == "":
             return {
