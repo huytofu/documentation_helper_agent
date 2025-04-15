@@ -10,6 +10,7 @@ import { User } from '@/types/user';
 import { AGENT_NAME } from '@/constants';
 import { useCoAgent } from '@copilotkit/react-core';
 import { AgentState } from '@/types/agent';
+import { getUserId } from '@/lib/userUtils';
 
 // Dynamically import components that use CopilotKit features
 const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
@@ -50,6 +51,17 @@ export default function DashboardContent({
     // Add a slightly longer delay to ensure context is fully initialized
     const timer = setTimeout(() => setMounted(true), 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const addUsertoState = async () => {
+      const user_id = getUserId();
+      setState({
+        ...state,
+        user_id: user_id
+      });
+    }
+    setInterval(addUsertoState, 1000);
   }, []);
 
   // Don't render anything with CopilotKit until we're mounted on client

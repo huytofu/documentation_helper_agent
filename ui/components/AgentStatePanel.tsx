@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useCoAgent } from '@copilotkit/react-core';
-import { ProgrammingLanguage } from '@/types';
 import { AgentState } from '@/types/agent';
-import { AGENT_NAME } from '@/constants';
 import { Activity, Code, MessageSquare, Terminal, Cpu, Loader2, CheckCircle2, Clock, Search, RefreshCw } from 'lucide-react';
 
 
@@ -158,8 +155,6 @@ interface AgentStatePanelProps {
 }
 
 export default function AgentStatePanel({ directState }: AgentStatePanelProps) {
-  // Get state directly from useCoAgent
-  
   // State for tracking loading and updates
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -237,7 +232,6 @@ export default function AgentStatePanel({ directState }: AgentStatePanelProps) {
     return <div className="rounded-xl border bg-card/50 p-4 text-center">Loading agent state...</div>;
   }
 
-  // Render component with state from useCoAgent
   return (
     <div className="rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-lg overflow-hidden">
       <div className={`flex items-center justify-between gap-2 p-4 border-b ${

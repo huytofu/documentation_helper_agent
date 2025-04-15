@@ -4,6 +4,7 @@ from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.firebase_utils import save_conversation_message_api
+from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.graph")
 
@@ -16,6 +17,13 @@ def trim_messages(messages: list, max_messages: int = 8) -> list:
 async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Initialize the graph with the necessary state."""
     print("---INITIALIZE---")
+    if config:
+        generating_state = {
+            **state,
+            "current_node": "INITIALIZE"
+        }
+        print(f"Emitting generating state: {generating_state}")
+        await copilotkit_emit_state(config, generating_state)
     
     # Get and trim messages
     messages = trim_messages(state.get("messages", []))
@@ -36,13 +44,16 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
 
     # Save the query as a question in the database if available
     user_id = state.get("user_id", "")
-    if query and user_id:
-        try:
-            logger.info(f"Saving query as question for user {user_id}")
-            await save_conversation_message_api(user_id, "question", query)
-            logger.info(f"Successfully saved query for user {user_id}")
-        except Exception as e:
-            logger.error(f"Failed to save query to database: {e}")
+    if query:
+        result["query"] = query
+        result["rewritten_query"] = query
+        if user_id:
+            try:
+                logger.info(f"Saving query as question for user {user_id}")
+                await save_conversation_message_api(user_id, "question", query)
+                logger.info(f"Successfully saved query for user {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save query to database: {e}")
 
     
     pass_summarize = False
@@ -51,7 +62,6 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     # Build result
     result = {
-        "current_node": "INITIALIZE",
         "language": language,
         "comments": comments,
         "framework": framework,
@@ -61,9 +71,5 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         "summarized": summarized,
         "documents": documents,
     }
-    
-    if query:
-        result["query"] = query
-        result["rewritten_query"] = query
         
     return result

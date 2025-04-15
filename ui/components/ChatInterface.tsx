@@ -4,9 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import "@copilotkit/react-ui/styles.css";
 import { CopilotChat } from '@copilotkit/react-ui';
 import { MessageSquare } from 'lucide-react';
-import { useCoAgent, useCopilotChat } from '@copilotkit/react-core';
-import { MessageRole, TextMessage, Role } from '@copilotkit/runtime-client-gql';
-import { AGENT_NAME } from '@/constants';
+import { useCopilotChat } from '@copilotkit/react-core';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
@@ -58,7 +56,7 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
     checkChatAvailability();
 
     // Set up periodic checks (every 60 seconds)
-    const intervalId = setInterval(checkChatAvailability, 60000);
+    const intervalId = setInterval(checkChatAvailability, 15000);
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
@@ -68,37 +66,6 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
   useEffect(() => {
     console.log('Chat in progress:', chatInProgress);
   }, [chatInProgress]);
-
-  // Add effect to track state changes
-  useEffect(() => {
-    console.log('State changed:', {
-      current_node: state.current_node,
-      timestamp: new Date().toISOString()
-    });
-  }, [state.current_node]);
-
-  const handleSubmitMessage = async (message: string) => {
-    console.log('Submitting message:', message);
-    let user_id = getUserId();
-    console.log('User ID:', user_id);
-    console.log('Previous state:', {
-      ...state,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Reset state with spread
-    const newState = {
-      ...state,
-      current_node: "INITIALIZE",
-      user_id: user_id
-    };
-    
-    console.log('Setting new state:', {
-      ...newState,
-      timestamp: new Date().toISOString()
-    });
-    setState(newState);
-  };
 
   const handleChatProgress = async (inProgress: boolean) => {
     if (!inProgress && chatInProgress) {
@@ -188,7 +155,6 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
                 }
                 key={shouldReload ? 1 : 0}
                 onInProgress={handleChatProgress}
-                onSubmitMessage={handleSubmitMessage}
               />
             </div>
           </div>
