@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 def get_firestore_db():
     """Get Firestore database instance."""
     try:
-        # Use the app if it exists
-        return firebase_admin.get_app()
+        # Check if app exists
+        app = firebase_admin.get_app()
+        return firestore.client(app)
     except ValueError:
         # Initialize Firebase Admin with service account from environment
         service_account_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
@@ -44,10 +45,10 @@ def get_firestore_db():
                 raise
             
         # Initialize the app
-        firebase_admin.initialize_app(cred)
-    
-    # Return Firestore client
-    return firestore.client()
+        app = firebase_admin.initialize_app(cred)
+        
+        # Return Firestore client
+        return firestore.client(app)
 
 def extract_user_id_from_system_message(content: str) -> Optional[str]:
     """
