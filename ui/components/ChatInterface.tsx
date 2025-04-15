@@ -37,7 +37,7 @@ export default function ChatInterface() {
   useEffect(() => {
     const checkChatAvailability = async () => {
       try {
-        const currentUser = authService.getCurrentUser();
+        const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         const canUserChat = await authService.checkChatLimit();
         const remaining = await authService.getRemainingChats();

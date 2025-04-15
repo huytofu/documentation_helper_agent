@@ -44,7 +44,7 @@ export default function DashboardPage() {
         try {
           console.log('User is authenticated:', firebaseUser.uid);
           // Get user data from auth service
-          const currentUser = authService.getCurrentUser();
+          const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
         } catch (error) {
           console.error('Failed to load user data:', error);

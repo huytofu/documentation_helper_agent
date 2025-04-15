@@ -319,8 +319,30 @@ export class AuthService {
     }
   }
 
-  public getCurrentUser(): User | null {
-    return this.currentUser;
+  public async getCurrentUser(): Promise<User | null> {
+    if (!this.currentUser) {
+      return null;
+    }
+
+    // Fetch fresh data from Firestore
+    const userDoc = await getDoc(doc(db, 'users', this.currentUser.uid));
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data() as User;
+    
+    // Decrypt sensitive data
+    if (userData.apiKey) {
+      userData.apiKey = await decrypt(userData.apiKey);
+    }
+    if (userData.email) {
+      userData.email = await decrypt(userData.email);
+    }
+
+    // Update the cached user
+    this.currentUser = userData;
+    return userData;
   }
 
   public async isAuthenticated(): Promise<boolean> {
@@ -438,14 +460,32 @@ export class AuthService {
     }
 
     const userRef = doc(db, 'users', this.currentUser.uid);
-    await updateDoc(userRef, {
-      'chatUsage.count': increment(1),
-      'chatUsage.lastReset': serverTimestamp()
-    });
-
-    // Update local state
-    if (this.currentUser.chatUsage) {
-      this.currentUser.chatUsage.count += 1;
+    
+    try {
+      console.log('Incrementing chat usage for user:', this.currentUser.uid);
+      
+      // Use client-side timestamp for consistency
+      const now = new Date();
+      
+      // Perform the update
+      await updateDoc(userRef, {
+        'chatUsage.count': increment(1),
+        'chatUsage.lastReset': now
+      });
+      
+      // Verify the update
+      const updatedDoc = await getDoc(userRef);
+      const updatedData = updatedDoc.data() as User;
+      console.log('Updated chat usage count:', updatedData.chatUsage.count);
+      
+      // Update local state with verified data
+      if (this.currentUser.chatUsage) {
+        this.currentUser.chatUsage.count = updatedData.chatUsage.count;
+        this.currentUser.chatUsage.lastReset = updatedData.chatUsage.lastReset;
+      }
+    } catch (error: any) {
+      console.error('Error incrementing chat usage:', error);
+      throw new Error(`Failed to increment chat usage: ${error.message}`);
     }
   }
 
