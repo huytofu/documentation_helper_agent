@@ -145,10 +145,7 @@ def save_conversation_message(user_id: str, message_type: str, content: str) -> 
 
 async def save_conversation_message_api(user_id: str, message_type: str, content: str) -> Dict[str, Any]:
     """
-    Save a conversation message via API for use from LangGraph nodes.
-    
-    This version is designed to be called from within LangGraph nodes which
-    may not have direct Firebase access. It calls an API endpoint instead.
+    Save a conversation message via Firebase Admin SDK using service account credentials.
     
     Args:
         user_id: The ID of the user
@@ -168,39 +165,36 @@ async def save_conversation_message_api(user_id: str, message_type: str, content
         logger.error("Cannot save conversation message: Invalid user_id")
         return {"success": False, "error": "Invalid user_id"}
         
-    # This is a placeholder for the actual API implementation
-    # In a real scenario, you would use the API endpoint URL from configuration
     try:
-        # Call the Firebase REST API directly
-        api_url = os.environ.get("FIREBASE_API_URL")
-        api_key = os.environ.get("FIREBASE_API_KEY")
+        # Get Firestore client using service account credentials
+        db = get_firestore_db()
         
-        if not api_url or not api_key:
-            logger.error("Firebase API URL or key not configured")
-            return {"success": False, "error": "Firebase API not configured"}
-            
-        # Format the request payload
-        payload = {
+        # Create new document in conversation_history collection
+        conversation_ref = db.collection('conversation_history').document()
+        
+        # Create timestamp
+        timestamp = datetime.datetime.now()
+        
+        # Create document data
+        doc_data = {
             "user_id": user_id,
             "type": message_type,
             "content": content,
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": timestamp
         }
         
-        # Make the API request
-        response = requests.post(
-            f"{api_url}/conversation_history?key={api_key}", 
-            json=payload,
-            headers={"Content-Type": "application/json"}
-        )
+        # Save document
+        conversation_ref.set(doc_data)
         
-        if response.status_code == 200:
-            return {"success": True, "message_id": response.json().get("name")}
-        else:
-            return {"success": False, "error": f"API error: {response.status_code}"}
-            
+        logger.info(f"Saved {message_type} message for user {user_id}")
+        return {
+            "success": True,
+            "message_id": conversation_ref.id,
+            "timestamp": timestamp
+        }
+        
     except Exception as e:
-        logger.error(f"Error using API to save conversation: {str(e)}")
+        logger.error(f"Error saving conversation message: {str(e)}")
         return {"success": False, "error": str(e)}
 
 # Frontend API route handler logic (to be implemented in api/conversation/route.ts)
