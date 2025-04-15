@@ -16,14 +16,17 @@ logger = logging.getLogger("graph.web_search")
 
 web_search_tool = TavilySearchResults(k=3)
 
-def get_content(doc: Document) -> str:
+def get_content(doc) -> str:
     if isinstance(doc, Document):
         if doc.metadata.get("source") == "web":
             return doc.page_content[:500]
         else:
             return ""
     else:
-        return ""
+        if isinstance(doc, dict):
+            return doc["content"][:500]
+        else:
+            return ""
 
 @timeout(STANDARD_TIMEOUT)
 @handle_api_error
