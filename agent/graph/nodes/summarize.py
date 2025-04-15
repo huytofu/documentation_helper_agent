@@ -69,7 +69,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         )
 
         # Update the query in state with the summarized result
-        rewritten_query = summary_result.new_query
+        rewritten_query = summary_result.rewritten_query
 
         if rewritten_query == "":
             return {
