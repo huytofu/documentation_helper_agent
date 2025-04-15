@@ -5,14 +5,9 @@ from langchain_core.messages import HumanMessage
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.firebase_utils import save_conversation_message_api
 from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.message_utils import trim_messages
 
 logger = logging.getLogger("graph.graph")
-
-def trim_messages(messages: list, max_messages: int = 8) -> list:
-    """Trim the messages list to contain only the last N messages."""
-    if len(messages) > max_messages:
-        return messages[-max_messages:]
-    return messages
 
 async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Initialize the graph with the necessary state."""

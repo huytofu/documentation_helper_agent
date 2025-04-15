@@ -4,6 +4,12 @@ from typing import Dict, Any, Set
 import inspect
 from agent.graph.state import OutputGraphState
 
+def trim_messages(messages: list, max_messages: int = 8) -> list:
+    """Trim the messages list to contain only the last N messages."""
+    if len(messages) > max_messages:
+        return messages[-max_messages:]
+    return messages
+
 def get_page_content(doc: Document) -> str:
     if doc.metadata.get("source") == "web":
         return doc.page_content[:500]
