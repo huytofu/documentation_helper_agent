@@ -8,11 +8,22 @@ from agent.graph.utils.api_utils import (
     handle_api_error,
     cost_tracker,
 )
+from agent.graph.utils.message_utils import trim_messages
 import logging
 logger = logging.getLogger(__name__)
 
 # Define timeout for summarization (30 seconds as requested)
 SUMMARIZE_TIMEOUT = 30
+
+def simplify_messages(messages: list) -> list:
+    """Simplify messages to only include human messages and assistant messages."""
+    simplified_messages = []
+    for message in messages:
+        if message.type == "human":
+            simplified_messages.append({"role": "user", "content": message.content, "timestamp": message.timestamp})
+        elif message.type in ["assistant", "ai"]:
+            simplified_messages.append({"role": "assistant", "content": message.content, "timestamp": message.timestamp})
+    return simplified_messages
 
 async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---SUMMARIZE---")
@@ -33,6 +44,8 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         await copilotkit_emit_state(config, summarizing_state)
 
     messages = state.get("messages", [])
+    messages = trim_messages(messages)
+    messages = simplify_messages(messages)
 
     try:
         # Use asyncio to handle concurrent summarization requests with timeout

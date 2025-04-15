@@ -62,7 +62,7 @@ const StatusContent = ({ state, isLoading, isComplete }: {
               <span>Processing...</span>
             </div>
           ) : (
-            state.current_node || "Waiting for agent to start..."
+            state.current_node || (isComplete ? "FINISHED" : "Waiting for agent to start...")
           )}
         </div>
       </div>
@@ -83,19 +83,18 @@ const StatusContent = ({ state, isLoading, isComplete }: {
         </div>
       </div>
       
-      {state.framework && (
-        <div className="rounded-lg border border-rose-100 bg-rose-50/50 overflow-hidden">
-          <div className="bg-rose-100/50 px-3 py-2 border-b border-rose-100 flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-rose-600" />
-            <h3 className="text-sm font-medium text-rose-700">Vectorstore</h3>
-          </div>
-          <div className="p-3 text-sm">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-              {state.framework}
-            </span>
-          </div>
+      <div className="rounded-lg border border-rose-100 bg-rose-50/50 overflow-hidden">
+        <div className="bg-rose-100/50 px-3 py-2 border-b border-rose-100 flex items-center gap-2">
+          <Cpu className="h-4 w-4 text-rose-600" />
+          <h3 className="text-sm font-medium text-rose-700">Vectorstore</h3>
         </div>
-      )}
+        <div className="p-3 text-sm">
+        {state.framework? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
+            {state.framework}
+          </span>) : ("Not detected")}
+        </div>
+      </div>
       
       {state.rewritten_query && (
         <div className="rounded-lg border border-teal-100 bg-teal-50/50 overflow-hidden">

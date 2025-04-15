@@ -19,7 +19,7 @@ async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> D
     res_language = result.language
     
     if res_language in [None, "none"]:
-        query = f"{query}. Please write code in {language} language"
+        query = f"{query}. Please asnwer in {language} language"
         return {"language": language, "query": query}
     else:
         return {"language": res_language}
