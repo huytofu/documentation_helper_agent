@@ -143,7 +143,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         hallucination_counter += 1
         try:
             score: GradeHallucinations = grade_hallucinations(
-                documents="\n\n".join([doc.page_content for doc in documents]),
+                documents="\n\n".join([doc.page_content[:500] for doc in documents]),
                 generation=generation
             )
         except TimeoutError:

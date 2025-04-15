@@ -19,6 +19,7 @@ system = """
 
     Please help revise or improve the answer to better address the user's query 
     based on the provided documents, the previous generation and the comments.
+    Keep your revised answer to 500 words or less.
     """
 regeneration_prompt = ChatPromptTemplate.from_messages(
     [

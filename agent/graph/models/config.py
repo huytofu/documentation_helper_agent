@@ -56,8 +56,10 @@ MODEL_IDS = {
     "sentiment_grader": "mistralai/Mistral-7B-Instruct-v0.3",
     "answer_grader": "mistralai/Mistral-7B-Instruct-v0.3",
     "retrieval_grader": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    "hallucinate_grader": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-    "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    # "hallucinate_grader": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    # "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "hallucinate_grader": "Qwen/Qwen2.5-14B-Instruct",
+    "summarizer": "Qwen/Qwen2.5-14B-Instruct",
     "generator": "deepseek-ai/deepseek-coder-v2-instruct"
 }
 
@@ -69,8 +71,10 @@ OLLAMA_MODELS = {
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",
     "retrieval_grader": "mixtral:8x7b",
-    "hallucinate_grader": "llama3.1:latest",
-    "summarizer": "llama3.1:latest",
+    # "hallucinate_grader": "llama3.1:latest",
+    # "summarizer": "llama3.1:latest",
+    "hallucinate_grader": "qwen2.5:14b",
+    "summarizer": "qwen2.5:14b",
     "generator": "deepseek-coder:33b"
 }
 
