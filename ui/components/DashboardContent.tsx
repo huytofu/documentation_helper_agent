@@ -58,10 +58,11 @@ export default function DashboardContent({
       const user_id = getUserId();
       setState({
         ...state,
+        language: selectedLanguage,
         user_id: user_id
       });
     }
-    setInterval(addUsertoState, 1000);
+    setInterval(addUsertoState, 2000);
   }, []);
 
   // Don't render anything with CopilotKit until we're mounted on client
