@@ -1,11 +1,11 @@
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.summarizer import llm
 from pydantic import BaseModel, Field
 
 class Summary(BaseModel):
-    """The output query which is a more meaningful rewritten version of the human user's last message"""
-    rewritten_query: str = Field(description="The output query which is a more meaningful version of the human user's last message")
+    """The rewritten version of the human user's last message that is more meaningful"""
+    rewritten_query: str = Field(description="The rewritten version of the human user's last message that is more meaningful")
 
 system = """you are given an input conversation between a human user and an AI assistant.
 Based on the conversation, rewrite the last message from the user into a more meaningful
@@ -20,7 +20,7 @@ RULES:
 
 """
 
-output_parser = JsonOutputParser(pydantic_object=Summary)
+output_parser = PydanticOutputParser(pydantic_object=Summary)
 format_instructions = output_parser.get_format_instructions()
 
 summary_prompt = ChatPromptTemplate.from_messages(
@@ -31,4 +31,4 @@ summary_prompt = ChatPromptTemplate.from_messages(
 ).partial(format_instructions=format_instructions)
 
 # Create the chain with parsing
-summary_chain = summary_prompt | llm | output_parser
+summary_chain = summary_prompt | llm.with_structured_output(Summary)
