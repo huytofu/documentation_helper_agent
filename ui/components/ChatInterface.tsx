@@ -57,29 +57,52 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
     // Initial check
     checkChatAvailability();
 
-    // Set up periodic checks (every 30 seconds)
-    const intervalId = setInterval(checkChatAvailability, 30000);
+    // Set up periodic checks (every 60 seconds)
+    const intervalId = setInterval(checkChatAvailability, 60000);
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
   }, []);
 
+  // Add effect to log chat progress changes
+  useEffect(() => {
+    console.log('Chat in progress:', chatInProgress);
+  }, [chatInProgress]);
+
+  // Add effect to track state changes
+  useEffect(() => {
+    console.log('State changed:', {
+      current_node: state.current_node,
+      timestamp: new Date().toISOString()
+    });
+  }, [state.current_node]);
+
   const handleSubmitMessage = async (message: string) => {
     console.log('Submitting message:', message);
     let user_id = getUserId();
     console.log('User ID:', user_id);
-    setState({
+    console.log('Previous state:', {
+      ...state,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Reset state with spread
+    const newState = {
       ...state,
       current_node: "INITIALIZE",
       user_id: user_id
+    };
+    
+    console.log('Setting new state:', {
+      ...newState,
+      timestamp: new Date().toISOString()
     });
-
+    setState(newState);
   };
 
   const handleChatProgress = async (inProgress: boolean) => {
     if (!inProgress && chatInProgress) {
       setChatInProgress(false);
-      console.log('Chat in progress:', chatInProgress);
       try {
         // Save the assistant's response to the database when chat completes
         if (visibleMessages.length > 0) {
@@ -138,7 +161,6 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
       }
     } else if (inProgress && !chatInProgress) {
       setChatInProgress(true);
-      console.log('Chat in progress:', chatInProgress);
     }
   };
 
