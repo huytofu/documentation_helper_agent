@@ -1,4 +1,4 @@
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.summarizer import llm
 from pydantic import BaseModel, Field
@@ -20,7 +20,8 @@ RULES:
 
 """
 
-format_instructions = Summary.get_format_instructions()
+output_parser = JsonOutputParser(pydantic_object=Summary)
+format_instructions = output_parser.get_format_instructions()
 
 summary_prompt = ChatPromptTemplate(
     partial_variables={"format_instructions": format_instructions}
