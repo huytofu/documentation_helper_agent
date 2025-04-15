@@ -155,7 +155,8 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
                 makeSystemMessage={() => 
                   `You are a helpful assistant focusing on helping users with their questions, 
                   You must always route user queries to available backend agents first for processing. 
-                  Do not attempt to answer questions directly without consulting the backend agents.}`
+                  Do not attempt to answer questions directly without consulting the backend agents.
+                  Do not display any intermediate responses. Only display the final response.`
                 }
                 key={shouldReload ? 1 : 0}
                 onInProgress={handleChatProgress}

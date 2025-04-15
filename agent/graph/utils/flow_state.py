@@ -17,7 +17,7 @@ class FlowState:
         """Atomically increment iteration count and check limit."""
         with self._lock:
             self.iteration_count += 1
-            return self.iteration_count < 3  # MAX_ITERATIONS
+            return self.iteration_count < 2  # MAX_ITERATIONS
 
     def increment_retry(self) -> bool:
         """Atomically increment retry count and check limit."""
