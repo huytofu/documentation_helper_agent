@@ -54,25 +54,25 @@ export default function DashboardContent({
   }, []);
 
   useEffect(() => {
-    if (mounted && selectedLanguage) {
-      setState({
-        ...state,
-        language: selectedLanguage
-      });
-      console.log("Set Agent State Language to: ", selectedLanguage);
-    }
-  }, [mounted, selectedLanguage]);
-
-  useEffect(() => {
-    const addUsertoState = async () => {
+    if (mounted) {
+      if (selectedLanguage) {
+        setState({
+          ...state,
+          language: selectedLanguage
+        });
+        console.log("Set Agent State Language to: ", selectedLanguage);
+      }
       const user_id = getUserId();
-      setState({
-        ...state,
-        user_id: user_id
-      });
+      if (user_id) {
+        setState({
+          ...state,
+          user_id: user_id
+        });
+        console.log("Set Agent State User ID to: ", user_id);
+      }
+      
     }
-    setInterval(addUsertoState, 2000);
-  }, []);
+  }, [mounted]);
 
   // Don't render anything with CopilotKit until we're mounted on client
   if (!mounted) {

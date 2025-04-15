@@ -264,7 +264,7 @@ export default function AgentStatePanel({ directState }: AgentStatePanelProps) {
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
           <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
-          <p>Waiting for agent to start...</p>
+          {isComplete ? <p>FINSIHED</p> : <p>Waiting for agent to start...</p>}
           <p className="text-xs mt-2">(No state available)</p>
         </div>
       )}
