@@ -54,11 +54,20 @@ export default function DashboardContent({
   }, []);
 
   useEffect(() => {
+    if (mounted && selectedLanguage) {
+      setState({
+        ...state,
+        language: selectedLanguage
+      });
+      console.log("Set Agent State Language to: ", selectedLanguage);
+    }
+  }, [mounted, selectedLanguage]);
+
+  useEffect(() => {
     const addUsertoState = async () => {
       const user_id = getUserId();
       setState({
         ...state,
-        language: selectedLanguage,
         user_id: user_id
       });
     }
