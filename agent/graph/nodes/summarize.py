@@ -19,6 +19,7 @@ def simplify_messages(messages: list) -> list:
     """Simplify messages to only include human messages and assistant messages."""
     simplified_messages = []
     for message in messages:
+        print(message)
         if message.type == "human":
             simplified_messages.append({"role": "user", "content": message.content, "timestamp": message.createdAt})
         elif message.type in ["assistant", "ai"]:
