@@ -57,7 +57,18 @@ export default function LoginForm() {
         console.log('Firebase UID:', firebase_uid);
         setState({
           ...state,
+          language: "",
+          comments: "",
+          current_node: "",
+          rewritten_query: "",
+          framework: "",
+          retry_count: 0,
+          test_counter: 0,
+          pass_summarize: false,
+          summarized: false,
+          documents: [],
           user_id: firebase_uid
+          
         });
       }
       

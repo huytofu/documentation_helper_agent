@@ -12,9 +12,14 @@ import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
 import { getUserId } from '@/lib/userUtils';
 
+interface ChatInterfaceProps {
+  state: AgentState;
+  setState: (state: AgentState) => void;
+}
 
-export default function ChatInterface() {
+export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
   const [shouldReload, setShouldReload] = useState(false);
+  const [chatInProgress, setChatInProgress] = useState(false);
   const isInitialMount = useRef(true);
   const [isMounted, setIsMounted] = useState(false);
   const [canChat, setCanChat] = useState(true);
@@ -59,8 +64,22 @@ export default function ChatInterface() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const handleSubmitMessage = async (message: string) => {
+    console.log('Submitting message:', message);
+    let user_id = getUserId();
+    console.log('User ID:', user_id);
+    setState({
+      ...state,
+      current_node: "INITIALIZE",
+      user_id: user_id
+    });
+
+  };
+
   const handleChatProgress = async (inProgress: boolean) => {
-    if (!inProgress) {
+    if (!inProgress && chatInProgress) {
+      setChatInProgress(false);
+      console.log('Chat in progress:', chatInProgress);
       try {
         // Save the assistant's response to the database when chat completes
         if (visibleMessages.length > 0) {
@@ -117,8 +136,9 @@ export default function ChatInterface() {
       } catch (error) {
         console.error('Error saving chat response:', error);
       }
-    } else {
-      console.log('Chat in progress');
+    } else if (inProgress && !chatInProgress) {
+      setChatInProgress(true);
+      console.log('Chat in progress:', chatInProgress);
     }
   };
 
@@ -146,6 +166,7 @@ export default function ChatInterface() {
                 }
                 key={shouldReload ? 1 : 0}
                 onInProgress={handleChatProgress}
+                onSubmitMessage={handleSubmitMessage}
               />
             </div>
           </div>

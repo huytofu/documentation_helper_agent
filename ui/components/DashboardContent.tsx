@@ -102,7 +102,7 @@ export default function DashboardContent({
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Chat Interface - Takes 3/4 of the width on large screens */}
             <div className="lg:col-span-3">
-              <ChatInterface />
+              <ChatInterface state={state} setState={setState} />
             </div>
             
             {/* Agent State Panel - Takes 1/4 of the width on large screens */}
