@@ -20,9 +20,9 @@ def simplify_messages(messages: list) -> list:
     simplified_messages = []
     for message in messages:
         if message.type == "human":
-            simplified_messages.append({"role": "user", "content": message.content, "timestamp": message.timestamp})
+            simplified_messages.append({"role": "user", "content": message.content, "timestamp": message.createdAt})
         elif message.type in ["assistant", "ai"]:
-            simplified_messages.append({"role": "assistant", "content": message.content, "timestamp": message.timestamp})
+            simplified_messages.append({"role": "assistant", "content": message.content, "timestamp": message.createdAt})
     return simplified_messages
 
 async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
