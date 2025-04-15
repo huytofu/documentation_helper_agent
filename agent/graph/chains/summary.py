@@ -23,15 +23,12 @@ RULES:
 output_parser = JsonOutputParser(pydantic_object=Summary)
 format_instructions = output_parser.get_format_instructions()
 
-summary_prompt = ChatPromptTemplate(
-    partial_variables={"format_instructions": format_instructions}
-).from_messages(
+summary_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
         ("human", "Input Conversation: {messages}<br>. {important_instructions}"),
-
     ]
-)
+).partial(format_instructions=format_instructions)
 
 # Create the chain with parsing
 summary_chain = summary_prompt | llm | Summary
