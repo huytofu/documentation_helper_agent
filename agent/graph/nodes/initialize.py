@@ -42,20 +42,6 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
             query = messages[-1].content
     # Set rewritten_query to query if not provided
 
-    # Save the query as a question in the database if available
-    user_id = state.get("user_id", "")
-    if query:
-        result["query"] = query
-        result["rewritten_query"] = query
-        if user_id:
-            try:
-                logger.info(f"Saving query as question for user {user_id}")
-                await save_conversation_message_api(user_id, "question", query)
-                logger.info(f"Successfully saved query for user {user_id}")
-            except Exception as e:
-                logger.error(f"Failed to save query to database: {e}")
-
-    
     pass_summarize = False
     summarized = False
     documents = []
@@ -71,5 +57,18 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         "summarized": summarized,
         "documents": documents,
     }
+
+    # Save the query as a question in the database if available
+    user_id = state.get("user_id", "")
+    if query:
+        result["query"] = query
+        result["rewritten_query"] = query
+        if user_id:
+            try:
+                logger.info(f"Saving query as question for user {user_id}")
+                await save_conversation_message_api(user_id, "question", query)
+                logger.info(f"Successfully saved query for user {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save query to database: {e}")
         
     return result
