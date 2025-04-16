@@ -9,10 +9,11 @@ system = """
 
     {documents}.
 
-    Please help write code snippet(s) of maximum 200 lines using the provided documents
+    Please refer to the provided documents to write code snippet(s) 
     to produce the feature or solve the problem described in the user's query. 
     Please add some comments or explanations to help the user understand.
-    Keep your answer to 500 words or less.
+    Keep your code snippets to 100 lines or less.
+    Keep your comments or explanations to 100 words or less.
     """
 generation_prompt = ChatPromptTemplate.from_messages(
     [

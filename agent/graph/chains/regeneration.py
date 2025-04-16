@@ -17,9 +17,11 @@ system = """
     
     {comments}.
 
-    Please help revise or improve the answer to better address the user's query 
-    based on the provided documents, the previous generation and the comments.
-    Keep your revised answer to 500 words or less.
+    Please help revise or improve the previous generation according to the comments 
+    to better address the user's query. The revised/improved answer must still refer
+    to the provided documents.
+    Keep your code snippets to 100 lines or less.
+    Keep your comments or explanations to 100 words or less.
     """
 regeneration_prompt = ChatPromptTemplate.from_messages(
     [
