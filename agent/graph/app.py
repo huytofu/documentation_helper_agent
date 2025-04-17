@@ -15,16 +15,14 @@ from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from agent.graph.graph import app as agent_app, graph
 from agent.graph.state import GraphState
 from agent.graph.models.config import with_concurrency_limit
-from agent.graph.utils.batch_processor import BatchProcessor, BatchResult
 from agent.graph.utils.security import (
     validate_state,
-    validate_batch_states,
     sanitize_response,
     SecurityError
 )
 import datetime
 import asyncio
-from typing import Dict, Any, List
+from typing import Dict, Any
 import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
@@ -62,13 +60,12 @@ logger.info(f"FastAPI app instance: {id(app)} at {app}")
 
 # Security Configuration
 MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE", "1048576"))  # 1MB
-MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "10"))
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
 MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "100"))
 CIRCUIT_BREAKER_THRESHOLD = float(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "0.8"))  # 80% error rate
-CIRCUIT_BREAKER_RESET = int(os.getenv("CIRCUIT_BREAKER_RESET", "60"))  # seconds
+CIRCUIT_BREAKER_RESET = int(os.getenv("CIRCUIT_BREAKER_RESET", "60"))
 
 # Enhanced Rate Limit Middleware
 class EnhancedRateLimitMiddleware(BaseHTTPMiddleware):
@@ -151,43 +148,6 @@ app.add_middleware(EnhancedRateLimitMiddleware)
 # Add GZIP compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-async def warmup_function():
-    """Warm up the model and graph by making a lightweight request."""
-    try:
-        # Create a minimal state for warm-up
-        warmup_state = GraphState(
-            query="test",
-            documents=[],
-            messages=[],
-            current_node="INITIALIZE"
-        )
-        
-        # Run a minimal graph iteration with concurrency limit
-        result = await with_concurrency_limit(graph.ainvoke, warmup_state)
-        
-        logger.info("Warm-up successful")
-        return True
-    except Exception as e:
-        logger.error(f"Warm-up failed: {str(e)}")
-        return False
-
-@app.get("/api/warmup")
-async def warmup():
-    """Endpoint to warm up the serverless function."""
-    global last_warmup_time
-    current_time = asyncio.get_event_loop().time()
-    
-    # Only warm up if enough time has passed since last warm-up
-    if current_time - last_warmup_time < WARMUP_INTERVAL:
-        return {"status": "already_warm", "last_warmup": last_warmup_time}
-    
-    success = await warmup_function()
-    if success:
-        last_warmup_time = current_time
-        return {"status": "warmed_up", "timestamp": last_warmup_time}
-    else:
-        raise HTTPException(status_code=500, detail="Warm-up failed")
-
 # API Key security
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 API_KEY = os.getenv("API_KEY", "")
@@ -203,21 +163,6 @@ async def verify_api_key(api_key: str = Depends(API_KEY_HEADER)):
             detail="Invalid API key"
         )
     return api_key
-
-# Initialize batch processor with validation
-def validate_batch_size(size: int) -> int:
-    if size > MAX_BATCH_SIZE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Batch size exceeds maximum of {MAX_BATCH_SIZE}"
-        )
-    return size
-
-batch_processor = BatchProcessor(
-    max_batch_size=validate_batch_size(int(os.getenv("MAX_BATCH_SIZE", "10"))),
-    max_workers=int(os.getenv("MAX_WORKERS", "5")),
-    timeout=float(os.getenv("BATCH_TIMEOUT", "30.0"))
-)
 
 # Configure CORS with strict settings
 FRONTEND_URL = os.getenv("FRONTEND_URL")
@@ -256,39 +201,44 @@ sdk = CopilotKitRemoteEndpoint(
 
 # Store the last warm-up time in memory (will reset on cold start)
 last_warmup_time = 0
-WARMUP_INTERVAL = 300  # 5 minutes
+WARMUP_INTERVAL = 300
 
-
-
-# Add request logging middleware with sanitization
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Middleware to log requests and responses."""
-    # Log request details
-    logger.info(f"Request: {request.method} {request.url.path}")
-    logger.info(f"Headers: {dict(request.headers)}")
-    
-    # Get request body if it exists
+async def warmup_function():
+    """Warm up the model and graph by making a lightweight request."""
     try:
-        body = await request.json()
-        # Sanitize sensitive data before logging
-        sanitized_body = _sanitize_sensitive_data(body)
-        logger.info(f"Request body: {sanitized_body}")
+        # Create a minimal state for warm-up
+        warmup_state = GraphState(
+            query="test",
+            documents=[],
+            messages=[],
+            current_node="INITIALIZE"
+        )
         
-        # Extract user_id and update state
-        updated_body = extract_properties_and_update_state(body)
-        # Update the request with the modified body
-        request._body = json.dumps(updated_body).encode()
+        # Run a minimal graph iteration with concurrency limit
+        result = await with_concurrency_limit(graph.ainvoke, warmup_state)
+        
+        logger.info("Warm-up successful")
+        return True
     except Exception as e:
-        logger.warning(f"Could not parse request body: {e}")
+        logger.error(f"Warm-up failed: {str(e)}")
+        return False
+
+@app.get("/api/warmup")
+async def warmup():
+    """Endpoint to warm up the serverless function."""
+    global last_warmup_time
+    current_time = asyncio.get_event_loop().time()
     
-    # Process the request
-    response = await call_next(request)
+    # Only warm up if enough time has passed since last warm-up
+    if current_time - last_warmup_time < WARMUP_INTERVAL:
+        return {"status": "already_warm", "last_warmup": last_warmup_time}
     
-    # Log response details
-    logger.info(f"Response status: {response.status_code}")
-    
-    return response
+    success = await warmup_function()
+    if success:
+        last_warmup_time = current_time
+        return {"status": "warmed_up", "timestamp": last_warmup_time}
+    else:
+        raise HTTPException(status_code=500, detail="Warm-up failed")
 
 # Add CopilotKit endpoint with API key protection
 add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
@@ -301,12 +251,7 @@ async def health_check():
     return {
         "status": "ok",
         "environment": os.getenv("ENVIRONMENT", "production"),
-        "timestamp": datetime.datetime.now().isoformat(),
-        "batch_processor": {
-            "max_batch_size": batch_processor.max_batch_size,
-            "max_workers": batch_processor.max_workers,
-            "timeout": batch_processor.timeout
-        }
+        "timestamp": datetime.datetime.now().isoformat()
     }
 
 # Add conversation history endpoint
@@ -366,6 +311,17 @@ async def save_conversation(
             status_code=500,
             content={"success": False, "error": f"Server error: {str(e)}"}
         )
+
+# Add simple health check endpoint
+@app.get("/health")
+def health():
+    """Simple health check."""
+    logger.info("Health check endpoint called")
+    return {"status": "ok"}
+
+# Add logging for agent initialization
+logger.info("FastAPI application initialized with LangGraph agent for Vercel")
+
 # Add a simple test endpoint to check if FastAPI is working correctly
 @app.get("/api/test")
 async def test_endpoint():
