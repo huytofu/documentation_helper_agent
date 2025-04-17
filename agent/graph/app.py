@@ -44,16 +44,16 @@ from agent.graph.utils.api_utils import (
 
 # Configure root logger
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s',
     force=True
 )
 
 # Configure specific loggers
-logging.getLogger("graph.graph").setLevel(logging.INFO)
-logging.getLogger("uvicorn").setLevel(logging.INFO)
-logging.getLogger("fastapi").setLevel(logging.INFO)
-logging.getLogger("copilotkit").setLevel(logging.INFO)
+logging.getLogger("graph.graph").setLevel(logging.DEBUG)
+logging.getLogger("uvicorn").setLevel(logging.DEBUG)
+logging.getLogger("fastapi").setLevel(logging.DEBUG)
+logging.getLogger("copilotkit").setLevel(logging.DEBUG)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -380,21 +380,19 @@ async def health_check():
         }
     }
 
-# Add logging for agent initialization
-logger.info("FastAPI application initialized with LangGraph agent for Vercel")
-
-# Add conversation endpoint - POST only
+# Add conversation history endpoint
 @app.post("/api/conversation")
-async def save_conversation(request: Request):
+async def save_conversation(
+    request: Request,
+    api_key: str = Depends(verify_api_key)
+):
     """
     Endpoint to save conversation history.
     
     This endpoint is called from the frontend API to save user questions
     and assistant answers in the database.
     """
-    print("save_conversation endpoint called")
-    # Log the request info to debug
-    logger.info(f"Processing conversation request at /conversation, method={request.method}")
+    logger.info("Conversation endpoint called at /api/conversation")
     
     try:
         # Extract user ID and update request state
@@ -412,7 +410,7 @@ async def save_conversation(request: Request):
             data["user_id"] = user_id
             logger.info(f"Added user_id to conversation data: {user_id}")
         
-        # Import database utils (only when needed to avoid circular imports)
+        # Import database utils
         from agent.graph.utils.firebase_utils import handle_conversation_history_request
         
         # Forward the request to the database handler
@@ -439,7 +437,6 @@ async def save_conversation(request: Request):
             status_code=500,
             content={"success": False, "error": f"Server error: {str(e)}"}
         )
-
 # Add a simple test endpoint to check if FastAPI is working correctly
 @app.get("/api/test")
 async def test_endpoint():
