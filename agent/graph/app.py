@@ -6,6 +6,7 @@ import datetime
 import asyncio
 import uvicorn
 import time
+import json
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -173,6 +174,36 @@ app.add_middleware(
     max_age=3600,
 )
 
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Middleware to log requests and responses."""
+    # Log request details
+    logger.info(f"Request: {request.method} {request.url.path}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    
+    # Get request body if it exists
+    try:
+        body = await request.json()
+        # Sanitize sensitive data before logging
+        sanitized_body = _sanitize_sensitive_data(body)
+        logger.info(f"Request body: {sanitized_body}")
+        
+        # Extract user_id and update state
+        updated_body = extract_properties_and_update_state(body)
+        # Update the request with the modified body
+        request._body = json.dumps(updated_body).encode()
+    except Exception as e:
+        logger.warning(f"Could not parse request body: {e}")
+    
+    # Process the request
+    response = await call_next(request)
+    
+    # Log response details
+    logger.info(f"Response status: {response.status_code}")
+    
+    return response
+
 # Create SDK instance
 sdk = CopilotKitRemoteEndpoint(
     agents=[
@@ -191,6 +222,8 @@ sdk = CopilotKitRemoteEndpoint(
         )
     ],
 )
+
+add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
 
 # Store the last warm-up time in memory (will reset on cold start)
 last_warmup_time = 0
@@ -241,9 +274,6 @@ async def warmup():
         return {"status": "warmed_up", "timestamp": last_warmup_time}
     else:
         raise HTTPException(status_code=500, detail="Warm-up failed")
-
-# Add CopilotKit endpoint with API key protection
-add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
 
 # Health check endpoint for Vercel
 @app.get("/api/health")
@@ -333,5 +363,40 @@ async def test_endpoint():
 # At the bottom of your file, add this if statement to directly run with uvicorn
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting uvicorn server directly from app.py")
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    """Run the uvicorn server."""
+    port = int(os.getenv("PORT", "8000"))
+    logger.info(f"Starting server on port {port}")
+    
+    # Configure uvicorn logging
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_config["formatters"]["default"]["fmt"] = "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+    log_config["formatters"]["access"]["fmt"] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # Add our graph logger to uvicorn's config
+    log_config["loggers"]["graph.graph"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    # Add more loggers to uvicorn's config
+    log_config["loggers"]["uvicorn"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    log_config["loggers"]["fastapi"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    log_config["loggers"]["copilotkit"] = {
+        "handlers": ["default"],
+        "level": "DEBUG",
+        "propagate": False
+    }
+    
+    logger.info("Starting uvicorn server with logging configuration")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_config=log_config) 

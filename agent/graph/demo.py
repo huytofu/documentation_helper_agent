@@ -6,7 +6,6 @@ load_dotenv()
 
 import logging
 import logging.config
-import yaml
 from fastapi import FastAPI, Request, HTTPException, Depends
 import uvicorn
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
