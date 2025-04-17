@@ -96,7 +96,7 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-add_fastapi_endpoint(app, sdk, "/copilotkitagent")
+add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
 
 # # Add the CopilotKit info endpoint with both GET and POST methods
 # @app.get("/copilotkit/info")
@@ -170,14 +170,14 @@ add_fastapi_endpoint(app, sdk, "/copilotkitagent")
 #         raise
 
 # add new route for health check
-@app.get("/health")
+@app.get("/api/health")
 def health():
     """Health check."""
     logger.info("Health check endpoint called")
     return {"status": "ok"}
 
 # Add test endpoint
-@app.post("/test")
+@app.post("/api/test")
 async def test():
     """Test endpoint to verify backend is working."""
     logger.info("Test endpoint called")
@@ -208,7 +208,7 @@ async def test():
         return {"status": "error", "error": str(e)}
 
 # Add conversation API endpoint
-@app.post("/conversation")
+@app.post("/api/conversation")
 async def save_conversation(request: Request):
     """
     Endpoint to save conversation history.

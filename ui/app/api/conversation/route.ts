@@ -52,20 +52,11 @@ export async function POST(request: NextRequest) {
     };
     
     // Set up the possible backend URLs to try in sequence
-    let backendUrls;
-    if (process.env.NODE_ENV === 'development') {
-      backendUrls = [
-        `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/conversation`,
-        `${BACKEND_ENDPOINT_2.split('/copilotkitagent')[0]}/conversation`,
-        `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/conversation`
-      ];
-    } else {
-      backendUrls = [
-        `${BACKEND_ENDPOINT.split('/copilotkitagent')[0]}/api/conversation`,
-        `${BACKEND_ENDPOINT_2.split('/copilotkitagent')[0]}/api/conversation`,
-        `${BACKEND_ENDPOINT_3.split('/copilotkitagent')[0]}/api/conversation`
-      ];
-    }
+    let backendUrls = [
+        `${BACKEND_ENDPOINT.split('copilotkitagent')[0]}conversation`,
+        `${BACKEND_ENDPOINT_2.split('copilotkitagent')[0]}conversation`,
+        `${BACKEND_ENDPOINT_3.split('copilotkitagent')[0]}conversation`
+    ]
     
     console.log('Sending conversation data to backend:', payload);
     
