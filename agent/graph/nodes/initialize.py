@@ -28,6 +28,8 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         last_message_type = get_last_message_type(messages)
         if last_message_type == "human":
             query = messages[-1].content
+    else:
+        query = state.get("query", "print: please ask me a question")
     
     # Extract basic state
     language = state.get("language", "python")

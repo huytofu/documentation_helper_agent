@@ -2,33 +2,26 @@
 
 # Import necessary modules and load environment variables
 import os
+import datetime
+import asyncio
+import uvicorn
+import time
 from dotenv import load_dotenv
 load_dotenv()
 
 import logging
-import json
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
-from agent.graph.graph import app as agent_app, graph
+from agent.graph.graph import app as agent_app
 from agent.graph.state import GraphState
 from agent.graph.models.config import with_concurrency_limit
-from agent.graph.utils.security import (
-    validate_state,
-    sanitize_response,
-    SecurityError
-)
-import datetime
-import asyncio
-from typing import Dict, Any
-import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-import time
 from collections import defaultdict
 from agent.graph.utils.api_utils import (
     _sanitize_sensitive_data,
@@ -201,23 +194,33 @@ sdk = CopilotKitRemoteEndpoint(
 
 # Store the last warm-up time in memory (will reset on cold start)
 last_warmup_time = 0
-WARMUP_INTERVAL = 300
+WARMUP_INTERVAL = 600 # 10 minutes
 
 async def warmup_function():
     """Warm up the model and graph by making a lightweight request."""
     try:
         # Create a minimal state for warm-up
         warmup_state = GraphState(
-            query="test",
+            query="print: please ask me a question",
             documents=[],
             messages=[],
-            current_node="INITIALIZE"
+            user_id="test",
+            language="python",
+            comments="",
+            current_node="",
+            query="",
+            rewritten_query="",
+            retry_count=0,
+            framework="",
+            pass_summarize=False,
+            summarized=False
+
         )
         
         # Run a minimal graph iteration with concurrency limit
-        result = await with_concurrency_limit(graph.ainvoke, warmup_state)
+        result = await with_concurrency_limit(agent_app.ainvoke, warmup_state)
         
-        logger.info("Warm-up successful")
+        logger.info("Warm-up successful. Result: %s", result)
         return True
     except Exception as e:
         logger.error(f"Warm-up failed: {str(e)}")
