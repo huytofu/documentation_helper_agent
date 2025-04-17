@@ -302,18 +302,13 @@ async def save_conversation(
         
         # Parse request body
         data = await request.json()
-        
-        # Log the request (but sanitize any sensitive information)
-        safe_data = _sanitize_sensitive_data(data)
-        logger.info(f"Conversation save request received: {safe_data}")
-        
-        # Add user_id to data if found and not already present
-        if user_id and not data.get("user_id"):
-            data["user_id"] = user_id
-            logger.info(f"Added user_id to conversation data: {user_id}")
+
+        # Log the request data
+        logger.info(f"Conversation save request received: {data}")
         
         # Import database utils
         from agent.graph.utils.firebase_utils import handle_conversation_history_request
+        
         
         # Forward the request to the database handler
         result = handle_conversation_history_request(data)
