@@ -297,10 +297,6 @@ async def save_conversation(
     logger.info("Conversation endpoint called at /api/conversation")
     
     try:
-        # Extract user ID and update request state
-        request, user_id = await extract_properties_and_update_state(request)
-        
-        # Parse request body
         data = await request.json()
 
         # Log the request data
