@@ -27,16 +27,11 @@ import asyncio
 from typing import Dict, Any, List
 import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp, Receive, Scope, Send
-import re
+from starlette.types import ASGIApp
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import RequestResponseEndpoint
 import time
 from collections import defaultdict
-import hashlib
-import sys
-import inspect
 from agent.graph.utils.api_utils import (
     _sanitize_sensitive_data,
     extract_properties_and_update_state
@@ -156,6 +151,43 @@ app.add_middleware(EnhancedRateLimitMiddleware)
 # Add GZIP compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+async def warmup_function():
+    """Warm up the model and graph by making a lightweight request."""
+    try:
+        # Create a minimal state for warm-up
+        warmup_state = GraphState(
+            query="test",
+            documents=[],
+            messages=[],
+            current_node="INITIALIZE"
+        )
+        
+        # Run a minimal graph iteration with concurrency limit
+        result = await with_concurrency_limit(graph.ainvoke, warmup_state)
+        
+        logger.info("Warm-up successful")
+        return True
+    except Exception as e:
+        logger.error(f"Warm-up failed: {str(e)}")
+        return False
+
+@app.get("/api/warmup")
+async def warmup():
+    """Endpoint to warm up the serverless function."""
+    global last_warmup_time
+    current_time = asyncio.get_event_loop().time()
+    
+    # Only warm up if enough time has passed since last warm-up
+    if current_time - last_warmup_time < WARMUP_INTERVAL:
+        return {"status": "already_warm", "last_warmup": last_warmup_time}
+    
+    success = await warmup_function()
+    if success:
+        last_warmup_time = current_time
+        return {"status": "warmed_up", "timestamp": last_warmup_time}
+    else:
+        raise HTTPException(status_code=500, detail="Warm-up failed")
+
 # API Key security
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 API_KEY = os.getenv("API_KEY", "")
@@ -226,110 +258,7 @@ sdk = CopilotKitRemoteEndpoint(
 last_warmup_time = 0
 WARMUP_INTERVAL = 300  # 5 minutes
 
-async def process_single_request(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Process a single chat request."""
-    try:
-        # Validate and sanitize state
-        try:
-            state = validate_state(state)
-        except SecurityError as e:
-            logger.warning(f"Security validation failed: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
-        
-        # Convert input state to GraphState
-        graph_state = GraphState(**state)
-        
-        # Run the graph with concurrency limit
-        result = await with_concurrency_limit(graph.ainvoke, graph_state)
-        
-        # Sanitize response before returning
-        return sanitize_response(result)
-    except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
-        raise
 
-async def warmup_function():
-    """Warm up the model and graph by making a lightweight request."""
-    try:
-        # Create a minimal state for warm-up
-        warmup_state = GraphState(
-            query="test",
-            documents=[],
-            messages=[],
-            current_node="INITIALIZE"
-        )
-        
-        # Run a minimal graph iteration with concurrency limit
-        result = await with_concurrency_limit(graph.ainvoke, warmup_state)
-        
-        logger.info("Warm-up successful")
-        return True
-    except Exception as e:
-        logger.error(f"Warm-up failed: {str(e)}")
-        return False
-
-@app.get("/api/warmup")
-async def warmup():
-    """Endpoint to warm up the serverless function."""
-    global last_warmup_time
-    current_time = asyncio.get_event_loop().time()
-    
-    # Only warm up if enough time has passed since last warm-up
-    if current_time - last_warmup_time < WARMUP_INTERVAL:
-        return {"status": "already_warm", "last_warmup": last_warmup_time}
-    
-    success = await warmup_function()
-    if success:
-        last_warmup_time = current_time
-        return {"status": "warmed_up", "timestamp": last_warmup_time}
-    else:
-        raise HTTPException(status_code=500, detail="Warm-up failed")
-
-@app.post("/api/chat")
-async def chat(
-    state: Dict[str, Any],
-    api_key: str = Depends(verify_api_key)
-) -> Dict[str, Any]:
-    """Main chat endpoint that processes user queries."""
-    try:
-        return await process_single_request(state)
-    except SecurityError as e:
-        logger.warning(f"Security error in chat endpoint: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error in chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/chat/batch")
-async def chat_batch(
-    states: List[Dict[str, Any]],
-    api_key: str = Depends(verify_api_key)
-) -> List[BatchResult]:
-    """Batch chat endpoint that processes multiple queries in parallel."""
-    try:
-        # Validate batch size
-        validate_batch_size(len(states))
-        
-        # Validate and sanitize states
-        try:
-            states = validate_batch_states(states)
-        except SecurityError as e:
-            logger.warning(f"Security validation failed in batch: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
-        
-        results = await batch_processor.process_batch(
-            items=states,
-            process_fn=process_single_request
-        )
-        
-        # Sanitize results before returning
-        return [sanitize_response(result) for result in results]
-    except SecurityError as e:
-        logger.warning(f"Security error in batch endpoint: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error in batch chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # Add request logging middleware with sanitization
 @app.middleware("http")
