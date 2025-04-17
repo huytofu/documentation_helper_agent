@@ -21,7 +21,6 @@ from agent.graph.state import GraphState
 from agent.graph.models.config import with_concurrency_limit
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from collections import defaultdict
 from agent.graph.utils.api_utils import (
@@ -138,9 +137,6 @@ class EnhancedRateLimitMiddleware(BaseHTTPMiddleware):
 
 # Add enhanced rate limiting middleware
 app.add_middleware(EnhancedRateLimitMiddleware)
-
-# Add GZIP compression
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # API Key security
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)

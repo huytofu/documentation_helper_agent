@@ -4,15 +4,15 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import uvicorn
+import json
 import logging
 import logging.config
-from fastapi import FastAPI, Request, HTTPException, Depends
-import uvicorn
+from fastapi import FastAPI, Request
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
 from agent.graph.graph import app as agent_app
 from fastapi.middleware.cors import CORSMiddleware
-import json
 from agent.graph.utils.api_utils import (
     _sanitize_sensitive_data,
     extract_properties_and_update_state
