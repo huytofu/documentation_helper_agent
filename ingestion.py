@@ -6,6 +6,7 @@ from agent.graph.vector_stores import get_vector_store
 from firecrawl import FirecrawlApp
 from langchain_core.documents import Document
 import os
+import asyncio
 load_dotenv()
 
 urls1 = [
@@ -297,9 +298,12 @@ for framework, urls in zip(
     for url in urls:
         print(f"FireCrawling {url}")
         try:
-            result = app.scrape_url(url, formats=["markdown"])
+            result = asyncio.run(
+                app.scrape_url(url, formats=["markdown"])
+            )
+            result = result.json()
             if result:
-                print(result)
+                print([key for key in result.keys()])
                 content = result["markdown"]
                 docs_list.append(Document(page_content=content, metadata={"source": url}))
             
