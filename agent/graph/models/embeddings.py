@@ -18,7 +18,7 @@ if "client" in config:
 elif "api_key" in config:
     # Use Hugging Face
     embeddings = HuggingFaceEmbeddings(
-        api_key=config["api_key"],
+        # api_key=config["api_key"],
         model_name=config["model"]
     )
 else:
