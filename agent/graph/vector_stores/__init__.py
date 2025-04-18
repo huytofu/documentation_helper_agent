@@ -49,14 +49,13 @@ def get_vector_store(
             
             # Get Pinecone credentials from environment variables
             pinecone_api_key = os.getenv("PINECONE_API_KEY")
-            pinecone_environment = os.getenv("PINECONE_ENVIRONMENT")
             pinecone_index_name = os.getenv("PINECONE_INDEX_NAME")
             
             # Validate credentials
-            if not all([pinecone_api_key, pinecone_environment, pinecone_index_name]):
+            if not all([pinecone_api_key, pinecone_index_name]):
                 raise ValueError(
                     "Pinecone credentials are required. "
-                    "Set PINECONE_API_KEY, PINECONE_ENVIRONMENT, and PINECONE_INDEX_NAME environment variables."
+                    "Set PINECONE_API_KEY and PINECONE_INDEX_NAME environment variables."
                 )
             
             # Initialize Pinecone with the new client syntax
