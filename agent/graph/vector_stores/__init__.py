@@ -45,7 +45,7 @@ def get_vector_store(
             
         elif VECTOR_STORE_TYPE == "pinecone":
             from langchain_pinecone import Pinecone
-            import pinecone
+            from pinecone import Pinecone as PineconeClient
             
             # Get Pinecone credentials from environment variables
             pinecone_api_key = os.getenv("PINECONE_API_KEY")
@@ -59,12 +59,15 @@ def get_vector_store(
                     "Set PINECONE_API_KEY, PINECONE_ENVIRONMENT, and PINECONE_INDEX_NAME environment variables."
                 )
             
-            # Initialize Pinecone
-            pinecone.init(api_key=pinecone_api_key, environment=pinecone_environment)
+            # Initialize Pinecone with the new client syntax
+            pc = PineconeClient(api_key=pinecone_api_key)
+            
+            # Get the index
+            index = pc.Index(pinecone_index_name)
             
             logger.info(f"Using Pinecone vector store with namespace: {collection_name}")
             return Pinecone(
-                index_name=pinecone_index_name,
+                index=index,
                 embedding=embedding_function,
                 namespace=collection_name,
             )
