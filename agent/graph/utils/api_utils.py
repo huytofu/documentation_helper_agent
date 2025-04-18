@@ -8,6 +8,8 @@ import json
 from datetime import datetime
 import os
 from pathlib import Path
+import asyncio
+import functools
 
 logger = logging.getLogger(__name__)
 
@@ -123,12 +125,24 @@ cost_tracker = APICostTracker()
 
 def handle_api_error(func):
     """Decorator for handling API errors with retries."""
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((ConnectionError, TimeoutError))
-    )
-    async def wrapper(*args, **kwargs):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        """Wrapper for synchronous functions"""
+        try:
+            return func(*args, **kwargs)
+        except TimeoutError as e:
+            logger.error(f"Timeout error in {func.__name__}: {e}")
+            return get_default_response(func.__name__)
+        except ConnectionError as e:
+            logger.error(f"Connection error in {func.__name__}: {e}")
+            return get_default_response(func.__name__)
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}")
+            return get_default_response(func.__name__)
+    
+    @functools.wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        """Wrapper for asynchronous functions"""
         try:
             return await func(*args, **kwargs)
         except TimeoutError as e:
@@ -140,7 +154,12 @@ def handle_api_error(func):
         except Exception as e:
             logger.error(f"Unexpected error in {func.__name__}: {e}")
             return get_default_response(func.__name__)
-    return wrapper
+    
+    # Check if the function is a coroutine function
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return wrapper
 
 def get_default_response(api_type: str) -> APIResponse:
     """Get default response based on API type."""

@@ -44,7 +44,7 @@ def get_vector_store(
             )
             
         elif VECTOR_STORE_TYPE == "pinecone":
-            from langchain_pinecone import Pinecone
+            from langchain_pinecone import PineconeVectorStore
             from pinecone import Pinecone as PineconeClient
             
             # Get Pinecone credentials from environment variables
@@ -65,7 +65,7 @@ def get_vector_store(
             index = pc.Index(pinecone_index_name)
             
             logger.info(f"Using Pinecone vector store with namespace: {collection_name}")
-            return Pinecone(
+            return PineconeVectorStore(
                 index=index,
                 embedding=embedding_function,
                 namespace=collection_name,
