@@ -27,7 +27,7 @@ def trim_messages(messages: list, max_messages: int = 8) -> list:
 
 def get_content(doc) -> str:
     if isinstance(doc, Document):
-        return doc.get("page_content", "")[:500]
+        return doc.page_content[:500]
     else:
         if isinstance(doc, dict):
             if "page_content" in doc:
