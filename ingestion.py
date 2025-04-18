@@ -7,6 +7,8 @@ from firecrawl import FirecrawlApp
 from langchain_core.documents import Document
 import os
 import asyncio
+import time
+from itertools import islice
 load_dotenv()
 
 urls1 = [
@@ -267,7 +269,7 @@ urls4 = [
 def ingest_documents(framework, docs_list):
     """Ingest documents into the vector store."""
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=600, chunk_overlap=50
+        chunk_size=500, chunk_overlap=50
     )
     doc_splits = text_splitter.split_documents(docs_list)
 
@@ -295,18 +297,34 @@ for framework, urls in zip(
     docs_list = []
     
     app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
-    for url in urls:
-        print(f"FireCrawling {url}")
-        try:
-            result = app.scrape_url(url, formats=["markdown"])
+    
+    # Process URLs in batches of 10
+    batch_size = 10
+    url_count = len(urls)
+    
+    for i in range(0, url_count, batch_size):
+        # Get the current batch (slice of 10 URLs or less for the last batch)
+        batch = urls[i:i+batch_size]
+        
+        print(f"Processing batch {i//batch_size + 1} of {(url_count + batch_size - 1)//batch_size} ({len(batch)} URLs)")
+        
+        for url in batch:
+            print(f"FireCrawling {url}")
+            try:
+                result = app.scrape_url(url, formats=["markdown"])
 
-            if result and result.success:
-                content = result.markdown
-                docs_list.append(Document(page_content=content, metadata={"source": url}))
-            
-            print(f"Successfully loaded documents from {url}")
-        except Exception as e:
-            print(f"Error loading {url}: {e}")
+                if result and result.success:
+                    content = result.markdown
+                    docs_list.append(Document(page_content=content, metadata={"source": url}))
+                
+                print(f"Successfully loaded documents from {url}")
+            except Exception as e:
+                print(f"Error loading {url}: {e}")
+        
+        # Wait for 1 minute between batches, but only if there are more URLs to process
+        if i + batch_size < url_count:
+            print(f"Waiting 60 seconds before processing the next batch...")
+            time.sleep(60)
     
     # Ingest documents for this framework
     if docs_list:
