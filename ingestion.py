@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
-from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders.firecrawl import FireCrawlLoader
 from agent.graph.models.embeddings import embeddings
 from agent.graph.vector_stores import get_vector_store
 
@@ -275,7 +274,7 @@ def ingest_documents(framework, docs_list):
         
         if vector_store:
             # Add documents to the vector store
-            print("Current_documents: ", doc_splits)
+            print(f"Adding {len(doc_splits)} documents to vector store for {framework}")
             vector_store.add_documents(doc_splits)
             return True
         else:
@@ -289,11 +288,36 @@ for framework, urls in zip(
         ["openai", "smolagents", "langgraph", "copilotkit"], 
         [urls1, urls2, urls3, urls4]
     ):
-    docs = [WebBaseLoader(url).load() for url in urls]
-    docs_list = [item for sublist in docs for item in sublist]
-
-    if ingest_documents(framework, docs_list):
-        print(f"Successfully ingested documents for {framework}")
+    print(f"\nProcessing {framework} documentation...")
+    docs_list = []
+    
+    for url in urls:
+        print(f"FireCrawling {url}")
+        try:
+            # Use FireCrawlLoader instead of WebBaseLoader
+            loader = FireCrawlLoader(
+                url=url,
+                mode="scrape",  # Use scrape mode for better content extraction
+            )
+            docs = loader.load()
+            
+            # Process metadata to match expected format
+            for doc in docs:
+                if 'sourceURL' in doc.metadata:
+                    doc_url = doc.metadata.pop('sourceURL')
+                    doc.metadata = {'source': doc_url}
+            
+            docs_list.extend(docs)
+            print(f"Successfully loaded {len(docs)} documents from {url}")
+        except Exception as e:
+            print(f"Error loading {url}: {e}")
+    
+    # Ingest documents for this framework
+    if docs_list:
+        if ingest_documents(framework, docs_list):
+            print(f"Successfully ingested {len(docs_list)} documents for {framework}")
+        else:
+            print(f"Error: Could not ingest documents for {framework}")
     else:
-        print(f"Error: Could not ingest documents for {framework}")
+        print(f"No documents found for {framework}")
     
