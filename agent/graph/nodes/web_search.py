@@ -10,23 +10,12 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
     APIResponse
 )
+from agent.graph.utils.message_utils import get_content
 from copilotkit.langgraph import copilotkit_emit_state
 
 logger = logging.getLogger("graph.web_search")
 
 web_search_tool = TavilySearchResults(k=3)
-
-def get_content(doc) -> str:
-    if isinstance(doc, Document):
-        if doc.metadata.get("source") == "web":
-            return doc.page_content[:500]
-        else:
-            return ""
-    else:
-        if isinstance(doc, dict):
-            return doc["content"][:500]
-        else:
-            return ""
 
 @timeout(STANDARD_TIMEOUT)
 @handle_api_error

@@ -25,11 +25,21 @@ def trim_messages(messages: list, max_messages: int = 8) -> list:
         return messages[-max_messages:]
     return messages
 
-def get_page_content(doc: Document) -> str:
-    if doc.metadata.get("source") == "web":
-        return doc.page_content[:500]
+def get_content(doc) -> str:
+    if isinstance(doc, Document):
+        return doc.get("page_content", "")[:500]
     else:
-        return ""
+        if isinstance(doc, dict):
+            if "page_content" in doc:
+                return doc["page_content"][:500]
+            elif "content" in doc:
+                return doc["content"][:500]
+            elif "markdown" in doc:
+                return doc["markdown"][:500]
+            else:
+                return ""
+        else:
+            return ""
     
 def get_last_message_type(messages):
     """Get the type of the last message in a list of messages.

@@ -3,7 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from agent.graph.chains.retrieval_grader import grade_single_document
 from agent.graph.state import GraphState
-from agent.graph.utils.message_utils import get_page_content
+from agent.graph.utils.message_utils import get_content
 from agent.graph.utils.api_utils import (
     handle_api_error,
     GRADER_TIMEOUT,
@@ -49,14 +49,15 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
     @handle_api_error
     def process_document(doc):
         try:
+            document_content = get_content(doc)
             score = grade_single_document(
                 query=query,
-                document=get_page_content(doc)
+                document=document_content
             )
             # Track API usage
             cost_tracker.track_usage(
                 'grader',
-                tokens=len(get_page_content(doc).split()),  # Approximate token count
+                tokens=len(document_content.split()),  # Approximate token count
                 cost=0.0,  # Update cost based on actual pricing
                 requests=1
             )

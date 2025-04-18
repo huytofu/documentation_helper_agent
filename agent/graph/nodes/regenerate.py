@@ -6,7 +6,7 @@ from agent.graph.state import GraphState
 from langchain_core.messages import HumanMessage, AIMessage
 from agent.graph.utils.message_utils import get_last_message_type, extract_output_state_properties
 from langchain_core.documents import Document
-from agent.graph.utils.message_utils import get_page_content
+from agent.graph.utils.message_utils import get_content
 from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
     handle_api_error,
@@ -49,7 +49,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     
     comments = state.get("comments", "")
 
-    joined_documents = "\n\n".join([get_page_content(doc) for doc in raw_documents[:3]])
+    joined_documents = "\n\n".join([get_content(doc) for doc in raw_documents[:3]])
 
     if framework and (framework not in ["none", ""]):
         extra_info = f"and is expert at the {framework} framework"
