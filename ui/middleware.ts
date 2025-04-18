@@ -30,17 +30,13 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!(authSessionCookie || loggedInCookie || firebaseAuthCookie);
   
   // Public paths that don't require authentication
-  const publicPaths = ['/login', '/register', '/verify-email'];
+  const publicPaths = ['/login', '/register', '/verify-email', '/'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
   
   // API paths that should be excluded from redirection
   const apiPaths = ['/api/copilotkit'];
   const isApiPath = apiPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
-  // Dashboard-related paths (where CopilotKit is active)
-  const dashboardPaths = ['/dashboard'];
-  const isDashboardPath = dashboardPaths.some(path => request.nextUrl.pathname.startsWith(path));
-  
   // Get the URL and query parameters
   const url = new URL(request.url);
   const redirectSource = url.searchParams.get('redirectSource') || '';
