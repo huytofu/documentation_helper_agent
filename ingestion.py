@@ -299,6 +299,7 @@ for framework, urls in zip(
         try:
             result = app.scrape_url(url, formats=["markdown"])
             if result:
+                print(result)
                 content = result["markdown"]
                 docs_list.append(Document(page_content=content, metadata={"source": url}))
             
