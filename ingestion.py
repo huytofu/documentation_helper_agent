@@ -3,7 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders.firecrawl import FireCrawlLoader
 from agent.graph.models.embeddings import embeddings
 from agent.graph.vector_stores import get_vector_store
-from firecrawl import FireCrawlApp
+from firecrawl import FirecrawlApp
 from langchain_core.documents import Document
 import os
 load_dotenv()
@@ -293,7 +293,7 @@ for framework, urls in zip(
     print(f"\nProcessing {framework} documentation...")
     docs_list = []
     
-    app = FireCrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
+    app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
     for url in urls:
         print(f"FireCrawling {url}")
         try:
