@@ -275,6 +275,7 @@ def ingest_documents(framework, docs_list):
         
         if vector_store:
             # Add documents to the vector store
+            print("Current_documents: ", doc_splits)
             vector_store.add_documents(doc_splits)
             return True
         else:
