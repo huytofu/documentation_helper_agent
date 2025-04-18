@@ -298,13 +298,10 @@ for framework, urls in zip(
     for url in urls:
         print(f"FireCrawling {url}")
         try:
-            result = asyncio.run(
-                app.scrape_url(url, formats=["markdown"])
-            )
-            result = result.json()
-            if result:
-                print([key for key in result.keys()])
-                content = result["markdown"]
+            result = app.scrape_url(url, formats=["markdown"])
+
+            if result and result.success:
+                content = result.markdown
                 docs_list.append(Document(page_content=content, metadata={"source": url}))
             
             print(f"Successfully loaded documents from {url}")
