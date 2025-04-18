@@ -62,22 +62,19 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
             )
             return GradingResponse(
                 success=True,
-                doc=doc,
-                score=score,
+                binary_score=score.binary_score,
                 error=None
             )
         except TimeoutError:
             return GradingResponse(
                 success=False,
-                doc=doc,
-                score=None,
+                binary_score=None,
                 error="timeout"
             )
         except Exception as e:
             return GradingResponse(
                 success=False,
-                doc=doc,
-                score=None,
+                binary_score=None,
                 error=str(e)
             )
 
@@ -99,9 +96,9 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
                 try:
                     result = future.result(timeout=GRADER_TIMEOUT)
                     if result.success:
-                        if result.score and result.score.binary_score.lower() == "yes":
+                        if result.binary_score and result.binary_score.lower() == "yes":
                             logger.info("---GRADE: DOCUMENT RELEVANT---")
-                            filtered_docs.append(result.doc)
+                            filtered_docs.append(doc)
                         else:
                             logger.info("---GRADE: DOCUMENT NOT RELEVANT---")
                     else:
