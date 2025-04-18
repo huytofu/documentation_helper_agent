@@ -3,7 +3,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders.firecrawl import FireCrawlLoader
 from agent.graph.models.embeddings import embeddings
 from agent.graph.vector_stores import get_vector_store
-
+from firecrawl import FireCrawlApp
+from langchain_core.documents import Document
+import os
 load_dotenv()
 
 urls1 = [
@@ -291,24 +293,16 @@ for framework, urls in zip(
     print(f"\nProcessing {framework} documentation...")
     docs_list = []
     
+    app = FireCrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
     for url in urls:
         print(f"FireCrawling {url}")
         try:
-            # Use FireCrawlLoader instead of WebBaseLoader
-            loader = FireCrawlLoader(
-                url=url,
-                mode="scrape",  # Use scrape mode for better content extraction
-            )
-            docs = loader.load()
+            result = app.scrape_url(url, formats=["markdown"])
+            if result:
+                content = result["markdown"]
+                docs_list.append(Document(page_content=content, metadata={"source": url}))
             
-            # Process metadata to match expected format
-            for doc in docs:
-                if 'sourceURL' in doc.metadata:
-                    doc_url = doc.metadata.pop('sourceURL')
-                    doc.metadata = {'source': doc_url}
-            
-            docs_list.extend(docs)
-            print(f"Successfully loaded {len(docs)} documents from {url}")
+            print(f"Successfully loaded documents from {url}")
         except Exception as e:
             print(f"Error loading {url}: {e}")
     
