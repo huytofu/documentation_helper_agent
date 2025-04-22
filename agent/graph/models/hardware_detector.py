@@ -1,6 +1,5 @@
 import torch
 import psutil
-import platform
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 

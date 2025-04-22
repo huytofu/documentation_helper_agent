@@ -1,7 +1,7 @@
 """Batch processing utilities for efficient handling of multiple requests."""
 
 import asyncio
-from typing import List, TypeVar, Callable, Any, Dict
+from typing import List, TypeVar, Callable, Any
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from dataclasses import dataclass

@@ -6,8 +6,7 @@ This module implements a LangGraph checkpointer using Vercel KV (Redis) for stat
 import os
 import json
 import logging
-from typing import Any, Dict, Optional, List, Tuple
-import asyncio
+from typing import Any, Dict, Optional, List
 from dotenv import load_dotenv
 from langgraph.checkpoint.base import BaseCheckpointSaver
 

@@ -1,7 +1,6 @@
 """RunPod client configuration for serverless vLLM inference."""
 
 import os
-import json
 import aiohttp
 from typing import Dict, Any, Optional
 import logging

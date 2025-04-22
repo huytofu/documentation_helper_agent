@@ -5,7 +5,7 @@ This module provides custom LangChain-compatible classes for using
 Hugging Face's InferenceClient with third-party providers.
 """
 
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Optional
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
