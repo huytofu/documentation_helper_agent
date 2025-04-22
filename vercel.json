@@ -1,23 +1,31 @@
 {
   "version": 2,
+  "buildCommand": "cd ui && npm install && npm run build",
+  "outputDirectory": "ui/.next",
+  "installCommand": "pip install -r requirements.txt && cd ui && npm install",
   "builds": [
     {
-      "src": "agent/graph/app.py",
+      "src": "ui/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "api/**/*.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "agent/graph/app.py"
+      "dest": "api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "ui/$1"
     }
   ],
   "env": {
-    "USE_HUGGINGFACE": "true",
-    "USE_INFERENCE_CLIENT": "false",
-    "ENVIRONMENT": "production",
-    "PROVISIONED_CONCURRENCY": "1",
-    "CONCURRENCY_LIMIT": "5",
-    "LOG_LEVEL": "INFO"
+    "PYTHONPATH": ".",
+    "NODE_ENV": "production",
+    "ENVIRONMENT": "production"
   }
 } 
