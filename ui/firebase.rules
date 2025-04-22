@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Allow all operations for authenticated users
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Allow access to anonymous rate limits
+    match /anonymousRateLimits/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Allow email verification
+    match /users/{userId} {
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['emailVerified', 'isActive']);
+    }
+  }
+} 

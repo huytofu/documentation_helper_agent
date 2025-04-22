@@ -1,7 +1,0 @@
-RETRIEVE = "retrieve"
-GRADE_DOCUMENTS = "grade_documents"
-GENERATE = "generate"
-WEBSEARCH = "websearch"
-DECIDE_LANGUAGE = "decide_language"
-DECIDE_VECTORSTORE = "decide_vectorstore"
-HUMAN_IN_LOOP = "human_in_loop"

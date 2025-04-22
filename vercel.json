@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "buildCommand": "cd ui && npm install && npm run build",
+  "outputDirectory": "ui/.next",
+  "installCommand": "pip install -r requirements.txt && cd ui && npm install",
+  "builds": [
+    {
+      "src": "ui/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "api/**/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "ui/$1"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": ".",
+    "NODE_ENV": "production",
+    "ENVIRONMENT": "production"
+  }
+} 
