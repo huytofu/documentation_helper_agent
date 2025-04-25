@@ -69,7 +69,7 @@ class HFInferenceClientWrapper {
         stop: this.config.stop,
       });
 
-      return chatCompletion.choices[0].message.content;
+      return chatCompletion.choices[0].message.content || "";
     } catch (error) {
       console.error("Error calling inference client:", error);
       throw error;
