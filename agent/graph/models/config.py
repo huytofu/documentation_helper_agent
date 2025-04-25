@@ -85,23 +85,6 @@ runpod_client: Optional[RunPodClient] = None
 if USE_RUNPOD and RUNPOD_API_KEY and RUNPOD_ENDPOINT_ID:
     runpod_client = RunPodClient.from_env()
 
-def get_inference_client() -> Optional[InferenceClient]:
-    """Get a configured InferenceClient for third-party providers."""
-    if not USE_INFERENCE_CLIENT or not INFERENCE_API_KEY:
-        return None
-        
-    return InferenceClient(
-        model=os.environ.get("INFERENCE_PROVIDER", "together"),
-        token=INFERENCE_API_KEY,
-        timeout=30,
-        max_retries=3,
-        retry_on_failure=True,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-    )
-
 def get_ollama_config() -> Dict[str, Any]:
     """Get Ollama configuration with optimized settings."""
     return {
