@@ -223,7 +223,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
 FIREBASE_SERVICE_ACCOUNT=your_firebase_service_account
 FIREBASE_CLIENT_EMAIL=your_client_email_here
 FIREBASE_PRIVATE_KEY=your_private_key_here
-FIREBASE_PROJECT_ID=your_project_id
 ```
 
 ### Performance Optimization
