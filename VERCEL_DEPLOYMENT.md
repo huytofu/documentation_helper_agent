@@ -57,7 +57,6 @@ After initial deployment, you need to set up your environment variables:
 4. Click "Save"
 
 Critical environment variables include:
-- `OPENAI_API_KEY`
 - `PYTHONPATH`
 - `NEXT_PUBLIC_API_URL=/api`
 
