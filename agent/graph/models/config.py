@@ -20,12 +20,6 @@ import os
 from typing import Dict, Any, Optional
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from langchain_community.llms import HuggingFaceHub
-from langchain_ollama import ChatOllama
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-from langchain_community.chat_models import ChatHuggingFace
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from huggingface_hub import InferenceClient
 from .runpod_client import RunPodClient
 import logging
@@ -60,7 +54,7 @@ MODEL_IDS = {
     # "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "hallucinate_grader": "Qwen/Qwen2.5-14B-Instruct",
     "summarizer": "Qwen/Qwen2.5-14B-Instruct",
-    "generator": "deepseek-ai/deepseek-coder-v2-instruct"
+    "generator": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
 }
 
 # Ollama model names
@@ -90,23 +84,6 @@ concurrency_semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 runpod_client: Optional[RunPodClient] = None
 if USE_RUNPOD and RUNPOD_API_KEY and RUNPOD_ENDPOINT_ID:
     runpod_client = RunPodClient.from_env()
-
-def get_inference_client() -> Optional[InferenceClient]:
-    """Get a configured InferenceClient for third-party providers."""
-    if not USE_INFERENCE_CLIENT or not INFERENCE_API_KEY:
-        return None
-        
-    return InferenceClient(
-        model=os.environ.get("INFERENCE_PROVIDER", "together"),
-        token=INFERENCE_API_KEY,
-        timeout=30,
-        max_retries=3,
-        retry_on_failure=True,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-    )
 
 def get_ollama_config() -> Dict[str, Any]:
     """Get Ollama configuration with optimized settings."""

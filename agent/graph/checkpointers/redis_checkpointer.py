@@ -1,6 +1,6 @@
-"""Vercel KV Checkpointer for LangGraph
+"""Redis Checkpointer for LangGraph
 
-This module implements a LangGraph checkpointer using Vercel KV (Redis) for state persistence.
+This module implements a LangGraph checkpointer using Redis for state persistence.
 """
 
 import os
@@ -16,58 +16,53 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-class VercelKVCheckpointer(BaseCheckpointSaver):
-    """LangGraph checkpointer implementation using Vercel KV (Redis).
+class RedisCheckpointer(BaseCheckpointSaver):
+    """LangGraph checkpointer implementation using Redis.
     
-    This checkpointer stores LangGraph state in Vercel KV, allowing for
+    This checkpointer stores LangGraph state in Redis, allowing for
     persistence across serverless function invocations.
     """
     
     def __init__(self, 
-                 kv_url: Optional[str] = None, 
-                 kv_rest_api_url: Optional[str] = None,
-                 kv_rest_api_token: Optional[str] = None,
-                 kv_rest_api_read_only_token: Optional[str] = None,
+                 redis_url: Optional[str] = None,
                  ttl: Optional[int] = None):
-        """Initialize the Vercel KV checkpointer.
+        """Initialize the Redis checkpointer.
         
         Args:
-            kv_url: Vercel KV Redis URL (KV_URL env var)
-            kv_rest_api_url: Vercel KV REST API URL (KV_REST_API_URL env var)
-            kv_rest_api_token: Vercel KV REST API token (KV_REST_API_TOKEN env var)
-            kv_rest_api_read_only_token: Vercel KV REST API read-only token (KV_REST_API_READ_ONLY_TOKEN env var)
+            redis_url: Redis URL (REDIS_URL env var)
             ttl: Time-to-live for stored states in seconds (optional)
         """
-        # Import here to avoid dependency issues if not using Vercel KV
+        # Import here to avoid dependency issues if not using Redis
         try:
-            from vercel_kv import VercelKV
+            # Try importing the async Redis client
+            import redis
+            # Check if the package supports asyncio
+            if not hasattr(redis, 'asyncio'):
+                raise ImportError("The installed redis package doesn't support asyncio")
+            self.redis_module = redis.asyncio
         except ImportError:
             raise ImportError(
-                "The 'vercel-kv' package is required to use VercelKVCheckpointer. "
-                "Install it with 'pip install vercel-kv'."
+                "Redis asyncio support is required. "
+                "Make sure you have redis>=4.2.0 installed via 'pip install redis>=4.2.0'."
             )
         
-        # Get credentials from parameters or environment variables
-        self.kv_url = kv_url or os.getenv("KV_URL")
-        self.kv_rest_api_url = kv_rest_api_url or os.getenv("KV_REST_API_URL")
-        self.kv_rest_api_token = kv_rest_api_token or os.getenv("KV_REST_API_TOKEN")
-        self.kv_rest_api_read_only_token = kv_rest_api_read_only_token or os.getenv("KV_REST_API_READ_ONLY_TOKEN")
+        # Get Redis URL from parameter or environment variable
+        self.redis_url = redis_url or os.getenv("REDIS_URL")
         self.ttl = ttl
         
-        # Validate credentials
-        if not all([self.kv_url, self.kv_rest_api_url, self.kv_rest_api_token]):
+        # Validate Redis URL
+        if not self.redis_url:
             raise ValueError(
-                "Vercel KV credentials are required. "
-                "Set KV_URL, KV_REST_API_URL, and KV_REST_API_TOKEN environment variables "
-                "or provide them as parameters."
+                "Redis URL is required. "
+                "Set REDIS_URL environment variable or provide it as a parameter."
             )
         
-        # Initialize Vercel KV client
-        self.kv = VercelKV()
-        logger.info("Initialized Vercel KV checkpointer")
+        # Initialize Redis client
+        self.redis = self.redis_module.from_url(self.redis_url)
+        logger.info("Initialized Redis checkpointer")
     
     async def get(self, key: str) -> Optional[Dict[str, Any]]:
-        """Get a state from Vercel KV.
+        """Get a state from Redis.
         
         Args:
             key: The state key to retrieve
@@ -77,7 +72,7 @@ class VercelKVCheckpointer(BaseCheckpointSaver):
         """
         try:
             logger.debug(f"Getting state for key: {key}")
-            state_json = await self.kv.get(key)
+            state_json = await self.redis.get(key)
             if state_json is None:
                 logger.debug(f"No state found for key: {key}")
                 return None
@@ -90,7 +85,7 @@ class VercelKVCheckpointer(BaseCheckpointSaver):
             return None
     
     async def put(self, key: str, state: Dict[str, Any]) -> None:
-        """Store a state in Vercel KV.
+        """Store a state in Redis.
         
         Args:
             key: The state key
@@ -101,9 +96,9 @@ class VercelKVCheckpointer(BaseCheckpointSaver):
             state_json = json.dumps(state)
             
             if self.ttl:
-                await self.kv.set(key, state_json, ex=self.ttl)
+                await self.redis.setex(key, self.ttl, state_json)
             else:
-                await self.kv.set(key, state_json)
+                await self.redis.set(key, state_json)
                 
             logger.debug(f"Stored state for key: {key}")
         except Exception as e:
@@ -111,17 +106,16 @@ class VercelKVCheckpointer(BaseCheckpointSaver):
             raise
     
     async def list(self) -> List[str]:
-        """List all state keys in Vercel KV.
+        """List all state keys in Redis.
         
         Returns:
             List of state keys
         """
         try:
             logger.debug("Listing all state keys")
-            # Vercel KV doesn't have a direct method to list all keys
-            # This is a workaround using the KEYS command
-            # Note: This is not recommended for production with large datasets
-            keys = await self.kv.execute_command("KEYS", "*")
+            # Warning: KEYS is not recommended for production with large datasets
+            # Consider using SCAN for production environments
+            keys = await self.redis.keys("*")
             logger.debug(f"Found {len(keys)} state keys")
             return keys
         except Exception as e:
@@ -129,14 +123,14 @@ class VercelKVCheckpointer(BaseCheckpointSaver):
             return []
     
     async def delete(self, key: str) -> None:
-        """Delete a state from Vercel KV.
+        """Delete a state from Redis.
         
         Args:
             key: The state key to delete
         """
         try:
             logger.debug(f"Deleting state for key: {key}")
-            await self.kv.delete(key)
+            await self.redis.delete(key)
             logger.debug(f"Deleted state for key: {key}")
         except Exception as e:
             logger.error(f"Error deleting state for key {key}: {str(e)}")

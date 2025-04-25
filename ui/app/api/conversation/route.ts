@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_ENDPOINT, BACKEND_ENDPOINT_2, BACKEND_ENDPOINT_3 } from '@/constants';
 import { getUserId } from '@/lib/userUtils';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const DOCUMENTATION_HELPER_API_KEY = process.env.DOCUMENTATION_HELPER_API_KEY;
 
 /**
  * API endpoint for saving conversation history (singular version)
@@ -97,7 +97,7 @@ async function sendRequest(url: string, payload: any) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': API_KEY || ''
+      'X-API-Key': DOCUMENTATION_HELPER_API_KEY || ''
     },
     body: JSON.stringify(payload)
   });

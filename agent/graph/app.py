@@ -140,14 +140,14 @@ app.add_middleware(EnhancedRateLimitMiddleware)
 
 # API Key security
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
-API_KEY = os.getenv("API_KEY", "")
-if not API_KEY:
-    logger.warning("API_KEY not set in environment variables")
+DOCUMENTATION_HELPER_API_KEY = os.getenv("DOCUMENTATION_HELPER_API_KEY", "")
+if not DOCUMENTATION_HELPER_API_KEY:
+    logger.warning("DOCUMENTATION_HELPER_API_KEY not set in environment variables")
 
 async def verify_api_key(api_key: str = Depends(API_KEY_HEADER)):
-    if not API_KEY:
+    if not DOCUMENTATION_HELPER_API_KEY:
         return None
-    if not api_key or api_key != API_KEY:
+    if not api_key or api_key != DOCUMENTATION_HELPER_API_KEY:
         raise HTTPException(
             status_code=403,
             detail="Invalid API key"

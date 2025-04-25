@@ -1,7 +1,6 @@
 """RunPod client configuration for serverless vLLM inference."""
 
 import os
-import json
 import aiohttp
 from typing import Dict, Any, Optional
 import logging
@@ -16,14 +15,15 @@ class RunPodClient:
         self,
         api_key: str,
         endpoint_id: str,
-        model_id: str = "deepseek-ai/deepseek-coder-v2-instruct",
+        model_id: str = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
         max_tokens: int = 2048,
         temperature: float = 0.2,
         top_p: float = 0.9,
         top_k: int = 40,
         presence_penalty: float = 0.1,
         frequency_penalty: float = 0.1,
-        use_vllm: bool = True
+        use_vllm: bool = True,
+        trust_remote_code: bool = True
     ):
         """Initialize RunPod client.
         
@@ -38,6 +38,7 @@ class RunPodClient:
             presence_penalty: Presence penalty
             frequency_penalty: Frequency penalty
             use_vllm: Whether to use vLLM for faster inference
+            trust_remote_code: Whether to trust remote code (needed for models like DeepSeek)
         """
         self.api_key = api_key
         self.endpoint_id = endpoint_id
@@ -49,6 +50,7 @@ class RunPodClient:
         self.presence_penalty = presence_penalty
         self.frequency_penalty = frequency_penalty
         self.use_vllm = use_vllm
+        self.trust_remote_code = trust_remote_code
         self.base_url = f"https://api.runpod.ai/v2/{endpoint_id}"
         self.headers = {
             "Authorization": f"Bearer {api_key}",
@@ -90,6 +92,7 @@ class RunPodClient:
                 "frequency_penalty": kwargs.get("frequency_penalty", self.frequency_penalty),
                 "use_vllm": self.use_vllm,
                 "serverless": True,
+                "trust_remote_code": self.trust_remote_code,
                 "vllm_params": {
                     "max_num_batched_tokens": 4096,
                     "max_num_seqs": 256,
@@ -101,7 +104,8 @@ class RunPodClient:
                     "dtype": "float16",     # Use float16 for better memory efficiency
                     "seed": 42,
                     "worker_use_ray": False,
-                    "disable_log_requests": True
+                    "disable_log_requests": True,
+                    "trust_remote_code": self.trust_remote_code
                 }
             }
         }
@@ -162,5 +166,6 @@ class RunPodClient:
             top_k=int(os.getenv("RUNPOD_TOP_K", "40")),
             presence_penalty=float(os.getenv("RUNPOD_PRESENCE_PENALTY", "0.1")),
             frequency_penalty=float(os.getenv("RUNPOD_FREQUENCY_PENALTY", "0.1")),
-            use_vllm=os.getenv("RUNPOD_USE_VLLM", "true").lower() == "true"
+            use_vllm=os.getenv("RUNPOD_USE_VLLM", "true").lower() == "true",
+            trust_remote_code=os.getenv("RUNPOD_TRUST_REMOTE_CODE", "true").lower() == "true"
         ) 

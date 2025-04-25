@@ -11,9 +11,17 @@
     {
       "src": "api/**/*.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "agent/graph/app.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
+    {
+      "src": "/api/graph/(.*)",
+      "dest": "agent/graph/app.py"
+    },
     {
       "src": "/api/(.*)",
       "dest": "api/$1"
@@ -26,6 +34,9 @@
   "env": {
     "PYTHONPATH": ".",
     "NODE_ENV": "production",
-    "ENVIRONMENT": "production"
-  }
+    "ENVIRONMENT": "production",
+    "SERVER_TYPE": "vercel"
+  },
+  "regions": ["iad1"],
+  "public": false
 } 
