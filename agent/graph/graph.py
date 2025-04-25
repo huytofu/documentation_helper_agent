@@ -6,11 +6,11 @@ import os
 # Import the workflows instead of the compiled apps
 # Depending on the FLOW environment variable, import the appropriate workflow
 if os.environ.get("FLOW") == "test":
-    from agent.graph.test_flow import workflow
+    from agent.graph.flows.test_flow import workflow
 elif os.environ.get("FLOW") == "simple":
-    from agent.graph.simple_flow import workflow
+    from agent.graph.flows.simple_flow import workflow
 else:
-    from agent.graph.real_flow import workflow
+    from agent.graph.flows.real_flow import workflow
 
 # Import the checkpointer factory
 from agent.graph.checkpointers import get_checkpointer

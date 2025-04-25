@@ -23,7 +23,6 @@ Usage:
 
 import os
 import logging
-import json
 from dotenv import load_dotenv
 from agent.graph.app import app
 
@@ -61,6 +60,7 @@ elif SERVER_TYPE == "vercel":
             """Vercel handler for FastAPI app."""
             return app(scope, receive, send)
         
+        handler = vercel_handler
         logger.info("Vercel handler initialized")
     except ImportError:
         logger.error("Required dependencies not installed for Vercel deployment.")
