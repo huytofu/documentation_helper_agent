@@ -5,12 +5,10 @@ This module provides a centralized place to configure model settings,
 including switching between Ollama, Hugging Face models, and third-party providers.
 
 Environment Variables:
-    USE_HUGGINGFACE: Set to "true" to use Hugging Face models (default: true)
     USE_OLLAMA: Set to "true" to use Ollama models (default: false)
     USE_INFERENCE_CLIENT: Set to "true" to use InferenceClient with third-party providers
     USE_RUNPOD: Set to "true" to use RunPod for generator model
     
-    HUGGINGFACE_API_KEY: Your Hugging Face API key
     INFERENCE_API_KEY: API key for the specified provider
     RUNPOD_API_KEY: RunPod API key
     RUNPOD_ENDPOINT_ID: RunPod endpoint ID
@@ -20,27 +18,21 @@ import os
 from typing import Dict, Any, Optional
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from huggingface_hub import InferenceClient
 from .runpod_client import RunPodClient
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Environment flags
-USE_HUGGINGFACE = os.environ.get("USE_HUGGINGFACE", "true").lower() == "true"
 USE_OLLAMA = os.environ.get("USE_OLLAMA", "false").lower() == "true"
 USE_INFERENCE_CLIENT = os.environ.get("USE_INFERENCE_CLIENT", "false").lower() == "true"
 USE_RUNPOD = os.environ.get("USE_RUNPOD", "false").lower() == "true"
-
-# Validate environment configuration
-if USE_HUGGINGFACE and USE_OLLAMA:
-    raise ValueError("USE_HUGGINGFACE and USE_OLLAMA cannot be enabled simultaneously")
-
-# API Keys
-HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
-INFERENCE_API_KEY = os.environ.get("INFERENCE_API_KEY", "")
 RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY")
 RUNPOD_ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")
+
+# Validate environment configuration
+if USE_OLLAMA and USE_INFERENCE_CLIENT:
+    raise ValueError("USE_OLLAMA and USE_INFERENCE_CLIENT cannot be enabled simultaneously")
 
 # Model IDs
 MODEL_IDS = {
@@ -129,18 +121,25 @@ def get_active_provider(component: str) -> str:
         component: Component name (embeddings, router, grader, generator)
         
     Returns:
-        Active provider name (ollama, huggingface, runpod, or inference_client)
+        Active provider name (ollama, runpod, or inference_client)
     """
-    if USE_OLLAMA:
-        return "ollama"
-    elif USE_RUNPOD:
-        return "runpod"
-    elif USE_INFERENCE_CLIENT:
-        return "inference_client"
-    elif USE_HUGGINGFACE:
-        return "huggingface"
+    if component == "generator":
+        if USE_OLLAMA:
+            return "ollama"
+        elif USE_INFERENCE_CLIENT:
+            if USE_RUNPOD:
+                return "runpod"
+            else:
+                return "inference_client"
+        else:
+            raise ValueError("No model provider enabled. Please set one of USE_OLLAMA, USE_INFERENCE_CLIENT to true.")
     else:
-        raise ValueError("No model provider enabled. Please set one of USE_OLLAMA, USE_RUNPOD, USE_INFERENCE_CLIENT, or USE_HUGGINGFACE to true.")
+        if USE_OLLAMA:
+            return "ollama"
+        elif USE_INFERENCE_CLIENT:
+            return "inference_client"
+        else:
+            raise ValueError("No model provider enabled. Please set one of USE_OLLAMA, USE_INFERENCE_CLIENT to true.")
 
 def get_model_config_for_component(component: str) -> Dict[str, Any]:
     """Get model configuration for a specific component.
@@ -155,11 +154,14 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
     
     if provider == "ollama":
         return {
+            "provider": provider,
             "model": OLLAMA_MODELS[component],
             "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         }
     elif provider == "runpod":
         return {
+            "provider": provider,
+            "client": runpod_client,
             "model": os.getenv("RUNPOD_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("RUNPOD_API_KEY"),
             "endpoint_id": os.getenv("RUNPOD_ENDPOINT_ID"),
@@ -182,13 +184,15 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
         }
     elif provider == "inference_client":
         return {
+            "provider": provider,
             "model": os.getenv("INFERENCE_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("INFERENCE_API_KEY"),
-            "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models")
+            "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models"),
+            "max_tokens": int(os.getenv("INFERENCE_MAX_TOKENS", "2048"))
         }
-    else:  # huggingface
+    else:  # default to ollama
         return {
-            "model": os.getenv("HUGGINGFACE_MODEL_ID", MODEL_IDS[component]),
-            "api_key": os.getenv("HUGGINGFACE_API_KEY"),
-            "base_url": os.getenv("HUGGINGFACE_BASE_URL", "https://api-inference.huggingface.co/models")
-        } 
+            "provider": "ollama",
+            "model": OLLAMA_MODELS[component],
+            "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        }

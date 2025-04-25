@@ -7,19 +7,14 @@ from .inference_client_wrapper import InferenceClientEmbeddings
 config = get_model_config_for_component("embeddings")
 
 # Initialize embeddings based on configuration
-if "client" in config:
+if config["provider"] == "inference_client":
     # Use InferenceClient with third-party provider
     embeddings = InferenceClientEmbeddings(
         provider=config.get("provider", "together"),
         api_key=config["api_key"],
-        model=config["model"]
+        model=config["model"],
+        max_tokens=config["max_tokens"]
     )
-# elif "api_key" in config:
-#     # Use Hugging Face
-#     embeddings = HuggingFaceEmbeddings(
-#         # api_key=config["api_key"],
-#         model_name=config["model"]
-#     )
 else:
     # Default to Ollama
     embeddings = OllamaEmbeddings(model=config["model"])

@@ -7,21 +7,15 @@ from .inference_client_wrapper import InferenceClientChatModel
 config = get_model_config_for_component("router")
 
 # Initialize LLM based on configuration
-if "client" in config:
+if config["provider"] == "inference_client":
     # Use InferenceClient with third-party provider
     llm = InferenceClientChatModel(
         provider=config.get("provider", "together"),
         api_key=config["api_key"],
         model=config["model"],
-        temperature=0
+        temperature=0,
+        max_tokens=config["max_tokens"]
     )
-# elif "api_key" in config:
-#     # Use Hugging Face
-#     llm = ChatHuggingFace(
-#         model_id=config["model"],
-#         huggingfacehub_api_token=config["api_key"],
-#         temperature=0
-#     )
 else:
     # Default to Ollama
     llm = ChatOllama(model=config["model"], temperature=0)
