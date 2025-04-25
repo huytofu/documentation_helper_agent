@@ -1,6 +1,5 @@
 # from langchain_openai import OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
 from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientEmbeddings
 
@@ -15,12 +14,12 @@ if "client" in config:
         api_key=config["api_key"],
         model=config["model"]
     )
-elif "api_key" in config:
-    # Use Hugging Face
-    embeddings = HuggingFaceEmbeddings(
-        # api_key=config["api_key"],
-        model_name=config["model"]
-    )
+# elif "api_key" in config:
+#     # Use Hugging Face
+#     embeddings = HuggingFaceEmbeddings(
+#         # api_key=config["api_key"],
+#         model_name=config["model"]
+#     )
 else:
     # Default to Ollama
     embeddings = OllamaEmbeddings(model=config["model"])

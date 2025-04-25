@@ -1,6 +1,5 @@
 # from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
-from langchain_huggingface import ChatHuggingFace
 from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientChatModel
 
@@ -16,13 +15,13 @@ if "client" in config:
         model=config["model"],
         temperature=0
     )
-elif "api_key" in config:
-    # Use Hugging Face
-    llm = ChatHuggingFace(
-        model_id=config["model"],
-        huggingfacehub_api_token=config["api_key"],
-        temperature=0
-    )
+# elif "api_key" in config:
+#     # Use Hugging Face
+#     llm = ChatHuggingFace(
+#         model_id=config["model"],
+#         huggingfacehub_api_token=config["api_key"],
+#         temperature=0
+#     )
 else:
     # Default to Ollama
     llm = ChatOllama(model=config["model"], temperature=0)
