@@ -4,6 +4,8 @@ import { ChatOllama } from "@langchain/ollama";
 // Environment flags
 const USE_OLLAMA = process.env.USE_OLLAMA === "true";
 const USE_INFERENCE_CLIENT = process.env.USE_INFERENCE_CLIENT === "true";
+const INFERENCE_PROVIDER = process.env.INFERENCE_PROVIDER || "together";
+const INFERENCE_API_KEY = process.env.INFERENCE_API_KEY || "";
 
 // Validate environment configuration
 if (USE_OLLAMA && USE_INFERENCE_CLIENT) {
@@ -23,7 +25,7 @@ const OLLAMA_CONFIG = {
 };
 
 const INFERENCE_CLIENT_CONFIG = {
-  provider: process.env.INFERENCE_PROVIDER || "together",
+  provider: INFERENCE_PROVIDER,
   model: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
   temperature: 0,
   max_tokens: 2048,
@@ -39,7 +41,7 @@ class HFInferenceClientWrapper {
   private config: any;
 
   constructor(config: any) {
-    this.client = new InferenceClient(process.env.INFERENCE_API_KEY || "");
+    this.client = new InferenceClient(INFERENCE_API_KEY);
     this.config = config;
   }
 
