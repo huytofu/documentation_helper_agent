@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { AuthService } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserId } from '@/lib/userUtils';
@@ -8,7 +8,8 @@ import { AGENT_NAME } from '@/constants';
 import { useCoAgent } from '@copilotkit/react-core';
 import { AgentState } from '@/types/agent';
 
-export default function LoginForm() {
+// Component that uses useSearchParams
+function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -121,5 +122,30 @@ export default function LoginForm() {
         </a>
       </div>
     </div>
+  );
+}
+
+// Loading fallback
+function LoginFormSkeleton() {
+  return (
+    <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md animate-pulse">
+      <div className="h-7 bg-gray-200 rounded w-1/3 mx-auto mb-6"></div>
+      <div className="space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded mt-6"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main export component with Suspense boundary
+export default function LoginForm() {
+  return (
+    <Suspense fallback={<LoginFormSkeleton />}>
+      <LoginFormContent />
+    </Suspense>
   );
 } 
