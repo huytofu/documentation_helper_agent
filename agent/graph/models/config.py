@@ -54,7 +54,7 @@ MODEL_IDS = {
     # "summarizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "hallucinate_grader": "Qwen/Qwen2.5-14B-Instruct",
     "summarizer": "Qwen/Qwen2.5-14B-Instruct",
-    "generator": "deepseek-ai/deepseek-coder-v2-instruct"
+    "generator": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
 }
 
 # Ollama model names
