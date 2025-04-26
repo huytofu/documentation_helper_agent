@@ -33,4 +33,4 @@ route_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Create the chain with format instructions
-query_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm.with_structured_output(RouteQuery)
+query_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser

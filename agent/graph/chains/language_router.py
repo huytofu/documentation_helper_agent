@@ -33,7 +33,7 @@ route_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Create the chain with format instructions
-language_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm.with_structured_output(LanguageRoute)
+language_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
 
 @lru_cache(maxsize=1000)
 def get_language_route(query: str) -> LanguageRoute:

@@ -30,6 +30,7 @@ class InferenceClientChatModel(BaseChatModel):
     model: str
     temperature: float = 0.0
     max_tokens: int = 1024
+    provider: str = ""
     
     def __init__(
         self,
@@ -50,12 +51,21 @@ class InferenceClientChatModel(BaseChatModel):
             max_tokens: The maximum number of tokens to generate
             **kwargs: Additional keyword arguments
         """
-        super().__init__(**kwargs)
-        self.client = InferenceClient(provider=provider, api_key=api_key)
-        self.model = model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.provider = provider
+        # Create client first
+        client = InferenceClient(provider=provider, api_key=api_key)
+        
+        # Include all parameters in kwargs for proper Pydantic validation
+        all_kwargs = {
+            "client": client,
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "provider": provider,
+            **kwargs
+        }
+        
+        # Initialize with all parameters
+        super().__init__(**all_kwargs)
         logger.info(f"Initialized InferenceClientChatModel with provider: {provider}, model: {model}")
     
     def _convert_messages_to_chat_format(self, messages: List[BaseMessage]) -> List[Dict[str, str]]:
