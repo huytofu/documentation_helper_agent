@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "cd ui && npm install && npm run build",
   "outputDirectory": "ui/.next",
-  "installCommand": "pip install -r requirements.txt && cd ui && npm install",
+  "installCommand": "pip install -r ui/requirements.txt && cd ui && npm install",
   "builds": [
     {
       "src": "ui/package.json",
@@ -11,17 +11,9 @@
     {
       "src": "api/**/*.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "agent/graph/app.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
-    {
-      "src": "/api/graph/(.*)",
-      "dest": "agent/graph/app.py"
-    },
     {
       "src": "/api/(.*)",
       "dest": "api/$1"
