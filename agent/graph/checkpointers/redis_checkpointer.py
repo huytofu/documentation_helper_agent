@@ -134,4 +134,15 @@ class RedisCheckpointer(BaseCheckpointSaver):
             logger.debug(f"Deleted state for key: {key}")
         except Exception as e:
             logger.error(f"Error deleting state for key {key}: {str(e)}")
-            raise 
+            raise
+
+    async def aget_tuple(self, config):
+        """
+        Retrieve a tuple (state, version) for the given config.
+        The version is set to None by default unless your state includes a 'version' key.
+        """
+        # You may need to adjust this key logic based on your usage
+        key = str(config)
+        state = await self.get(key)
+        version = state.get("version") if state and isinstance(state, dict) and "version" in state else None
+        return (state, version) 
