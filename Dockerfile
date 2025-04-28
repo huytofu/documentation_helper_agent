@@ -23,9 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+ENV PYTHONPATH=/app
 
 # Expose port
 EXPOSE 8080
 
 # Use gunicorn as the entrypoint with the Cloud Run entry point
-CMD ["python", "agent/graph/app_gcp.py"] 
+CMD ["python", "-m", "agent.graph.app_gcp"] 

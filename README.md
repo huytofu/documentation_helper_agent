@@ -206,17 +206,22 @@ gcloud services enable run.googleapis.com
 4. Build and deploy with Cloud Build:
 ```bash
 # Build the Docker image
-gcloud builds submit --tag gcr.io/your-project-id/documentation-helper-agent
+gcloud builds submit --tag gcr.io/documentation-helper-agent/documentation-helper-agent
 
 # Deploy to Cloud Run
-gcloud run deploy documentation-helper-agent \
-  --image gcr.io/your-project-id/documentation-helper-agent \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --cpu 1 \
-  --memory 2Gi \
-  --set-env-vars="ENVIRONMENT=production,SERVER_TYPE=gcp,INFERENCE_API_KEY=your_api_key"
+powershell -Command "(Get-Content .env | Where-Object {$_ -notmatch '^#'} | ForEach-Object {$_.Trim()}) -join ',' | Out-File -Encoding ASCII env_vars.txt"
+
+gcloud beta run deploy documentation-helper-agent ^
+  --image gcr.io/documentation-helper-agent/documentation-helper-agent ^
+  --platform managed ^
+  --region us-central1 ^
+  --allow-unauthenticated ^
+  --cpu 1 ^
+  --memory 2Gi ^
+  --env-vars-file=env.yaml
+
+#see error logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=documentation-helper-agent AND resource.labels.revision_name=YOUR_REVISION_NAME" --format="table(textPayload)"
 ```
 
 5. Set up CI/CD (optional):
