@@ -1,113 +1,121 @@
 # Vercel Deployment Guide
 
-This guide explains how to deploy the documentation helper agent project to Vercel as a monorepo.
+This guide outlines how to deploy the Documentation Helper Agent using a split architecture:
+- **Frontend UI**: Deployed on Vercel
+- **Backend Agent**: Deployed on Google Cloud Run
 
-## Prerequisites
+This approach solves the 50MB size limit issue with Vercel serverless functions while maintaining a responsive user interface.
 
-- A Vercel account
-- Git repository with your code
-- Vercel CLI installed (optional, for local testing)
+## Architecture Overview
 
-## Deployment Steps
-
-### 1. Prepare Your Repository
-
-Ensure your repository has the following structure:
-- UI code in the `ui/` directory
-- Backend code in the main directory
-- `vercel.json` in the root directory
-- `.env.example` file with required environment variables
-
-**Important**: Both frontend and backend will use the same `.env` file located at the root directory. During deployment, our build script will automatically create a symbolic link to ensure the UI also has access to these environment variables.
-
-### 2. Connect to Vercel
-
-#### Using Vercel Dashboard:
-
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Click "Add New" > "Project"
-3. Import your Git repository
-4. Configure project:
-   - Framework Preset: "Next.js"
-   - Root Directory: "./documentation_helper_agent" (if needed)
-   - Build Command: `./build.sh` (uses our custom build script)
-   - Output Directory: `ui/.next`
-   - Install Command: No need to change, handled in build.sh
-
-#### Using Vercel CLI:
-
-```bash
-# Navigate to your project
-cd documentation_helper_agent
-
-# Login to Vercel
-vercel login
-
-# Deploy to Vercel
-vercel
+```
+┌───────────────┐     ┌────────────────┐     ┌─────────────────┐
+│  User Browser │────▶│  Vercel (UI)   │────▶│  Cloud Run (API) │
+└───────────────┘     └────────────────┘     └─────────────────┘
+                            │                        │
+                            │                        ▼
+                            │                ┌─────────────────┐
+                            └───────────────▶│ RunPod (Optional)│
+                                             └─────────────────┘
 ```
 
-### 3. Configure Environment Variables
+## Frontend Deployment (Vercel)
 
-After initial deployment, you need to set up your environment variables:
+The Vercel deployment includes:
+- Next.js UI application
+- Minimal API routes that proxy requests to the backend
+- Authentication handling via Firebase
 
-1. In the Vercel dashboard, go to your project
-2. Navigate to "Settings" > "Environment Variables"
-3. Add all required variables from your `.env.example` file
-4. Click "Save"
+### Prerequisites
 
-Critical environment variables include:
-- `PYTHONPATH`
-- `NEXT_PUBLIC_API_URL=/api`
+1. A Vercel account
+2. The Vercel CLI installed (`npm i -g vercel`)
+3. Firebase project (for authentication)
 
-**Note**: Vercel will automatically make these environment variables available to both the frontend and backend due to our monorepo configuration. The `NEXT_PUBLIC_` prefix is required for variables that need to be accessible in the browser.
+### Steps
 
-### 4. Local Development
+1. Create a UI-specific requirements file:
+   - A minimal `ui/requirements.txt` is included in the repository
 
-For local development, create a `.env` file in the root directory by copying `.env.example`:
+2. Configure environment variables in Vercel:
+   ```bash
+   # UI Configuration
+   NEXT_PUBLIC_API_URL=your_backend_service_on_serverless
+   FRONTEND_URL=your_vercel_domain
+   BACKEND_URL=your_cloud_run_url
+   
+   # Firebase Configuration
+   NEXT_PUBLIC_FIREBASE_API_KEY=xxx
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
+   FIREBASE_CLIENT_EMAIL=xxx
+   FIREBASE_PRIVATE_KEY=xxx
+   
+   # API Security
+   DOCUMENTATION_HELPER_API_KEY=your_api_key
+   
+   # Model Configuration
+   USE_INFERENCE_CLIENT=true
+   INFERENCE_API_KEY=your_inference_api_key
+   INFERENCE_PROVIDER=together
+   ```
 
-```bash
-cp .env.example .env
+3. Deploy to Vercel:
+   ```bash
+   vercel
+   ```
+
+4. Update API proxy configuration:
+   - In `ui/app/api/copilotkit/route.ts`, ensure your backend URL is correctly set
+
+## Backend Deployment (Google Cloud Run)
+
+The Google Cloud Run deployment includes:
+- FastAPI backend with LangGraph agent
+- Model inference handling
+- Vector database connections
+
+See `README.md` for detailed Google Cloud Run deployment instructions.
+
+## Testing the Deployment
+
+1. Check that the UI loads properly on your Vercel domain
+2. Test authentication flow
+3. Send a test query and ensure it's routed to your Cloud Run backend
+4. Check logs on both Vercel and Cloud Run for any errors
+
+## Common Issues
+
+### CORS Configuration
+
+If you encounter CORS issues, ensure your Cloud Run service has the appropriate headers:
+
+```python
+# In your FastAPI app.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("FRONTEND_URL", "*")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
-Then edit the `.env` file to include your actual API keys and configuration.
+### Environment Variables
 
-### 5. Verify Deployment
+- Double-check Firebase configuration in Vercel
+- Ensure API keys are set in both environments
+- Verify the `BACKEND_URL` is correctly set and accessible
 
-1. Check the deployment logs for any errors
-2. Test your application at the provided Vercel URL
-3. Verify API endpoints are working correctly
+### Authentication Issues
 
-### 6. Custom Domain (Optional)
+- Firebase admin SDK requires properly formatted private key
+- Use environment secret for storing `FIREBASE_PRIVATE_KEY`
+- Replace newlines with `\n` in the private key if necessary
 
-1. In Vercel dashboard, go to your project
-2. Click "Settings" > "Domains"
-3. Add your custom domain and follow the verification steps
+## Monitoring
 
-## Troubleshooting
-
-If you encounter issues:
-
-1. Check Vercel build logs for errors
-2. Ensure all environment variables are correctly set
-3. Verify the `vercel.json` configuration is correct
-4. Check that Python and Node.js dependencies are installed correctly
-5. If environment variables aren't being shared correctly, check that the symbolic link was created during build
-
-## Local Testing
-
-Test your Vercel configuration locally before deploying:
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Link your project
-vercel link
-
-# Test builds locally
-vercel build
-
-# Run locally
-vercel dev
-``` 
+- Set up Vercel Analytics for frontend
+- Configure Google Cloud Monitoring for backend
+- Set up error alerting for both platforms 
