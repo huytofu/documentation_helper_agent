@@ -1,25 +1,33 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.generator import llm
+from langsmith import Client
+import os
+client = Client(api_key=os.getenv("LANGSMITH_API_KEY"))
 
-system = """
-    You are a master coder who is very good at coding {extra_info}.
+try:
+    generation_prompt = client.pull_prompt("generation_prompt")
+except Exception as e:
+    print("Error pulling prompt from Langsmith")
+    print(e)
+    system = """
+        You are a master coder who is very good at coding {extra_info}.
 
-    You are provided with the following set of technical documents:
+        You are provided with the following set of technical documents:
 
-    {documents}.
+        {documents}.
 
-    Please refer to the provided documents to write code snippet(s) 
-    to produce the feature or solve the problem described in the user's query. 
-    Please add some comments or explanations to help the user understand.
-    Keep your code snippets to 100 lines or less.
-    Keep your comments or explanations to 100 words or less.
-    """
-generation_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system),
-        ("human", "Query: {query}"),
-    ]
-)
+        Please refer to the provided documents to write code snippet(s) 
+        to produce the feature or solve the problem described in the user's query. 
+        Please add some comments or explanations to help the user understand.
+        Keep your code snippets to 100 lines or less.
+        Keep your comments or explanations to 100 words or less.
+        """
+    generation_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "Query: {query}"),
+        ]
+    )
 
 generation_chain = generation_prompt | llm | StrOutputParser()
