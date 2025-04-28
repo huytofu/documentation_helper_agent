@@ -8,10 +8,6 @@ import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { ChainValues } from "@langchain/core/utils/types";
 import { API_ENDPOINT, BACKEND_ENDPOINT } from "@/constants";
 import { getModel } from "@/lib/modelConfig";
-import { AuthService } from "@/lib/auth";
-import { getDoc, doc, updateDoc, increment } from "firebase/firestore";
-import { User } from "@/types/user";
-import { db } from "@/lib/firebase";
 
 // Get the configured model
 const model = getModel();

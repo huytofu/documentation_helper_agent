@@ -2,8 +2,6 @@
 # Script to use Ollama as the model provider (default)
 
 # Unset any environment variables that might be set for other providers
-unset USE_HUGGINGFACE
-unset HUGGINGFACE_API_KEY
 unset USE_INFERENCE_CLIENT
 unset INFERENCE_PROVIDER
 unset INFERENCE_API_KEY

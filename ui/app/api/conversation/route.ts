@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BACKEND_ENDPOINT, BACKEND_ENDPOINT_2, BACKEND_ENDPOINT_3 } from '@/constants';
+import { BACKEND_ENDPOINT } from '@/constants';
 import { getUserId } from '@/lib/userUtils';
 const DOCUMENTATION_HELPER_API_KEY = process.env.DOCUMENTATION_HELPER_API_KEY;
 
@@ -55,8 +55,6 @@ export async function POST(request: NextRequest) {
     // Set up the possible backend URLs to try in sequence
     let backendUrls = [
         `${BACKEND_ENDPOINT.split('copilotkitagent')[0]}conversation`,
-        `${BACKEND_ENDPOINT_2.split('copilotkitagent')[0]}conversation`,
-        `${BACKEND_ENDPOINT_3.split('copilotkitagent')[0]}conversation`
     ]
     
     console.log('Sending conversation data to backend:', payload);

@@ -7,14 +7,15 @@ Usage:
     Set the SERVER_TYPE environment variable to one of the following values:
     - "aws lambda" - For AWS Lambda deployment
     - "vercel" - For Vercel deployment
+    - "gcp" - For Google Cloud Run deployment
     
     Example:
     ```
     # In your .env file
-    SERVER_TYPE=vercel
+    SERVER_TYPE=gcp
     
     # Or set it directly in your environment
-    export SERVER_TYPE="vercel"
+    export SERVER_TYPE="gcp"
     ```
     
     The module will automatically load the appropriate adapter for the specified platform.
@@ -65,6 +66,60 @@ elif SERVER_TYPE == "vercel":
     except ImportError:
         logger.error("Required dependencies not installed for Vercel deployment.")
         raise
+
+# Google Cloud Run handler
+elif SERVER_TYPE == "gcp":
+    # For Google Cloud Run, we can use the app directly
+    # Cloud Run automatically looks for a variable named "app" that's a WSGI/ASGI app
+    # No special adapter needed, but we'll provide some configuration
+    
+    import uvicorn
+    from gunicorn.app.base import BaseApplication
+    
+    class StandaloneApplication(BaseApplication):
+        """Gunicorn application for Google Cloud Run."""
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+            
+        def load_config(self):
+            for key, value in self.options.items():
+                if key in self.cfg.settings and value is not None:
+                    self.cfg.set(key.lower(), value)
+                    
+        def load(self):
+            return self.application
+    
+    def gcp_handler():
+        """Initialize app for Google Cloud Run.
+        
+        This handler is not used directly but is here to document the setup.
+        For GCP, we export the 'app' variable which is picked up automatically.
+        """
+        port = int(os.getenv("PORT", "8080"))
+        
+        # Configuration for production
+        if os.getenv("ENVIRONMENT") == "production":
+            options = {
+                "bind": f"0.0.0.0:{port}",
+                "workers": int(os.getenv("GUNICORN_WORKERS", "1")),
+                "worker_class": "uvicorn.workers.UvicornWorker",
+                "timeout": 120,
+                "keepalive": 5,
+                "errorlog": "-",
+                "accesslog": "-",
+            }
+            
+            StandaloneApplication(app, options).run()
+        else:
+            # For local development
+            uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    
+    # For Cloud Run, we just need to expose the app
+    # The actual server configuration will be in app_gcp.py
+    handler = app
+    logger.info("Google Cloud Run handler initialized")
 
 else:
     logger.warning(f"Unknown or unspecified SERVER_TYPE: '{SERVER_TYPE}'. Using default handler.")
