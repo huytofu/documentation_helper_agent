@@ -88,6 +88,7 @@ PINECONE_METRIC=cosine
 # Inference API Configuration (required if USE_INFERENCE_CLIENT=true)
 INFERENCE_PROVIDER=together  # Options: together, perplexity, anyscale, etc.
 INFERENCE_API_KEY=inference_provider_api_key
+INFERENCE_DIRECT_API_KEY=inference_provider_direct_api_key
 INFERENCE_EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
 INFERENCE_ROUTER_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
 INFERENCE_SENTIMENT_GRADER_MODEL=mistralai/Mistral-7B-Instruct-v0.3

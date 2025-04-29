@@ -19,6 +19,7 @@ from langchain_core.messages import (
 from langchain_core.outputs import ChatGeneration, ChatResult
 from huggingface_hub import InferenceClient
 from huggingface_hub.inference._client import ChatCompletionOutput
+import requests
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,11 +32,13 @@ class InferenceClientChatModel(BaseChatModel):
     temperature: float = 0.0
     max_tokens: int = 1024
     provider: str = ""
+    direct_api_key: str
     
     def __init__(
         self,
         provider: str,
-        api_key: str,
+        api_key: str, #This is Hugging Face API key
+        direct_api_key: str, #THis is direct API key for the provider like Together AI
         model: str,
         temperature: float = 0.0,
         max_tokens: int = 1024,
@@ -64,6 +67,7 @@ class InferenceClientChatModel(BaseChatModel):
             "temperature": temperature,
             "max_tokens": max_tokens,
             "provider": provider,
+            "direct_api_key": direct_api_key,
             **kwargs
         }
         
@@ -140,19 +144,52 @@ class InferenceClientChatModel(BaseChatModel):
             # Log request for debugging
             logger.debug(f"Sending request to {self.provider} with model {self.model}")
             
-            # Call the InferenceClient
-            completion: ChatCompletionOutput = self.client.chat_completion(**params)
-            
-            # Verify we have choices before accessing
-            if not completion.choices:
-                raise ValueError(f"No choices returned from {self.provider} API")
+            # Try Hugging Face's API first
+            try:
+                # Call the InferenceClient
+                completion: ChatCompletionOutput = self.client.chat_completion(**params)
                 
-            # Extract the response
-            response_message = completion.choices[0].message.content
-            finish_reason = getattr(completion.choices[0], "finish_reason", "unknown")
-            
-            # Log successful completion
-            logger.debug(f"Received response from {self.provider} API: {finish_reason}")
+                # Verify we have choices before accessing
+                if not completion.choices:
+                    raise ValueError(f"No choices returned from {self.provider} API")
+                    
+                # Extract the response
+                response_message = completion.choices[0].message.content
+                finish_reason = getattr(completion.choices[0], "finish_reason", "unknown")
+                
+                # Log successful completion
+                logger.debug(f"Received response from {self.provider} API: {finish_reason}")
+                
+            except Exception as hf_error:
+                # If Hugging Face's API fails, try Together AI directly
+                if self.provider.lower() == "together":
+                    logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(hf_error)}")
+                    
+                    # Call Together AI's API directly
+                    response = requests.post(
+                        "https://api.together.xyz/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.direct_api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json=params
+                    )
+                    
+                    # Check for errors
+                    response.raise_for_status()
+                    
+                    # Parse the response
+                    result = response.json()
+                    
+                    # Extract the response
+                    response_message = result["choices"][0]["message"]["content"]
+                    finish_reason = result["choices"][0].get("finish_reason", "unknown")
+                    
+                    # Log successful completion
+                    logger.debug(f"Received response from Together AI direct API: {finish_reason}")
+                else:
+                    # If not Together AI, re-raise the original error
+                    raise hf_error
             
             # Create a ChatGeneration object
             generation = ChatGeneration(
