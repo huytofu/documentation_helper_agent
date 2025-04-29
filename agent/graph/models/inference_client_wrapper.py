@@ -120,7 +120,6 @@ class InferenceClientChatModel(BaseChatModel):
             # Together AI specific parameters
             params.update({
                 "top_p": kwargs.get("top_p", 0.9),
-                "repetition_penalty": kwargs.get("repetition_penalty", 1.1),
                 "stop_sequences": stop if stop else None,
             })
         else:
