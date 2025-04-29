@@ -121,7 +121,7 @@ class InferenceClientChatModel(BaseChatModel):
             params.update({
                 "top_p": kwargs.get("top_p", 0.9),
                 "frequency_penalty": kwargs.get("frequency_penalty", 1.1),
-                "stop_sequences": stop if stop else None,
+                "stop": stop if stop else None,
             })
         else:
             # Generic parameters for other providers
