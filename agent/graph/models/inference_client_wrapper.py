@@ -166,17 +166,28 @@ class InferenceClientChatModel(BaseChatModel):
                     logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(hf_error)}")
                     
                     # Call Together AI's API directly
-                    response = requests.post(
-                        "https://api.together.xyz/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {self.direct_api_key}",
-                            "Content-Type": "application/json"
-                        },
-                        json=params
-                    )
-                    
-                    # Check for errors
-                    response.raise_for_status()
+                    together_headers = {
+                        "authorization": f"Bearer {self.direct_api_key}",
+                        "content-Type": "application/json",
+                        "accept": "application/json"
+                    }
+                    try:
+                        # Try v1/chat/completions first
+                        response = requests.post(
+                            "https://api.together.xyz/v1/chat/completions",
+                            headers=together_headers,
+                            json=params
+                        )
+                        response.raise_for_status()
+                    except Exception as v1_error:
+                        logger.warning(f"v1/chat/completions failed, trying /inference: {str(v1_error)}")
+                        # Fall back to /inference
+                        response = requests.post(
+                            "https://api.together.xyz/inference",
+                            headers=together_headers,
+                            json=params
+                        )
+                        response.raise_for_status()
                     
                     # Parse the response
                     result = response.json()
