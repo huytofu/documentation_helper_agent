@@ -120,6 +120,7 @@ class InferenceClientChatModel(BaseChatModel):
             # Together AI specific parameters
             params.update({
                 "top_p": kwargs.get("top_p", 0.9),
+                "frequency_penalty": kwargs.get("frequency_penalty", 1.1),
                 "stop_sequences": stop if stop else None,
             })
         else:
@@ -137,7 +138,7 @@ class InferenceClientChatModel(BaseChatModel):
             logger.debug(f"Sending request to {self.provider} with model {self.model}")
             
             # Call the InferenceClient
-            completion: ChatCompletionOutput = self.client.chat.completions.create(**params)
+            completion: ChatCompletionOutput = self.client.chat_completion(**params)
             
             # Verify we have choices before accessing
             if not completion.choices:
