@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional, List, Tuple, Iterator
 from dotenv import load_dotenv
 from langgraph.checkpoint.base import BaseCheckpointSaver, CheckpointTuple, get_checkpoint_id
 from langgraph.checkpoint.serde.base import SerializerProtocol
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langchain_core.runnables import RunnableConfig
 
 # Load environment variables
@@ -90,7 +91,7 @@ class RedisCheckpointer(BaseCheckpointSaver):
             raise ValueError("Redis URL is required. Set REDIS_URL environment variable or provide it as a parameter.")
         self.redis = self.redis_module.from_url(self.redis_url)
         self.async_redis = self.async_redis_module.from_url(self.redis_url)
-        self.serde = serde or SerializerProtocol()
+        self.serde = serde or JsonPlusSerializer()
         logger.info("Initialized Redis checkpointer")
 
     def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
