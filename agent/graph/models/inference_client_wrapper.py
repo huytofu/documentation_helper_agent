@@ -52,7 +52,10 @@ class InferenceClientChatModel(BaseChatModel):
             **kwargs: Additional keyword arguments
         """
         # Create client first
-        client = InferenceClient(provider=provider, api_key=api_key)
+        client = InferenceClient(
+            provider=provider, 
+            api_key=api_key, 
+            headers={"X-wait-for-model": "true"})
         
         # Include all parameters in kwargs for proper Pydantic validation
         all_kwargs = {
