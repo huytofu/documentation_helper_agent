@@ -10,7 +10,7 @@ config = get_model_config_for_component("summarizer")
 if config["provider"] == "inference_client":
     # Use InferenceClient with third-party provider
     llm = InferenceClientChatModel(
-        provider=config.get("provider", "together"),
+        provider=config.get("provider_org", "together"),
         api_key=config["api_key"],
         model=config["model"],
         temperature=0,

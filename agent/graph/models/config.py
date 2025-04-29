@@ -185,6 +185,7 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
     elif provider == "inference_client":
         return {
             "provider": provider,
+            "provider_org": os.getenv("INFERENCE_PROVIDER"),
             "model": os.getenv("INFERENCE_MODEL_ID", MODEL_IDS[component]),
             "api_key": os.getenv("INFERENCE_API_KEY"),
             "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models"),
