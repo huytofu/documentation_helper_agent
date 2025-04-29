@@ -20,6 +20,9 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from huggingface_hub import InferenceClient
 from huggingface_hub.inference._client import ChatCompletionOutput
 import requests
+import json
+from together import Together
+import os
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -38,7 +41,7 @@ class InferenceClientChatModel(BaseChatModel):
         self,
         provider: str,
         api_key: str, #This is Hugging Face API key
-        direct_api_key: str, #THis is direct API key for the provider like Together AI
+        direct_api_key: str, #This is direct API key for the provider like Together AI
         model: str,
         temperature: float = 0.0,
         max_tokens: int = 1024,
@@ -165,36 +168,25 @@ class InferenceClientChatModel(BaseChatModel):
                 if self.provider.lower() == "together":
                     logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(hf_error)}")
                     
-                    # Call Together AI's API directly
-                    together_headers = {
-                        "authorization": f"Bearer {self.direct_api_key}",
-                        "content-Type": "application/json",
-                        "accept": "application/json"
-                    }
-                    try:
-                        # Try v1/chat/completions first
-                        response = requests.post(
-                            "https://api.together.xyz/v1/chat/completions",
-                            headers=together_headers,
-                            json=params
-                        )
-                        response.raise_for_status()
-                    except Exception as v1_error:
-                        logger.warning(f"v1/chat/completions failed, trying /inference: {str(v1_error)}")
-                        # Fall back to /inference
-                        response = requests.post(
-                            "https://api.together.xyz/inference",
-                            headers=together_headers,
-                            json=params
-                        )
-                        response.raise_for_status()
+                    # Set the API key for Together client
+                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
                     
-                    # Parse the response
-                    result = response.json()
+                    # Create Together client
+                    together_client = Together()
+                    
+                    # Call Together AI's API
+                    response = together_client.chat.completions.create(
+                        model=self.model,
+                        messages=chat_messages,
+                        max_tokens=params["max_tokens"],
+                        temperature=params["temperature"],
+                        top_p=params.get("top_p", 0.9),
+                        stop=params.get("stop")
+                    )
                     
                     # Extract the response
-                    response_message = result["choices"][0]["message"]["content"]
-                    finish_reason = result["choices"][0].get("finish_reason", "unknown")
+                    response_message = response.choices[0].message.content
+                    finish_reason = getattr(response.choices[0], "finish_reason", "unknown")
                     
                     # Log successful completion
                     logger.debug(f"Received response from Together AI direct API: {finish_reason}")
