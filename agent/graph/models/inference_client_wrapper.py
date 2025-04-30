@@ -32,6 +32,7 @@ class InferenceClientChatModel(BaseChatModel):
     
     client: InferenceClient
     model: str
+    direct_model: str
     temperature: float = 0.0
     max_tokens: int = 1024
     provider: str = ""
@@ -42,7 +43,7 @@ class InferenceClientChatModel(BaseChatModel):
         provider: str,
         api_key: str, #This is Hugging Face API key
         direct_api_key: str, #This is direct API key for the provider like Together AI
-        model: str,
+        model: List[str],
         temperature: float = 0.0,
         max_tokens: int = 1024,
         **kwargs: Any,
@@ -52,7 +53,7 @@ class InferenceClientChatModel(BaseChatModel):
         Args:
             provider: The provider to use (e.g., "together", "perplexity", "anyscale")
             api_key: The API key for the provider
-            model: The model to use
+            model: The model to use (should be a list of two models, the first is for the InferenceClient and the second is for the Together AI direct API)
             temperature: The temperature to use for generation
             max_tokens: The maximum number of tokens to generate
             **kwargs: Additional keyword arguments
@@ -66,7 +67,8 @@ class InferenceClientChatModel(BaseChatModel):
         # Include all parameters in kwargs for proper Pydantic validation
         all_kwargs = {
             "client": client,
-            "model": model,
+            "model": model[0],
+            "direct_model": model[1],
             "temperature": temperature,
             "max_tokens": max_tokens,
             "provider": provider,
@@ -76,7 +78,7 @@ class InferenceClientChatModel(BaseChatModel):
         
         # Initialize with all parameters
         super().__init__(**all_kwargs)
-        logger.info(f"Initialized InferenceClientChatModel with provider: {provider}, model: {model}")
+        logger.info(f"Initialized InferenceClientChatModel with provider: {provider}, model: {model[0]} and {model[1]}")
     
     def _convert_messages_to_chat_format(self, messages: List[BaseMessage]) -> List[Dict[str, str]]:
         """Convert LangChain messages to the format expected by InferenceClient."""
@@ -145,7 +147,7 @@ class InferenceClientChatModel(BaseChatModel):
         
         try:
             # Log request for debugging
-            logger.debug(f"Sending request to {self.provider} with model {self.model}")
+            logger.debug(f"Sending request through Hugging Face InferenceClient to provider {self.provider} with model {self.model}")
             
             # Try Hugging Face's API first
             try:
@@ -176,7 +178,7 @@ class InferenceClientChatModel(BaseChatModel):
                     
                     # Call Together AI's API
                     response = together_client.chat.completions.create(
-                        model=self.model,
+                        model=self.direct_model,
                         messages=chat_messages,
                         max_tokens=params["max_tokens"],
                         temperature=params["temperature"],
@@ -225,12 +227,16 @@ class InferenceClientEmbeddings:
     
     client: InferenceClient
     model: str
+    direct_model: str
+    provider: str
+    direct_api_key: str
     
     def __init__(
         self,
         provider: str,
         api_key: str,
-        model: str,
+        direct_api_key: str,
+        model: List[str],
         **kwargs: Any,
     ):
         """Initialize the InferenceClientEmbeddings.
@@ -238,13 +244,15 @@ class InferenceClientEmbeddings:
         Args:
             provider: The provider to use (e.g., "together", "perplexity", "anyscale")
             api_key: The API key for the provider
-            model: The model to use
+            model: The model to use (should be a list of two models, the first is for the InferenceClient and the second is for the Together AI direct API)
             **kwargs: Additional keyword arguments
         """
         self.client = InferenceClient(provider=provider, api_key=api_key)
-        self.model = model
+        self.model = model[0]
+        self.direct_model = model[1]
         self.provider = provider
-        logger.info(f"Initialized InferenceClientEmbeddings with provider: {provider}, model: {model}")
+        self.direct_api_key = direct_api_key
+        logger.info(f"Initialized InferenceClientEmbeddings with provider: {provider}, model: {model[0]}")
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a list of documents using the InferenceClient."""
@@ -255,13 +263,57 @@ class InferenceClientEmbeddings:
                 embeddings.append(embedding)
             return embeddings
         except Exception as e:
-            logger.error(f"Error embedding documents with {self.provider} API: {str(e)}")
-            raise RuntimeError(f"Failed to embed documents with {self.provider} API: {str(e)}")
+            logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}")
+            
+            # If Hugging Face's API fails, try Together AI directly
+            if self.provider.lower() == "together":
+                try:
+                    # Set the API key for Together client
+                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
+                    
+                    # Create Together client
+                    together_client = Together()
+                    
+                    # Get embeddings for each text
+                    for text in texts:
+                        response = together_client.embeddings.create(
+                            model=self.direct_model,
+                            input=text
+                        )
+                        embeddings.append(response.data[0].embedding)
+                    return embeddings
+                except Exception as together_error:
+                    logger.error(f"Together AI API failed: {str(together_error)}")
+                    raise RuntimeError(f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}")
+            else:
+                # If not Together AI, re-raise the original error
+                raise RuntimeError(f"Failed to embed documents with {self.provider} API: {str(e)}")
     
     def embed_query(self, text: str) -> List[float]:
         """Embed a query using the InferenceClient."""
         try:
             return self.client.feature_extraction(text, model=self.model)
         except Exception as e:
-            logger.error(f"Error embedding query with {self.provider} API: {str(e)}")
-            raise RuntimeError(f"Failed to embed query with {self.provider} API: {str(e)}") 
+            logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}")
+            
+            # If Hugging Face's API fails, try Together AI directly
+            if self.provider.lower() == "together":
+                try:
+                    # Set the API key for Together client
+                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
+                    
+                    # Create Together client
+                    together_client = Together()
+                    
+                    # Get embedding
+                    response = together_client.embeddings.create(
+                        model=self.direct_model,
+                        input=text
+                    )
+                    return response.data[0].embedding
+                except Exception as together_error:
+                    logger.error(f"Together AI API failed: {str(together_error)}")
+                    raise RuntimeError(f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}")
+            else:
+                # If not Together AI, re-raise the original error
+                raise RuntimeError(f"Failed to embed query with {self.provider} API: {str(e)}") 

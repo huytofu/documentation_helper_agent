@@ -19,7 +19,6 @@ const OLLAMA_CONFIG = {
   maxTokens: 2048,
   topP: 0.95,
   topK: 50,
-  repetitionPenalty: 1.1,
   stop: ["</s>", "Human:", "Assistant:"],
   streaming: true
 };
@@ -31,7 +30,6 @@ const INFERENCE_CLIENT_CONFIG = {
   max_tokens: 2048,
   top_p: 0.95,
   top_k: 50,
-  repetition_penalty: 1.1,
   stop: ["</s>", "Human:", "Assistant:"],
 };
 
@@ -65,7 +63,6 @@ class HFInferenceClientWrapper {
         max_tokens: this.config.max_tokens,
         top_p: this.config.top_p,
         top_k: this.config.top_k,
-        repetition_penalty: this.config.repetition_penalty,
         stop: this.config.stop,
       });
 
