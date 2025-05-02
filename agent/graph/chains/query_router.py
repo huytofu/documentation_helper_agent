@@ -23,7 +23,12 @@ You must choose between two options:
 - "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
 - "websearch": For all other queries, including general programming questions, new technologies, other topics
 
-You must not return any answer other than these two.
+You must not select any option other than these two.
+
+You must return your response in the following JSON format:
+{{
+    "datasource": your_selected_option
+}}
 
 {format_instructions}"""
 

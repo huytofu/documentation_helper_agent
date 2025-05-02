@@ -23,7 +23,12 @@ You must choose between four options:
 - "others": Another programming language (that is not python or javascript) is specifically mentioned
 - "none": No programming language mentioned
 
-You must not return any answer other than these four.
+You must not select any option other than these four.
+
+You must return your response in the following JSON format:
+{{
+    "language": your_selected_option
+}}
 
 {format_instructions}"""
 

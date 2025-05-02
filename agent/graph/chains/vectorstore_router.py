@@ -30,7 +30,12 @@ You must choose between five options:
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
 - "others": For all other queries
 
-You must not return any answer other than these five.
+You must not select any option other than these five.
+
+You must return your response in the following JSON format:
+{{
+    "datasource": your_selected_option
+}}
 
 {format_instructions}"""
 
