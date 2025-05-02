@@ -16,8 +16,6 @@ parser = PydanticOutputParser(pydantic_object=RouteQuery)
 
 # Create the prompt template
 system = """You are an expert at routing a user query to either a vectorstore or websearch.
-Current vectorstores contain information about the OpenAI Agents SDK, Smolagents, Langgraph, 
-and Copilokit framework which includes Coagents.
 
 You must choose between two options:
 - "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
@@ -30,7 +28,7 @@ You must return your response in the following JSON format:
     "datasource": your_selected_option
 }}
 
-{format_instructions}"""
+"""
 
 route_prompt = ChatPromptTemplate.from_messages([
     ("system", system),
@@ -38,4 +36,5 @@ route_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Create the chain with format instructions
-query_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
+# query_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
+query_router = route_prompt | llm | parser
