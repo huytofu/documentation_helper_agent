@@ -128,16 +128,13 @@ def _parse_redis_checkpoint_data(serde: SerializerProtocol, key: str, data: dict
         try:
             checkpoint = serde.loads_typed((checkpoint_type.decode(), checkpoint_data))
             
-            # Ensure metadata has the required structure
-            metadata_dict = {"writes": {}}
+            # Parse metadata only if it exists
+            metadata_dict = None
             if metadata is not None:
                 try:
                     parsed_metadata = serde.loads(metadata.decode())
                     if isinstance(parsed_metadata, dict):
-                        # Preserve existing metadata but ensure 'writes' exists
-                        metadata_dict.update(parsed_metadata)
-                        if "writes" not in metadata_dict:
-                            metadata_dict["writes"] = {}
+                        metadata_dict = parsed_metadata
                 except (AttributeError, UnicodeDecodeError) as e:
                     logger.warning(f"Error decoding metadata: {e}")
             
@@ -155,7 +152,7 @@ def _parse_redis_checkpoint_data(serde: SerializerProtocol, key: str, data: dict
             return CheckpointTuple(
                 config=config,
                 checkpoint=checkpoint,
-                metadata=metadata_dict,
+                metadata=metadata_dict,  # Allow None metadata
                 parent_config=parent_config,
                 pending_writes=None,
             )
@@ -196,11 +193,19 @@ class RedisCheckpointer(BaseCheckpointSaver):
             checkpoint_id = get_checkpoint_id(config)
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
+            
+            logger.debug(f"Attempting to get checkpoint data for key: {key}")
+            logger.debug(f"Config: {config}")
+            
             data = self.redis.hgetall(key)
             if not data:
-                logger.warning(f"No checkpoint data found for key: {key}")
+                logger.debug(f"No checkpoint data found for key: {key}")
                 return None
-            return _parse_redis_checkpoint_data(self.serde, key, data)
+                
+            logger.debug(f"Raw data from Redis: {data}")
+            result = _parse_redis_checkpoint_data(self.serde, key, data)
+            logger.debug(f"Parsed checkpoint data: {result}")
+            return result
         except Exception as e:
             logger.error(f"Error in get_tuple: {e}")
             return None
@@ -211,66 +216,50 @@ class RedisCheckpointer(BaseCheckpointSaver):
             checkpoint_id = get_checkpoint_id(config)
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
+            
+            logger.debug(f"Attempting to get checkpoint data for key: {key}")
+            logger.debug(f"Config: {config}")
+            
             data = await self.async_redis.hgetall(key)
             if not data:
-                logger.warning(f"No checkpoint data found for key: {key}")
+                logger.debug(f"No checkpoint data found for key: {key}")
                 return None
-            return _parse_redis_checkpoint_data(self.serde, key, data)
+                
+            logger.debug(f"Raw data from Redis: {data}")
+            result = _parse_redis_checkpoint_data(self.serde, key, data)
+            logger.debug(f"Parsed checkpoint data: {result}")
+            return result
         except Exception as e:
             logger.error(f"Error in aget_tuple: {e}")
             return None
 
-    async def get(self, key: str) -> Optional[Dict[str, Any]]:
-        """Get a state from Redis.
-        
-        Args:
-            key: The state key to retrieve
-            
-        Returns:
-            The state dictionary if found, None otherwise
-        """
-        try:
-            logger.debug(f"Getting state for key: {key}")
-            state_json = await self.redis.get(key)
-            if state_json is None:
-                logger.debug(f"No state found for key: {key}")
-                return None
-            
-            state = json.loads(state_json)
-            logger.debug(f"Retrieved state for key: {key}")
-            return state
-        except Exception as e:
-            logger.error(f"Error getting state for key {key}: {str(e)}")
-            return None
-    
     async def put(self, config: RunnableConfig, checkpoint: Any, metadata: Any, new_versions: Any) -> RunnableConfig:
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-            
-            # Get the current checkpoint_id from config (could be None for new conversations)
             current_checkpoint_id = config["configurable"].get("checkpoint_id")
-            
-            # For new checkpoints, use the ID from the checkpoint object
-            # For resumed conversations, use the existing checkpoint_id
             checkpoint_id = current_checkpoint_id if current_checkpoint_id else checkpoint["id"]
             
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
 
-            # Ensure metadata has the required structure
-            if metadata is None:
-                metadata = {}
-            if "writes" not in metadata:
-                metadata["writes"] = {}
+            # Log the original data for debugging
+            logger.debug(f"Original checkpoint: {checkpoint}")
+            logger.debug(f"Original metadata: {metadata}")
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
-            serialized_metadata = self.serde.dumps(metadata)
+            # Only serialize metadata if it exists
+            serialized_metadata = self.serde.dumps(metadata) if metadata is not None else None
+            
             data = {
                 "checkpoint": serialized_checkpoint,
                 "type": type_,
                 "metadata": serialized_metadata,
                 "parent_checkpoint_id": current_checkpoint_id if current_checkpoint_id else "",
             }
+            
+            # Log the serialized data for debugging
+            logger.debug(f"Serialized data for key {key}: {data}")
+            
             self.redis.hset(key, mapping=data)
             return {
                 "configurable": {
@@ -287,30 +276,29 @@ class RedisCheckpointer(BaseCheckpointSaver):
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-            
-            # Get the current checkpoint_id from config (could be None for new conversations)
             current_checkpoint_id = config["configurable"].get("checkpoint_id")
-            
-            # For new checkpoints, use the ID from the checkpoint object
-            # For resumed conversations, use the existing checkpoint_id
             checkpoint_id = current_checkpoint_id if current_checkpoint_id else checkpoint["id"]
             
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
 
-            # Ensure metadata has the required structure
-            if metadata is None:
-                metadata = {}
-            if "writes" not in metadata:
-                metadata["writes"] = {}
+            # Log the original data for debugging
+            logger.debug(f"Original checkpoint: {checkpoint}")
+            logger.debug(f"Original metadata: {metadata}")
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
-            serialized_metadata = self.serde.dumps(metadata)
+            # Only serialize metadata if it exists
+            serialized_metadata = self.serde.dumps(metadata) if metadata is not None else None
+            
             data = {
                 "checkpoint": serialized_checkpoint,
                 "type": type_,
                 "metadata": serialized_metadata,
                 "parent_checkpoint_id": current_checkpoint_id if current_checkpoint_id else "",
             }
+            
+            # Log the serialized data for debugging
+            logger.debug(f"Serialized data for key {key}: {data}")
+            
             await self.async_redis.hset(key, mapping=data)
             return {
                 "configurable": {
@@ -322,37 +310,6 @@ class RedisCheckpointer(BaseCheckpointSaver):
         except Exception as e:
             logger.error(f"Error in aput: {e}")
             raise
-
-    async def list(self) -> List[str]:
-        """List all state keys in Redis.
-        
-        Returns:
-            List of state keys
-        """
-        try:
-            logger.debug("Listing all state keys")
-            # Warning: KEYS is not recommended for production with large datasets
-            # Consider using SCAN for production environments
-            keys = await self.redis.keys("*")
-            logger.debug(f"Found {len(keys)} state keys")
-            return keys
-        except Exception as e:
-            logger.error(f"Error listing state keys: {str(e)}")
-            return []
-    
-    async def delete(self, key: str) -> None:
-        """Delete a state from Redis.
-        
-        Args:
-            key: The state key to delete
-        """
-        try:
-            logger.debug(f"Deleting state for key: {key}")
-            await self.redis.delete(key)
-            logger.debug(f"Deleted state for key: {key}")
-        except Exception as e:
-            logger.error(f"Error deleting state for key {key}: {str(e)}")
-            raise 
 
     def put_writes(self, config: RunnableConfig, writes: List[Tuple[str, Any]], task_id: str) -> None:
         try:
