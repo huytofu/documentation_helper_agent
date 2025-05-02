@@ -50,26 +50,40 @@ def _parse_redis_checkpoint_data(serde: SerializerProtocol, key: str, data: dict
             "checkpoint_id": checkpoint_id,
         }
     }
-    checkpoint = serde.loads_typed((data[b"type"].decode(), data[b"checkpoint"]))
-    metadata = serde.loads(data[b"metadata"].decode())
-    parent_checkpoint_id = data.get(b"parent_checkpoint_id", b"").decode()
-    parent_config = (
-        {
-            "configurable": {
-                "thread_id": thread_id,
-                "checkpoint_ns": checkpoint_ns,
-                "checkpoint_id": parent_checkpoint_id,
+    
+    # Add null checks and default values
+    checkpoint_type = data.get(b"type")
+    checkpoint_data = data.get(b"checkpoint")
+    metadata = data.get(b"metadata")
+    parent_checkpoint_id = data.get(b"parent_checkpoint_id", b"").decode() if data.get(b"parent_checkpoint_id") else ""
+    
+    if not checkpoint_type or not checkpoint_data:
+        logger.error(f"Missing required checkpoint data for key: {key}")
+        return None
+        
+    try:
+        checkpoint = serde.loads_typed((checkpoint_type.decode(), checkpoint_data))
+        metadata = serde.loads(metadata.decode()) if metadata else {}
+        parent_config = (
+            {
+                "configurable": {
+                    "thread_id": thread_id,
+                    "checkpoint_ns": checkpoint_ns,
+                    "checkpoint_id": parent_checkpoint_id,
+                }
             }
-        }
-        if parent_checkpoint_id else None
-    )
-    return CheckpointTuple(
-        config=config,
-        checkpoint=checkpoint,
-        metadata=metadata,
-        parent_config=parent_config,
-        pending_writes=None,
-    )
+            if parent_checkpoint_id else None
+        )
+        return CheckpointTuple(
+            config=config,
+            checkpoint=checkpoint,
+            metadata=metadata,
+            parent_config=parent_config,
+            pending_writes=None,
+        )
+    except Exception as e:
+        logger.error(f"Error parsing checkpoint data for key {key}: {str(e)}")
+        return None
 
 class RedisCheckpointer(BaseCheckpointSaver):
     """LangGraph checkpointer implementation using Redis (sync and async)."""
