@@ -47,15 +47,15 @@ MODEL_IDS = {
     "summarizer": ["meta-llama/Llama-3.3-70B-Instruct", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"],
     "generator": ["deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", "arcee-ai/coder-large"]
 }
-default_provder = os.getenv("INFERENCE_PROVIDER")
+default_provider = os.getenv("INFERENCE_PROVIDER")
 PROVIDER_IDS = {
-    "embeddings": default_provder,
+    "embeddings": default_provider,
     "router": "novita",
-    "sentiment_grader": default_provder,
-    "answer_grader": default_provder,
+    "sentiment_grader": default_provider,
+    "answer_grader": default_provider,
     "retrieval_grader": "novita",
-    "hallucinate_grader": default_provder,
-    "summarizer": default_provder,
+    "hallucinate_grader": default_provider,
+    "summarizer": default_provider,
     "generator": "nebius"
 }
 # Ollama model names
@@ -194,6 +194,7 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
         return {
             "provider": provider,
             "provider_org": PROVIDER_IDS[component],
+            "direct_provider_org": default_provider,
             "model": MODEL_IDS[component],
             "api_key": os.getenv("INFERENCE_API_KEY"),
             "direct_api_key": os.getenv("INFERENCE_DIRECT_API_KEY"),

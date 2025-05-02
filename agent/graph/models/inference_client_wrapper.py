@@ -36,11 +36,13 @@ class InferenceClientChatModel(BaseChatModel):
     temperature: float = 0.0
     max_tokens: int = 1024
     provider: str = ""
+    direct_provider: str = ""
     direct_api_key: str
     
     def __init__(
         self,
         provider: str,
+        direct_provider: str,
         api_key: str, #This is Hugging Face API key
         direct_api_key: str, #This is direct API key for the provider like Together AI
         model: List[str],
@@ -72,6 +74,7 @@ class InferenceClientChatModel(BaseChatModel):
             "temperature": temperature,
             "max_tokens": max_tokens,
             "provider": provider,
+            "direct_provider": direct_provider,
             "direct_api_key": direct_api_key,
             **kwargs
         }
@@ -167,7 +170,7 @@ class InferenceClientChatModel(BaseChatModel):
                 
             except Exception as hf_error:
                 # If Hugging Face's API fails, try Together AI directly
-                if self.provider.lower() == "together":
+                if self.direct_provider.lower() == "together":
                     logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(hf_error)}")
                     
                     # Set the API key for Together client
@@ -208,13 +211,15 @@ class InferenceClientChatModel(BaseChatModel):
         except Exception as e:
             # Log the error
             logger.error(f"Error calling {self.provider} API: {str(e)}")
+            if self.direct_provider.lower() == "together":
+                logger.error(f"Error calling direct {self.direct_provider} API: {str(e)}")
             
             # Pass error to callback manager if available
             if run_manager:
                 run_manager.on_llm_error(e, **kwargs)
                 
             # Raise a more informative exception
-            raise RuntimeError(f"Failed to generate response from {self.provider} API: {str(e)}")
+            raise RuntimeError(f"Failed to generate response from {self.provider} API and direct {self.direct_provider} API: {str(e)}")
     
     @property
     def _llm_type(self) -> str:
@@ -229,11 +234,13 @@ class InferenceClientEmbeddings:
     model: str
     direct_model: str
     provider: str
+    direct_provider: str
     direct_api_key: str
     
     def __init__(
         self,
         provider: str,
+        direct_provider: str,
         api_key: str,
         direct_api_key: str,
         model: List[str],
@@ -251,6 +258,7 @@ class InferenceClientEmbeddings:
         self.model = model[0]
         self.direct_model = model[1]
         self.provider = provider
+        self.direct_provider = direct_provider
         self.direct_api_key = direct_api_key
         logger.info(f"Initialized InferenceClientEmbeddings with provider: {provider}, model: {model[0]}")
     
@@ -266,7 +274,7 @@ class InferenceClientEmbeddings:
             logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}")
             
             # If Hugging Face's API fails, try Together AI directly
-            if self.provider.lower() == "together":
+            if self.direct_provider.lower() == "together":
                 try:
                     # Set the API key for Together client
                     os.environ["TOGETHER_API_KEY"] = self.direct_api_key
@@ -287,7 +295,7 @@ class InferenceClientEmbeddings:
                     raise RuntimeError(f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}")
             else:
                 # If not Together AI, re-raise the original error
-                raise RuntimeError(f"Failed to embed documents with {self.provider} API: {str(e)}")
+                raise RuntimeError(f"Failed to embed documents with direct {self.direct_provider} API: {str(e)}")
     
     def embed_query(self, text: str) -> List[float]:
         """Embed a query using the InferenceClient."""
@@ -297,7 +305,7 @@ class InferenceClientEmbeddings:
             logger.warning(f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}")
             
             # If Hugging Face's API fails, try Together AI directly
-            if self.provider.lower() == "together":
+            if self.direct_provider.lower() == "together":
                 try:
                     # Set the API key for Together client
                     os.environ["TOGETHER_API_KEY"] = self.direct_api_key
@@ -316,4 +324,4 @@ class InferenceClientEmbeddings:
                     raise RuntimeError(f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}")
             else:
                 # If not Together AI, re-raise the original error
-                raise RuntimeError(f"Failed to embed query with {self.provider} API: {str(e)}") 
+                raise RuntimeError(f"Failed to embed query with direct {self.direct_provider} API: {str(e)}") 
