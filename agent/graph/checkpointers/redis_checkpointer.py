@@ -257,6 +257,12 @@ class RedisCheckpointer(BaseCheckpointSaver):
             
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
 
+            # Ensure metadata has the required structure
+            if metadata is None:
+                metadata = {}
+            if "writes" not in metadata:
+                metadata["writes"] = {}
+
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
             serialized_metadata = self.serde.dumps(metadata)
             data = {
@@ -290,6 +296,12 @@ class RedisCheckpointer(BaseCheckpointSaver):
             checkpoint_id = current_checkpoint_id if current_checkpoint_id else checkpoint["id"]
             
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
+
+            # Ensure metadata has the required structure
+            if metadata is None:
+                metadata = {}
+            if "writes" not in metadata:
+                metadata["writes"] = {}
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
             serialized_metadata = self.serde.dumps(metadata)
