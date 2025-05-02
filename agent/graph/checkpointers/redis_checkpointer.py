@@ -27,62 +27,126 @@ def _make_redis_checkpoint_key(thread_id: str, checkpoint_ns: str, checkpoint_id
     return REDIS_KEY_SEPARATOR.join(["checkpoint", thread_id, checkpoint_ns, checkpoint_id])
 
 def _parse_redis_checkpoint_key(redis_key: str) -> dict:
-    namespace, thread_id, checkpoint_ns, checkpoint_id = redis_key.split(REDIS_KEY_SEPARATOR)
-    if namespace != "checkpoint":
-        raise ValueError("Expected checkpoint key to start with 'checkpoint'")
-    return {
-        "thread_id": thread_id,
-        "checkpoint_ns": checkpoint_ns,
-        "checkpoint_id": checkpoint_id,
-    }
+    try:
+        # Ensure redis_key is a string
+        if isinstance(redis_key, bytes):
+            redis_key = redis_key.decode()
+        
+        parts = redis_key.split(REDIS_KEY_SEPARATOR)
+        if len(parts) != 4:
+            logger.error(f"Invalid Redis key format: {redis_key}")
+            return {
+                "thread_id": "",
+                "checkpoint_ns": "",
+                "checkpoint_id": "",
+            }
+            
+        namespace, thread_id, checkpoint_ns, checkpoint_id = parts
+        if namespace != "checkpoint":
+            logger.error(f"Expected checkpoint key to start with 'checkpoint', got: {namespace}")
+            return {
+                "thread_id": "",
+                "checkpoint_ns": "",
+                "checkpoint_id": "",
+            }
+            
+        return {
+            "thread_id": thread_id or "",
+            "checkpoint_ns": checkpoint_ns or "",
+            "checkpoint_id": checkpoint_id or "",
+        }
+    except Exception as e:
+        logger.error(f"Error parsing Redis key {redis_key}: {str(e)}")
+        return {
+            "thread_id": "",
+            "checkpoint_ns": "",
+            "checkpoint_id": "",
+        }
 
 def _parse_redis_checkpoint_data(serde: SerializerProtocol, key: str, data: dict) -> Optional[CheckpointTuple]:
     if not data:
-        return None
-    parsed_key = _parse_redis_checkpoint_key(key)
-    thread_id = parsed_key["thread_id"]
-    checkpoint_ns = parsed_key["checkpoint_ns"]
-    checkpoint_id = parsed_key["checkpoint_id"]
-    config = {
-        "configurable": {
-            "thread_id": thread_id,
-            "checkpoint_ns": checkpoint_ns,
-            "checkpoint_id": checkpoint_id,
-        }
-    }
-    
-    # Add null checks and default values
-    checkpoint_type = data.get(b"type")
-    checkpoint_data = data.get(b"checkpoint")
-    metadata = data.get(b"metadata")
-    parent_checkpoint_id = data.get(b"parent_checkpoint_id", b"").decode() if data.get(b"parent_checkpoint_id") else ""
-    
-    if not checkpoint_type or not checkpoint_data:
-        logger.error(f"Missing required checkpoint data for key: {key}")
+        logger.debug(f"No data found for key: {key}")
         return None
         
     try:
-        checkpoint = serde.loads_typed((checkpoint_type.decode(), checkpoint_data))
-        metadata = serde.loads(metadata.decode()) if metadata else {}
-        parent_config = (
-            {
-                "configurable": {
-                    "thread_id": thread_id,
-                    "checkpoint_ns": checkpoint_ns,
-                    "checkpoint_id": parent_checkpoint_id,
-                }
+        parsed_key = _parse_redis_checkpoint_key(key)
+        thread_id = parsed_key["thread_id"]
+        checkpoint_ns = parsed_key["checkpoint_ns"]
+        checkpoint_id = parsed_key["checkpoint_id"]
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint_id,
             }
-            if parent_checkpoint_id else None
-        )
-        return CheckpointTuple(
-            config=config,
-            checkpoint=checkpoint,
-            metadata=metadata,
-            parent_config=parent_config,
-            pending_writes=None,
-        )
+        }
+        
+        # Log the raw data for debugging
+        logger.debug(f"Raw data for key {key}: {data}")
+        
+        # Extract and validate required fields
+        checkpoint_type = data.get(b"type")
+        checkpoint_data = data.get(b"checkpoint")
+        metadata = data.get(b"metadata")
+        parent_checkpoint_id = data.get(b"parent_checkpoint_id")
+        
+        # Log extracted values
+        logger.debug(f"Extracted values - type: {checkpoint_type}, data: {checkpoint_data}, metadata: {metadata}, parent_id: {parent_checkpoint_id}")
+        
+        if not checkpoint_type or not checkpoint_data:
+            logger.error(f"Missing required checkpoint data for key: {key}")
+            return None
+            
+        # Handle parent_checkpoint_id safely
+        parent_checkpoint_id_str = ""
+        if parent_checkpoint_id is not None:
+            try:
+                parent_checkpoint_id_str = parent_checkpoint_id.decode()
+            except (AttributeError, UnicodeDecodeError) as e:
+                logger.warning(f"Error decoding parent_checkpoint_id: {e}")
+                parent_checkpoint_id_str = ""
+        
+        # Parse checkpoint and metadata
+        try:
+            checkpoint = serde.loads_typed((checkpoint_type.decode(), checkpoint_data))
+            
+            # Ensure metadata has the required structure
+            metadata_dict = {"writes": {}}
+            if metadata is not None:
+                try:
+                    parsed_metadata = serde.loads(metadata.decode())
+                    if isinstance(parsed_metadata, dict):
+                        # Preserve existing metadata but ensure 'writes' exists
+                        metadata_dict.update(parsed_metadata)
+                        if "writes" not in metadata_dict:
+                            metadata_dict["writes"] = {}
+                except (AttributeError, UnicodeDecodeError) as e:
+                    logger.warning(f"Error decoding metadata: {e}")
+            
+            # Create parent config only if we have a valid parent_checkpoint_id
+            parent_config = None
+            if parent_checkpoint_id_str:
+                parent_config = {
+                    "configurable": {
+                        "thread_id": thread_id,
+                        "checkpoint_ns": checkpoint_ns,
+                        "checkpoint_id": parent_checkpoint_id_str,
+                    }
+                }
+            
+            return CheckpointTuple(
+                config=config,
+                checkpoint=checkpoint,
+                metadata=metadata_dict,
+                parent_config=parent_config,
+                pending_writes=None,
+            )
+        except Exception as e:
+            logger.error(f"Error parsing checkpoint data: {str(e)}")
+            return None
+            
     except Exception as e:
-        logger.error(f"Error parsing checkpoint data for key {key}: {str(e)}")
+        logger.error(f"Error in _parse_redis_checkpoint_data for key {key}: {str(e)}")
         return None
 
 class RedisCheckpointer(BaseCheckpointSaver):
