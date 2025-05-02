@@ -6,6 +6,7 @@ This module implements a LangGraph checkpointer using Redis for state persistenc
 import os
 import json
 import logging
+import uuid
 from typing import Any, Dict, Optional, List, Tuple, Iterator
 from dotenv import load_dotenv
 from langgraph.checkpoint.base import BaseCheckpointSaver, CheckpointTuple, get_checkpoint_id
@@ -23,7 +24,24 @@ REDIS_KEY_SEPARATOR = "$"
 
 # Utility functions for key construction and parsing
 
-def _make_redis_checkpoint_key(thread_id: str, checkpoint_ns: str, checkpoint_id: str) -> str:
+def _generate_new_checkpoint_id() -> str:
+    """Generate a new unique checkpoint ID."""
+    return str(uuid.uuid4())
+
+def _make_redis_checkpoint_key(thread_id: str, checkpoint_ns: str, checkpoint_id: Optional[str]) -> str:
+    """Make a Redis checkpoint key.
+    
+    Args:
+        thread_id: The thread ID
+        checkpoint_ns: The checkpoint namespace
+        checkpoint_id: The checkpoint ID (can be None for new conversations)
+        
+    Returns:
+        A Redis key string
+    """
+    # If checkpoint_id is None, generate a new one
+    if checkpoint_id is None:
+        checkpoint_id = _generate_new_checkpoint_id()
     return REDIS_KEY_SEPARATOR.join(["checkpoint", thread_id, checkpoint_ns, checkpoint_id])
 
 def _parse_redis_checkpoint_key(redis_key: str) -> dict:
@@ -229,8 +247,14 @@ class RedisCheckpointer(BaseCheckpointSaver):
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-            checkpoint_id = checkpoint["id"]
-            parent_checkpoint_id = config["configurable"].get("checkpoint_id")
+            
+            # Get the current checkpoint_id from config (could be None for new conversations)
+            current_checkpoint_id = config["configurable"].get("checkpoint_id")
+            
+            # For new checkpoints, use the ID from the checkpoint object
+            # For resumed conversations, use the existing checkpoint_id
+            checkpoint_id = current_checkpoint_id if current_checkpoint_id else checkpoint["id"]
+            
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
@@ -239,7 +263,7 @@ class RedisCheckpointer(BaseCheckpointSaver):
                 "checkpoint": serialized_checkpoint,
                 "type": type_,
                 "metadata": serialized_metadata,
-                "parent_checkpoint_id": parent_checkpoint_id if parent_checkpoint_id else "",
+                "parent_checkpoint_id": current_checkpoint_id if current_checkpoint_id else "",
             }
             self.redis.hset(key, mapping=data)
             return {
@@ -257,8 +281,14 @@ class RedisCheckpointer(BaseCheckpointSaver):
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-            checkpoint_id = checkpoint["id"]
-            parent_checkpoint_id = config["configurable"].get("checkpoint_id")
+            
+            # Get the current checkpoint_id from config (could be None for new conversations)
+            current_checkpoint_id = config["configurable"].get("checkpoint_id")
+            
+            # For new checkpoints, use the ID from the checkpoint object
+            # For resumed conversations, use the existing checkpoint_id
+            checkpoint_id = current_checkpoint_id if current_checkpoint_id else checkpoint["id"]
+            
             key = _make_redis_checkpoint_key(thread_id, checkpoint_ns, checkpoint_id)
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
@@ -267,7 +297,7 @@ class RedisCheckpointer(BaseCheckpointSaver):
                 "checkpoint": serialized_checkpoint,
                 "type": type_,
                 "metadata": serialized_metadata,
-                "parent_checkpoint_id": parent_checkpoint_id if parent_checkpoint_id else "",
+                "parent_checkpoint_id": current_checkpoint_id if current_checkpoint_id else "",
             }
             await self.async_redis.hset(key, mapping=data)
             return {
