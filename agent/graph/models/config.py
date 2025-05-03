@@ -37,7 +37,6 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 # Model IDs
 MODEL_IDS = {
     "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
-    "router": ["meta-llama/Meta-Llama-3.1-8B-Instruct", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
     "sentiment_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
     "answer_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
     "retrieval_grader": ["meta-llama/Meta-Llama-3.1-8B-Instruct", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
@@ -45,23 +44,23 @@ MODEL_IDS = {
     # "summarizer": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
     "hallucinate_grader": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
     "summarizer": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
+    "router": ["meta-llama/Meta-Llama-3.3-70B-Instruct", "meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo-Free"],
     "generator": ["deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", "arcee-ai/coder-large"]
 }
 default_provider = os.getenv("INFERENCE_PROVIDER")
 PROVIDER_IDS = {
     "embeddings": default_provider,
-    "router": "novita",
     "sentiment_grader": default_provider,
     "answer_grader": default_provider,
     "retrieval_grader": "novita",
     "hallucinate_grader": default_provider,
     "summarizer": default_provider,
+    "router": default_provider,
     "generator": "nebius"
 }
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
-    "router": "llama3.1:latest",
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",
     "retrieval_grader": "llama3.1:latest",
@@ -69,6 +68,7 @@ OLLAMA_MODELS = {
     # "summarizer": "llama3.1:latest",
     "hallucinate_grader": "llama3.3:latest",
     "summarizer": "llama3.3:latest",
+    "router": "llama3.3:latest",
     "generator": "deepseek-coder:33b"
 }
 
