@@ -7,9 +7,9 @@ import os
 import json
 import logging
 import uuid
-from typing import Any, Dict, Optional, List, Tuple, Iterator
+from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 from dotenv import load_dotenv
-from langgraph.checkpoint.base import BaseCheckpointSaver, CheckpointTuple, get_checkpoint_id
+from langgraph.checkpoint.base import BaseCheckpointSaver, CheckpointTuple, get_checkpoint_id, get_checkpoint_metadata
 from langgraph.checkpoint.serde.base import SerializerProtocol
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langchain_core.runnables import RunnableConfig
@@ -21,6 +21,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 REDIS_KEY_SEPARATOR = "$"
+WRITES_IDX_MAP = {}  # Channel to index mapping, similar to MemorySaver
 
 # Utility functions for key construction and parsing
 
@@ -132,7 +133,7 @@ def _parse_redis_checkpoint_data(serde: SerializerProtocol, key: str, data: dict
             metadata_dict = None
             if metadata is not None:
                 try:
-                    parsed_metadata = serde.loads(metadata.decode())
+                    parsed_metadata = serde.loads_typed(metadata.decode())
                     if isinstance(parsed_metadata, dict):
                         metadata_dict = parsed_metadata
                 except (AttributeError, UnicodeDecodeError) as e:
@@ -247,8 +248,8 @@ class RedisCheckpointer(BaseCheckpointSaver):
             logger.debug(f"Original metadata: {metadata}")
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
-            # Only serialize metadata if it exists
-            serialized_metadata = self.serde.dumps(metadata) if metadata is not None else None
+            # Use get_checkpoint_metadata to process metadata like MemorySaver
+            serialized_metadata = self.serde.dumps_typed(get_checkpoint_metadata(config, metadata))
             
             data = {
                 "checkpoint": serialized_checkpoint,
@@ -286,8 +287,8 @@ class RedisCheckpointer(BaseCheckpointSaver):
             logger.debug(f"Original metadata: {metadata}")
 
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
-            # Only serialize metadata if it exists
-            serialized_metadata = self.serde.dumps(metadata) if metadata is not None else None
+            # Use get_checkpoint_metadata to process metadata like MemorySaver
+            serialized_metadata = self.serde.dumps_typed(get_checkpoint_metadata(config, metadata))
             
             data = {
                 "checkpoint": serialized_checkpoint,
@@ -311,30 +312,98 @@ class RedisCheckpointer(BaseCheckpointSaver):
             logger.error(f"Error in aput: {e}")
             raise
 
-    def put_writes(self, config: RunnableConfig, writes: List[Tuple[str, Any]], task_id: str) -> None:
+    def put_writes(self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str, task_path: str = "") -> None:
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
             checkpoint_id = config["configurable"]["checkpoint_id"]
+            
+            # Create outer key pattern for checking existing writes
+            outer_key_pattern = f"writes${thread_id}${checkpoint_ns}${checkpoint_id}*"
+            existing_writes = self.redis.keys(outer_key_pattern)
+            existing_write_map = {}
+            
+            # Create map of existing writes
+            for write_key in existing_writes:
+                write_data = self.redis.hgetall(write_key)
+                if write_data:
+                    channel = write_data[b"channel"].decode()
+                    idx = int(write_key.split(REDIS_KEY_SEPARATOR)[-1])
+                    existing_write_map[(task_id, WRITES_IDX_MAP.get(channel, idx))] = True
+            
+            # Process new writes
             for idx, (channel, value) in enumerate(writes):
+                inner_key = (task_id, WRITES_IDX_MAP.get(channel, idx))
+                
+                # Skip if write already exists
+                if inner_key[1] >= 0 and inner_key in existing_write_map:
+                    continue
+                
+                # Create write key
                 key = f"writes${thread_id}${checkpoint_ns}${checkpoint_id}${task_id}${idx}"
+                
+                # Serialize value
                 type_, serialized_value = self.serde.dumps_typed(value)
-                data = {"channel": channel, "type": type_, "value": serialized_value}
+                
+                # Store write data
+                data = {
+                    "channel": channel,
+                    "type": type_,
+                    "value": serialized_value,
+                    "task_id": task_id,
+                    "task_path": task_path
+                }
+                
                 self.redis.hset(key, mapping=data)
+                
         except Exception as e:
             logger.error(f"Error in put_writes: {e}")
             raise
 
-    async def aput_writes(self, config: RunnableConfig, writes: List[Tuple[str, Any]], task_id: str) -> None:
+    async def aput_writes(self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str, task_path: str = "") -> None:
         try:
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
             checkpoint_id = config["configurable"]["checkpoint_id"]
+            
+            # Create outer key pattern for checking existing writes
+            outer_key_pattern = f"writes${thread_id}${checkpoint_ns}${checkpoint_id}*"
+            existing_writes = await self.async_redis.keys(outer_key_pattern)
+            existing_write_map = {}
+            
+            # Create map of existing writes
+            for write_key in existing_writes:
+                write_data = await self.async_redis.hgetall(write_key)
+                if write_data:
+                    channel = write_data[b"channel"].decode()
+                    idx = int(write_key.split(REDIS_KEY_SEPARATOR)[-1])
+                    existing_write_map[(task_id, WRITES_IDX_MAP.get(channel, idx))] = True
+            
+            # Process new writes
             for idx, (channel, value) in enumerate(writes):
+                inner_key = (task_id, WRITES_IDX_MAP.get(channel, idx))
+                
+                # Skip if write already exists
+                if inner_key[1] >= 0 and inner_key in existing_write_map:
+                    continue
+                
+                # Create write key
                 key = f"writes${thread_id}${checkpoint_ns}${checkpoint_id}${task_id}${idx}"
+                
+                # Serialize value
                 type_, serialized_value = self.serde.dumps_typed(value)
-                data = {"channel": channel, "type": type_, "value": serialized_value}
+                
+                # Store write data
+                data = {
+                    "channel": channel,
+                    "type": type_,
+                    "value": serialized_value,
+                    "task_id": task_id,
+                    "task_path": task_path
+                }
+                
                 await self.async_redis.hset(key, mapping=data)
+                
         except Exception as e:
             logger.error(f"Error in aput_writes: {e}")
             raise
@@ -345,15 +414,86 @@ class RedisCheckpointer(BaseCheckpointSaver):
                 return iter([])
             thread_id = config["configurable"]["thread_id"]
             checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
+            config_checkpoint_id = get_checkpoint_id(config)
             pattern = _make_redis_checkpoint_key(thread_id, checkpoint_ns, "*")
             keys = self.redis.keys(pattern)
             keys = sorted(keys, key=lambda k: _parse_redis_checkpoint_key(k.decode())["checkpoint_id"], reverse=True)
+            
             if limit:
                 keys = keys[:limit]
+                
             for key in keys:
                 data = self.redis.hgetall(key)
-                if data and b"checkpoint" in data and b"metadata" in data:
-                    yield _parse_redis_checkpoint_data(self.serde, key.decode(), data)
+                if not data or b"checkpoint" not in data or b"metadata" not in data:
+                    continue
+                    
+                parsed_key = _parse_redis_checkpoint_key(key.decode())
+                checkpoint_id = parsed_key["checkpoint_id"]
+                
+                # Filter by checkpoint ID from config
+                if config_checkpoint_id and checkpoint_id != config_checkpoint_id:
+                    continue
+                    
+                # Filter by checkpoint ID from `before` config
+                if before and (before_checkpoint_id := get_checkpoint_id(before)) and checkpoint_id >= before_checkpoint_id:
+                    continue
+                    
+                # Parse metadata using loads_typed
+                metadata = self.serde.loads_typed(data[b"metadata"].decode())
+                
+                # Filter by metadata
+                if filter and not all(
+                    query_value == metadata.get(query_key)
+                    for query_key, query_value in filter.items()
+                ):
+                    continue
+                    
+                # Get writes for this checkpoint
+                writes_pattern = f"writes${thread_id}${checkpoint_ns}${checkpoint_id}*"
+                write_keys = self.redis.keys(writes_pattern)
+                writes = []
+                for write_key in write_keys:
+                    write_data = self.redis.hgetall(write_key)
+                    if write_data:
+                        channel = write_data[b"channel"].decode()
+                        value = self.serde.loads_typed(write_data[b"value"].decode())
+                        writes.append((channel, value))
+                        
+                # Get parent checkpoint ID
+                parent_checkpoint_id = data.get(b"parent_checkpoint_id")
+                if parent_checkpoint_id:
+                    parent_checkpoint_id = parent_checkpoint_id.decode()
+                    
+                # Parse checkpoint
+                checkpoint_type = data[b"type"].decode()
+                checkpoint_data = data[b"checkpoint"]
+                checkpoint = self.serde.loads_typed((checkpoint_type, checkpoint_data))
+                
+                # Create parent config if parent_checkpoint_id exists
+                parent_config = None
+                if parent_checkpoint_id:
+                    parent_config = {
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": parent_checkpoint_id,
+                        }
+                    }
+                    
+                yield CheckpointTuple(
+                    config={
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        }
+                    },
+                    checkpoint=checkpoint,
+                    metadata=metadata,
+                    parent_config=parent_config,
+                    pending_writes=writes,
+                )
+                
         except Exception as e:
             logger.error(f"Error in list: {e}")
             return iter([])
