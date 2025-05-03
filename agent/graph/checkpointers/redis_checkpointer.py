@@ -286,16 +286,16 @@ class RedisCheckpointer(BaseCheckpointSaver):
             logger.debug(f"Original checkpoint: {checkpoint}")
             logger.debug(f"Original metadata: {metadata}")
 
+            # Serialize checkpoint and metadata
             type_, serialized_checkpoint = self.serde.dumps_typed(checkpoint)
-            # Use get_checkpoint_metadata to process metadata like MemorySaver
             serialized_metadata = self.serde.dumps_typed(get_checkpoint_metadata(config, metadata))
             
-            # Convert all values to strings/bytes for Redis storage
+            # Ensure all values are bytes for Redis storage
             data = {
-                "checkpoint": serialized_checkpoint,
-                "type": type_.encode() if isinstance(type_, str) else type_,
-                "metadata": serialized_metadata,
-                "parent_checkpoint_id": (current_checkpoint_id if current_checkpoint_id else "").encode() if isinstance(current_checkpoint_id, str) else current_checkpoint_id,
+                b"checkpoint": serialized_checkpoint if isinstance(serialized_checkpoint, bytes) else str(serialized_checkpoint).encode(),
+                b"type": type_.encode() if isinstance(type_, str) else str(type_).encode(),
+                b"metadata": serialized_metadata if isinstance(serialized_metadata, bytes) else str(serialized_metadata).encode(),
+                b"parent_checkpoint_id": (current_checkpoint_id if current_checkpoint_id else "").encode() if isinstance(current_checkpoint_id, str) else str(current_checkpoint_id or "").encode(),
             }
             
             # Log the serialized data for debugging
