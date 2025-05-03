@@ -12,6 +12,7 @@ from agent.graph.utils.api_utils import (
 )
 from agent.graph.utils.message_utils import get_content
 from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.web_search")
 
@@ -45,7 +46,8 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-
+        await standard_sleep()
+        
     query = state.get("query", "")
     documents = state.get("documents", [])
     retry_count = state.get("retry_count", 0)

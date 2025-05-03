@@ -11,6 +11,7 @@ from agent.graph.utils.api_utils import (
     GradingResponse
 )
 from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.grade_documents")
 
@@ -32,6 +33,7 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
+        await standard_sleep()
 
     query = state.get("query", "")
     documents = state.get("documents", [])

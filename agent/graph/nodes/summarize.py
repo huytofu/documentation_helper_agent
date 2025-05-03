@@ -7,6 +7,7 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
 )
 from agent.graph.utils.message_utils import trim_messages
+from agent.graph.utils.api_utils import standard_sleep
 import logging
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         }
         # print(f"Emitting summarizing state: {summarizing_state}")
         await copilotkit_emit_state(config, summarizing_state)
-
+        await standard_sleep()
     messages = state.get("messages", [])
     messages = trim_messages(messages)
     messages = simplify_messages(messages)

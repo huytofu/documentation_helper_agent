@@ -12,6 +12,7 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
 )
 from agent.graph.utils.message_utils import convert_to_raw_documents
+from agent.graph.utils.api_utils import standard_sleep
 import logging
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-
+        await standard_sleep()
     last_message_type = get_last_message_type(messages)
     if last_message_type == "human":
         generation = ""

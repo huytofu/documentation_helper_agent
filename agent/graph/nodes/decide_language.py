@@ -2,6 +2,7 @@ from typing import Any, Dict
 from agent.graph.state import GraphState
 from agent.graph.chains.language_router import get_language_route
 from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.api_utils import standard_sleep
 
 async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---DECIDE LANGUAGE---")
@@ -12,6 +13,7 @@ async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> D
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
+        await standard_sleep()
 
     query = state.get("query", "")
     language = state.get("language", "")
