@@ -37,14 +37,15 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 # Model IDs
 MODEL_IDS = {
     "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
+    "router": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
     "sentiment_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
     "answer_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "retrieval_grader": ["meta-llama/Meta-Llama-3.1-8B-Instruct", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
+    "retrieval_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
     # "hallucinate_grader": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
     # "summarizer": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
     "hallucinate_grader": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
     "summarizer": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    "router": ["meta-llama/Meta-Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
+    # "router": ["meta-llama/Meta-Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
     "generator": ["deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", "arcee-ai/coder-large"]
 }
 default_provider = os.getenv("INFERENCE_PROVIDER")
@@ -52,7 +53,7 @@ PROVIDER_IDS = {
     "embeddings": default_provider,
     "sentiment_grader": default_provider,
     "answer_grader": default_provider,
-    "retrieval_grader": "novita",
+    "retrieval_grader": default_provider,
     "hallucinate_grader": default_provider,
     "summarizer": default_provider,
     "router": default_provider,
@@ -61,14 +62,15 @@ PROVIDER_IDS = {
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
+    "router": "mistral:latest",
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",
-    "retrieval_grader": "llama3.1:latest",
+    "retrieval_grader": "mistral:latest",
     # "hallucinate_grader": "llama3.1:latest",
     # "summarizer": "llama3.1:latest",
     "hallucinate_grader": "llama3.3:latest",
     "summarizer": "llama3.3:latest",
-    "router": "llama3.3:latest",
+    # "router": "llama3.3:latest",
     "generator": "deepseek-coder:33b"
 }
 

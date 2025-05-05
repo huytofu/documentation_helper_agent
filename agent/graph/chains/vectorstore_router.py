@@ -18,16 +18,15 @@ parser = PydanticOutputParser(pydantic_object=VectorstoreRoute)
 # Create the prompt template
 system = """You are an expert at deciding the most appropriate vectorstore to use for a given query.
 
-You must choose between five options:
+You must choose between following five options. You must not select any option other than these five:
 - "openai": ONLY for queries specifically about the OpenAI Agents SDK
 - "smolagents": ONLY for queries specifically about the SmolAgents framework
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
 - "others": For all other queries
 
-You must not select any option other than these five.
+VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 
-You must return your response in the following JSON format:
 {{
     "datasource": your_selected_option
 }}
