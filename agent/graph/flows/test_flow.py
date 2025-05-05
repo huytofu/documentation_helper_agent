@@ -126,7 +126,7 @@ def determine_user_sentiment(state: GraphState) -> str:
         return "bad"
     
 # Create the graph without executor parameter
-workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState, stream_mode="updates")
+workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
