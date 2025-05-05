@@ -6,20 +6,21 @@ from agent.graph.models.router import llm
 
 class RouteQuery(BaseModel):
     """Route a user query to a vectorstore or websearch"""
-    datasource: Literal["vectorstore", "websearch"] = Field(
+    datasource: Literal["vectorstore", "websearch", "none"] = Field(
         ...,
-        description="""Answer options for: vectorstore or websearch""",
+        description="""Answer options for: vectorstore or websearch or none""",
     )
 
 # Create the output parser
 parser = PydanticOutputParser(pydantic_object=RouteQuery)
 
 # Create the prompt template
-system = """You are an expert at routing a user query to either a vectorstore or websearch.
+system = """You are an expert at routing a user query to either a vectorstore or websearch or none.
 
-You must choose between following two options. You must not select any option other than these two:
+You must choose between following three options. You must not select any option other than these three:
 - "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
 - "websearch": For all other queries, including general programming questions, new technologies, other topics
+- "none": if the phrase "Use conversation context only" is present in the query
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 

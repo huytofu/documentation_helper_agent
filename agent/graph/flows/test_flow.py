@@ -91,7 +91,7 @@ def route_query(state: GraphState) -> str:
     if source.datasource in ["websearch", None]:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
-    else:
+    elif source.datasource == "vectorstore":
         language = state.get("language", "")
         if language in ["python", "javascript"]:
             logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
@@ -99,6 +99,9 @@ def route_query(state: GraphState) -> str:
         else:
             logger.info("---ROUTE QUERY TO WEB SEARCH---")
             return WEBSEARCH
+    else:
+        logger.info("---ROUTE QUERY TO NONE---")
+        return GENERATE
         
 def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
@@ -142,8 +145,9 @@ workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
+workflow.add_edge(INITIALIZE, SUMMARIZE)
 workflow.add_conditional_edges(
-    INITIALIZE,
+    SUMMARIZE,
     route_query,
     {
         WEBSEARCH: WEBSEARCH,
@@ -157,11 +161,10 @@ workflow.add_conditional_edges(
     to_search_web_or_not,
     {
         WEBSEARCH: WEBSEARCH,
-        SUMMARIZE: SUMMARIZE
+        GENERATE: GENERATE
     }
 )
-workflow.add_edge(WEBSEARCH, SUMMARIZE)
-workflow.add_edge(SUMMARIZE, GENERATE)
+workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_query,

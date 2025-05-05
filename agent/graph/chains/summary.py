@@ -9,7 +9,9 @@ class Summary(BaseModel):
 
 system = """you are given an input conversation between a human user and an AI assistant.
 Based on the conversation, rewrite the last message from the user into a more meaningful
-& explicit query with better context while keeping the original meaning.
+& explicit query with better context while keeping the original meaning. 
+If the query can be fully answered based on the conversation's context without the need for external information,
+then please attach the instruction "Use conversation context only" to the rewritten query.
 
 RULES:
 1. If you are thinking and reasoning, you must not show your thinking or reasoning process to the user.
