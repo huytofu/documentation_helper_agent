@@ -45,8 +45,8 @@ The Vercel deployment includes:
    BACKEND_URL=your_cloud_run_url
    
    # Firebase Configuration
-   NEXT_PUBLIC_FIREBASE_API_KEY=xxx
    NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
+   FIREBASE_API_KEY=xxx
    FIREBASE_CLIENT_EMAIL=xxx
    FIREBASE_PRIVATE_KEY=xxx
    
@@ -56,7 +56,9 @@ The Vercel deployment includes:
    # Model Configuration
    USE_INFERENCE_CLIENT=true
    INFERENCE_API_KEY=your_inference_api_key
+   INFERENCE_DIRECT_API_KEY=your_inference_direct_api_key
    INFERENCE_PROVIDER=together
+   INFERENCE_PROVIDER_FRONTEND=nebius
    ```
 
 3. Deploy to Vercel:

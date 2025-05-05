@@ -1,11 +1,13 @@
 import { InferenceClient } from "@huggingface/inference";
 import { ChatOllama } from "@langchain/ollama";
+import Together from "together-ai";
 
 // Environment flags
 const USE_OLLAMA = process.env.USE_OLLAMA === "true";
 const USE_INFERENCE_CLIENT = process.env.USE_INFERENCE_CLIENT === "true";
-const INFERENCE_PROVIDER = process.env.INFERENCE_PROVIDER || "together";
+const INFERENCE_PROVIDER = process.env.INFERENCE_PROVIDER || "nebius";
 const INFERENCE_API_KEY = process.env.INFERENCE_API_KEY || "";
+const INFERENCE_DIRECT_API_KEY = process.env.INFERENCE_DIRECT_API_KEY || "";
 
 // Validate environment configuration
 if (USE_OLLAMA && USE_INFERENCE_CLIENT) {
@@ -33,13 +35,28 @@ const INFERENCE_CLIENT_CONFIG = {
   stop: ["</s>", "Human:", "Assistant:"],
 };
 
+const TOGETHER_DIRECT_CONFIG = {
+  model: "arcee-ai/coder-large",
+  temperature: 0,
+  max_tokens: 2048,
+  top_p: 0.95,
+  top_k: 50,
+  stop: ["</s>", "Human:", "Assistant:"],
+};
+
 // Create a client wrapper that provides a compatible interface with ChatOllama
 class HFInferenceClientWrapper {
   private client: InferenceClient;
+  private togetherClient: Together;
   private config: any;
+  private hfApiKey: string;
+  private togetherApiKey: string;
 
   constructor(config: any) {
-    this.client = new InferenceClient(INFERENCE_API_KEY);
+    this.hfApiKey = INFERENCE_API_KEY;
+    this.togetherApiKey = INFERENCE_DIRECT_API_KEY;
+    this.client = new InferenceClient(this.hfApiKey);
+    this.togetherClient = new Together({ apiKey: this.togetherApiKey });
     this.config = config;
   }
 
@@ -50,6 +67,7 @@ class HFInferenceClientWrapper {
 
   async call(prompt: string): Promise<string> {
     try {
+      console.log(`Attempting to call HuggingFace with ${this.config.provider} provider`);
       const chatCompletion = await this.client.chatCompletion({
         provider: this.config.provider,
         model: this.config.model,
@@ -68,8 +86,30 @@ class HFInferenceClientWrapper {
 
       return chatCompletion.choices[0].message.content || "";
     } catch (error) {
-      console.error("Error calling inference client:", error);
-      throw error;
+      console.error("Error calling HuggingFace inference client:", error);
+      console.log("Falling back to Together AI client");
+      return this.callTogetherDirectAPI(prompt);
+    }
+  }
+
+  // Direct API call to Together AI using client library
+  private async callTogetherDirectAPI(prompt: string): Promise<string> {
+    try {
+      console.log("Making API call using Together client");
+      const completion = await this.togetherClient.chat.completions.create({
+        model: TOGETHER_DIRECT_CONFIG.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: TOGETHER_DIRECT_CONFIG.temperature,
+        max_tokens: TOGETHER_DIRECT_CONFIG.max_tokens,
+        top_p: TOGETHER_DIRECT_CONFIG.top_p,
+        top_k: TOGETHER_DIRECT_CONFIG.top_k,
+        stop: TOGETHER_DIRECT_CONFIG.stop
+      });
+
+      return completion.choices?.[0]?.message?.content || "";
+    } catch (error: any) {
+      console.error("Error calling Together AI client:", error);
+      throw new Error(`Failed to get response from both providers: ${error.message}`);
     }
   }
 
