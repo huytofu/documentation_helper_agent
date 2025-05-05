@@ -156,7 +156,6 @@ class InputGraphState(CopilotKitState):
         generation: LLM generation
     """
 
-    language: str = ""
     comments: str = ""
     user_id: str = ""
 
@@ -167,6 +166,7 @@ class OutputGraphState(CopilotKitState):
     Attributes:
         current_node: current node
     """
+    language: str = ""
     current_node: str = ""
     query: str = ""
     rewritten_query: str = ""

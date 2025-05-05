@@ -44,7 +44,7 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
         return "not useful"
     
 # Create the graph without executor parameter
-workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
+workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState, stream_mode="updates")
 
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
