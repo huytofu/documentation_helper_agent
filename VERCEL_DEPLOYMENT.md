@@ -46,7 +46,7 @@ The Vercel deployment includes:
    
    # Firebase Configuration
    NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
-   FIREBASE_API_KEY=xxx
+   NEXT_PUBLIC_FIREBASE_API_KEY=xxx
    FIREBASE_CLIENT_EMAIL=xxx
    FIREBASE_PRIVATE_KEY=xxx
    
