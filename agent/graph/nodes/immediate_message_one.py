@@ -3,6 +3,7 @@ from agent.graph.state import GraphState
 from typing import Dict, Any
 from langchain_core.messages import AIMessage
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
+from agent.graph.utils.api_utils import standard_sleep
 
 async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---IMMEDIATE MESSAGE 1---")
@@ -27,6 +28,7 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
         await copilotkit_emit_message(config, content)
+        await standard_sleep()
         # await asyncio.sleep(10)
 
     return {"messages": messages}

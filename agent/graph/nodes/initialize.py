@@ -5,6 +5,7 @@ from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.firebase_utils import save_conversation_message_api
 from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.message_utils import trim_messages
+from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.graph")
 
@@ -18,7 +19,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-    
+        await standard_sleep()
     # Get and trim messages
     messages = trim_messages(state.get("messages", []))
     # Simplified query and rewritten_query initialization

@@ -12,8 +12,10 @@ Based on the conversation, rewrite the last message from the user into a more me
 & explicit query with better context while keeping the original meaning.
 
 RULES:
-1. The rewritten query should be self-contained, clear and in English.
-2. The rewritten query should not have any quotes, prefixes, or explanations.
+1. If you are thinking and reasoning, you must not show your thinking or reasoning process to the user.
+2. You must only respond with the rewritten query.
+3. The rewritten query should be self-contained, clear and in English.
+4. The rewritten query should not have any quotes, prefixes, or explanations.
 
 {format_instructions}
 

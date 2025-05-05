@@ -88,14 +88,7 @@ PINECONE_METRIC=cosine
 # Inference API Configuration (required if USE_INFERENCE_CLIENT=true)
 INFERENCE_PROVIDER=together  # Options: together, perplexity, anyscale, etc.
 INFERENCE_API_KEY=inference_provider_api_key
-INFERENCE_EMBEDDING_MODEL=BAAI/bge-large-en-v1.5
-INFERENCE_ROUTER_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
-INFERENCE_SENTIMENT_GRADER_MODEL=mistralai/Mistral-7B-Instruct-v0.3
-INFERENCE_ANSWER_GRADER_MODEL=mistralai/Mistral-7B-Instruct-v0.3
-INFERENCE_RETRIEVAL_GRADER_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
-INFERENCE_HALLUCINATE_GRADER_MODEL=Qwen/Qwen2.5-14B-Instruct
-INFERENCE_SUMMARIZER_MODEL=Qwen/Qwen2.5-14B-Instruct
-INFERENCE_GENERATOR_MODEL=deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
+INFERENCE_DIRECT_API_KEY=inference_provider_direct_api_key
 INFERENCE_MAX_TOKENS=2048
 
 # RunPod Configuration (required if USE_RUNPOD=true)
@@ -154,32 +147,7 @@ This application is designed to be deployed as a split architecture:
 
 ### Frontend Deployment (Vercel)
 
-1. Install Vercel CLI:
-```bash
-npm install -g vercel
-```
-
-2. Configure environment variables in Vercel:
-   - Go to your project settings in Vercel
-   - Add the required environment variables from .env.example, especially:
-     ```
-     USE_OLLAMA=false
-     USE_INFERENCE_CLIENT=true
-     INFERENCE_API_KEY=your_inference_api_key
-     SERVER_TYPE=vercel
-     DOCUMENTATION_HELPER_API_KEY=your_api_key
-     FRONTEND_URL=your_frontend_url
-     BACKEND_URL=your_cloud_run_url  # Add this to point to your Cloud Run backend
-     ```
-
-3. Deploy to Vercel:
-```bash
-vercel
-```
-
-4. Set up warm-up endpoint:
-   - Create a cron job in Vercel to call `/api/warmup` every 5 minutes
-   - This helps keep the serverless functions warm
+PLEASE READ VERCEL_DEPLOYMENT.md
 
 ### Backend Deployment (Google Cloud Run)
 
@@ -276,12 +244,12 @@ If you want to use RunPod for the generator model while deploying on Google Clou
 If using Firebase for authentication and storage:
 
 ```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+FIREBASE_API_KEY=your_firebase_api_key
 FIREBASE_SERVICE_ACCOUNT=your_firebase_service_account
 FIREBASE_CLIENT_EMAIL=your_client_email_here
 FIREBASE_PRIVATE_KEY=your_private_key_here

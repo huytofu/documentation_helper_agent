@@ -3,6 +3,9 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from agent.graph.models.generator import llm
 from langsmith import Client
 import os
+import dotenv
+dotenv.load_dotenv()
+
 client = Client(api_key=os.getenv("LANGSMITH_API_KEY"))
 
 try:

@@ -17,15 +17,21 @@ parser = PydanticOutputParser(pydantic_object=LanguageRoute)
 
 # Create the prompt template with optimized system message
 system = """You are a programming language detection expert. Analyze the query and determine the mentioned programming language.
+
 You must choose between four options:
 - "python": Python-specific queries
 - "javascript": JavaScript/TypeScript queries
 - "others": Another programming language (that is not python or javascript) is specifically mentioned
 - "none": No programming language mentioned
 
-You must not return any answer other than these four.
+You must not select any option other than these four.
 
-{format_instructions}"""
+You must return your response in the following JSON format:
+{{
+    "language": your_selected_option
+}}
+
+"""
 
 route_prompt = ChatPromptTemplate.from_messages([
     ("system", system),
@@ -33,7 +39,8 @@ route_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Create the chain with format instructions
-language_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
+# language_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
+language_router = route_prompt | llm | parser
 
 @lru_cache(maxsize=1000)
 def get_language_route(query: str) -> LanguageRoute:

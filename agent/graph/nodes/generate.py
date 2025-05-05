@@ -10,6 +10,7 @@ from agent.graph.utils.api_utils import (
     cost_tracker,
 )
 from agent.graph.utils.message_utils import convert_to_raw_documents
+from agent.graph.utils.api_utils import standard_sleep
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-
+        await standard_sleep()
     rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")

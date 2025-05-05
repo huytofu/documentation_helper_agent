@@ -3,6 +3,7 @@ from agent.graph.state import GraphState
 from copilotkit.langgraph import copilotkit_emit_state
 from langchain_core.messages import AIMessage
 from agent.graph.utils.flow_state import reset_flow_state
+from agent.graph.utils.api_utils import standard_sleep
 
 async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     print("---POST HUMAN IN LOOP---")
@@ -15,7 +16,7 @@ async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-
+        await standard_sleep()
     # Find and modify the last AI message
     for i in range(len(messages) - 1, -1, -1):
         if isinstance(messages[i], AIMessage):

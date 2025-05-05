@@ -16,12 +16,7 @@ class VectorstoreRoute(BaseModel):
 parser = PydanticOutputParser(pydantic_object=VectorstoreRoute)
 
 # Create the prompt template
-system = """You are an expert at routing a user query to the appropriate vectorstore.
-We have four vectorstores available:
-1. OpenAI vectorstore: Contains documentation about the OpenAI Agents SDK
-2. SmolAgents vectorstore: Contains documentation about the SmolAgents framework
-3. LangGraph vectorstore: Contains documentation about the LangGraph framework
-4. CopilotKit vectorstore: Contains documentation about the CopilotKit framework and Coagents
+system = """You are an expert at deciding the most appropriate vectorstore to use for a given query.
 
 You must choose between five options:
 - "openai": ONLY for queries specifically about the OpenAI Agents SDK
@@ -30,9 +25,14 @@ You must choose between five options:
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
 - "others": For all other queries
 
-You must not return any answer other than these five.
+You must not select any option other than these five.
 
-{format_instructions}"""
+You must return your response in the following JSON format:
+{{
+    "datasource": your_selected_option
+}}
+
+"""
 
 route_prompt = ChatPromptTemplate.from_messages([
     ("system", system),
@@ -40,8 +40,8 @@ route_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Create the chain with format instructions
-vectorstore_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
-
+# vectorstore_router = route_prompt.partial(format_instructions=parser.get_format_instructions()) | llm | parser
+vectorstore_router = route_prompt | llm | parser
 @lru_cache(maxsize=1000)
 def get_vectorstore_route(query: str) -> VectorstoreRoute:
     """Get the vectorstore route for a query with caching."""

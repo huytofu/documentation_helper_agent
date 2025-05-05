@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 import asyncio
 import functools
-
+import time
 logger = logging.getLogger(__name__)
 
 # Standard timeout settings
@@ -193,6 +193,10 @@ def get_default_response(api_type: str) -> APIResponse:
             error=f"API call failed for {api_type}",
             data=None
         )
+
+async def standard_sleep():
+    """Sleep for 2 seconds."""
+    await asyncio.sleep(2)
 
 def _sanitize_sensitive_data(data: Any) -> Any:
     """Sanitize sensitive data in request/response bodies."""
