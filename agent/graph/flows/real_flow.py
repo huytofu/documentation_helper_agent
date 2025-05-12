@@ -185,7 +185,7 @@ def route_query(state: GraphState) -> str:
     if source.datasource in ["websearch", None]:
         logger.info("---ROUTE QUERY TO WEB SEARCH---")
         return WEBSEARCH
-    else:
+    elif source.datasource == "vectorstore":
         language = state.get("language", "")
         if language in ["python", "javascript"]:
             logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
@@ -193,12 +193,15 @@ def route_query(state: GraphState) -> str:
         else:
             logger.info("---ROUTE QUERY TO WEB SEARCH---")
             return WEBSEARCH
+    else:
+        logger.info("---ROUTE QUERY TO NONE---")
+        return GENERATE
         
 def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
     documents = state.get("documents", [])
     if len(documents) > 0:
-        return SUMMARIZE
+        return GENERATE
     else:
         return WEBSEARCH
     
@@ -217,13 +220,13 @@ def determine_user_sentiment(state: GraphState) -> str:
         # Always clean up resources before ending
         cleanup_resources(state)
 
-def skip_summarize_or_not(state: GraphState) -> str:
-    logger.info("---SKIP SUMMARIZE OR NOT---")
-    pass_summarize = state.get("pass_summarize", False)
-    if not pass_summarize:
-        return SUMMARIZE
-    else:
-        return GENERATE
+# def skip_summarize_or_not(state: GraphState) -> str:
+#     logger.info("---SKIP SUMMARIZE OR NOT---")
+#     pass_summarize = state.get("pass_summarize", False)
+#     if not pass_summarize:
+#         return SUMMARIZE
+#     else:
+#         return GENERATE
 
 # Create the graph without executor parameter
 workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
@@ -248,8 +251,9 @@ workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
 workflow.add_edge(INITIALIZE, DECIDE_LANGUAGE)
+workflow.add_edge(DECIDE_LANGUAGE, SUMMARIZE)
 workflow.add_conditional_edges(
-    DECIDE_LANGUAGE,
+    SUMMARIZE,
     route_query,
     {
         WEBSEARCH: WEBSEARCH,
@@ -264,18 +268,10 @@ workflow.add_conditional_edges(
     to_search_web_or_not,
     {
         WEBSEARCH: WEBSEARCH,
-        SUMMARIZE: SUMMARIZE
+        GENERATE: GENERATE
     }
 )
-workflow.add_conditional_edges(
-    WEBSEARCH,
-    skip_summarize_or_not,
-    {
-        GENERATE: GENERATE,
-        SUMMARIZE: SUMMARIZE
-    }
-)
-workflow.add_edge(SUMMARIZE, GENERATE)
+workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_documents_and_query,

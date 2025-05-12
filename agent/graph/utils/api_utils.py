@@ -195,8 +195,8 @@ def get_default_response(api_type: str) -> APIResponse:
         )
 
 async def standard_sleep():
-    """Sleep for 2 seconds."""
-    await asyncio.sleep(2)
+    """Sleep for 1 seconds."""
+    await asyncio.sleep(1)
 
 def _sanitize_sensitive_data(data: Any) -> Any:
     """Sanitize sensitive data in request/response bodies."""

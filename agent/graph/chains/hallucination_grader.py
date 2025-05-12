@@ -52,6 +52,12 @@ hallucination_prompt = ChatPromptTemplate.from_messages(
 @timeout(15)  # 15 second timeout for hallucination grading
 def grade_hallucinations(documents: str, generation: str) -> GradeHallucinations:
     """Grade hallucinations with timeout"""
+    documents = documents.strip()
+    generation = generation.strip()
+    if documents == "":
+        return GradeHallucinations(binary_score=True)
+    if generation == "":
+        return GradeHallucinations(binary_score=False)
     return hallucination_grader.invoke({"documents": documents, "generation": generation})
 
 # Create the chain with parsing

@@ -17,6 +17,8 @@ RULES:
 3. The rewritten query should be self-contained, clear and in English.
 4. The rewritten query should not have any quotes, prefixes, or explanations.
 
+{important_instructions}
+
 {format_instructions}
 
 """
@@ -24,12 +26,17 @@ RULES:
 output_parser = PydanticOutputParser(pydantic_object=Summary)
 format_instructions = output_parser.get_format_instructions()
 
-summary_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system),
-        ("human", "Input Conversation: {messages}<br>. {important_instructions}"),
-    ]
-).partial(format_instructions=format_instructions)
-
 # Create the chain with parsing
-summary_chain = summary_prompt | llm | output_parser
+summary_chain = llm | output_parser
+
+def invoke_summary_chain(messages, instructions):
+    summary_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            *[(message.role, message.content) for message in messages]
+        ]
+    ).partial(format_instructions=format_instructions, important_instructions=instructions)
+    
+    final_chain = summary_prompt | summary_chain
+
+    return final_chain.invoke()

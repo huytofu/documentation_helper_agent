@@ -15,15 +15,14 @@ class RouteQuery(BaseModel):
 parser = PydanticOutputParser(pydantic_object=RouteQuery)
 
 # Create the prompt template
-system = """You are an expert at routing a user query to either a vectorstore or websearch.
+system = """You are an expert at routing a user query to either a vectorstore or websearch or none.
 
-You must choose between two options:
+You must choose between following two options. You must not select any option other than these two:
 - "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
 - "websearch": For all other queries, including general programming questions, new technologies, other topics
 
-You must not select any option other than these two.
+VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 
-You must return your response in the following JSON format:
 {{
     "datasource": your_selected_option
 }}

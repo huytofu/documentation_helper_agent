@@ -63,18 +63,18 @@ workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
-workflow.add_edge(INITIALIZE, DECIDE_VECTORSTORE)
+workflow.add_edge(INITIALIZE, SUMMARIZE)
+workflow.add_edge(SUMMARIZE, DECIDE_VECTORSTORE)
 workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_conditional_edges(
     RETRIEVE,
     to_search_web_or_not,
     {
         WEBSEARCH: WEBSEARCH,
-        SUMMARIZE: SUMMARIZE
+        GENERATE: GENERATE
     }
 )
-workflow.add_edge(WEBSEARCH, SUMMARIZE)
-workflow.add_edge(SUMMARIZE, GENERATE)
+workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded_in_query,

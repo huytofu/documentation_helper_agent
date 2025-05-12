@@ -8,6 +8,8 @@ from agent.graph.utils.api_utils import (
 )
 from agent.graph.utils.message_utils import trim_messages
 from agent.graph.utils.api_utils import standard_sleep
+from agent.graph.chains.summary import invoke_summary_chain
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -50,11 +52,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         # Use asyncio to handle concurrent summarization requests with timeout
         summary_result = await asyncio.wait_for(
             asyncio.to_thread(
-                summary_chain.invoke,
-                {
-                    "messages": messages,
-                    "important_instructions": instructions
-                }
+                invoke_summary_chain(messages, instructions)
             ),
             timeout=SUMMARIZE_TIMEOUT
         )
