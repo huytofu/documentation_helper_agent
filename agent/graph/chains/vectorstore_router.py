@@ -7,7 +7,7 @@ from functools import lru_cache
 
 class VectorstoreRoute(BaseModel):
     """Route a query to the appropriate choice of vectorstore"""
-    datasource: Literal["openai", "smolagents", "langgraph", "copilotkit", "others"] = Field(
+    datasource: Literal["llamaindex", "smolagents", "langgraph", "copilotkit", "others"] = Field(
         ...,
         description="""Answer options for: choice of vectorstore""",
     )
@@ -19,7 +19,7 @@ parser = PydanticOutputParser(pydantic_object=VectorstoreRoute)
 system = """You are an expert at deciding the most appropriate vectorstore to use for a given query.
 
 You must choose between following five options. You must not select any option other than these five:
-- "openai": ONLY for queries specifically about the OpenAI Agents SDK
+- "llamaindex": ONLY for queries specifically about the LlamaIndex framework
 - "smolagents": ONLY for queries specifically about the SmolAgents framework
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents

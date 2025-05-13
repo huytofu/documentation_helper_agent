@@ -18,7 +18,7 @@ parser = PydanticOutputParser(pydantic_object=RouteQuery)
 system = """You are an expert at routing a user query to either a vectorstore or websearch or none.
 
 You must choose between following two options. You must not select any option other than these two:
-- "vectorstore": ONLY for queries specifically about OpenAI Agents SDK, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
+- "vectorstore": ONLY for queries specifically about LlamaIndex, Smolagents, LangGraph, or CopilotKit (which includes Coagents) frameworks
 - "websearch": For all other queries, including general programming questions, new technologies, other topics
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:

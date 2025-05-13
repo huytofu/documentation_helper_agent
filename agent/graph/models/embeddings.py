@@ -1,4 +1,3 @@
-# from langchain_openai import OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings
 from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientEmbeddings
