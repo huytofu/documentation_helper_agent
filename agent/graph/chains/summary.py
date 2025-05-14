@@ -44,4 +44,4 @@ def invoke_summary_chain(messages, instructions):
     
     final_chain = summary_prompt | summary_chain
 
-    return final_chain.invoke()
+    return final_chain.invoke({})
