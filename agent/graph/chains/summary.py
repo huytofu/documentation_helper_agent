@@ -33,7 +33,7 @@ def invoke_summary_chain(messages, instructions):
     summary_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system),
-            *[(message.role, message.content) for message in messages]
+            *[(message["role"], message["content"]) for message in messages]
         ]
     ).partial(format_instructions=format_instructions, important_instructions=instructions)
     
