@@ -29,11 +29,16 @@ format_instructions = output_parser.get_format_instructions()
 # Create the chain with parsing
 summary_chain = llm | output_parser
 
+def clean_content(content):
+    content = content.replace("{", "{{")
+    content = content.replace("}", "}}")
+    return content
+
 def invoke_summary_chain(messages, instructions):
     summary_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system),
-            *[(message["role"], message["content"]) for message in messages]
+            *[(message["role"], clean_content(message["content"])) for message in messages]
         ]
     ).partial(format_instructions=format_instructions, important_instructions=instructions)
     
