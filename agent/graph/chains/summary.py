@@ -26,9 +26,6 @@ RULES:
 output_parser = PydanticOutputParser(pydantic_object=Summary)
 format_instructions = output_parser.get_format_instructions()
 
-# Create the chain with parsing
-summary_chain = llm | output_parser
-
 def clean_content(content):
     content = content.replace("{", "{{")
     content = content.replace("}", "}}")
@@ -42,6 +39,6 @@ def invoke_summary_chain(messages, instructions):
         ]
     ).partial(format_instructions=format_instructions)
     
-    final_chain = summary_prompt | summary_chain
+    final_chain = summary_prompt | llm | output_parser
 
     return final_chain.invoke({"important_instructions": instructions})

@@ -52,7 +52,9 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         # Use asyncio to handle concurrent summarization requests with timeout
         summary_result = await asyncio.wait_for(
             asyncio.to_thread(
-                invoke_summary_chain(messages, instructions)
+                invoke_summary_chain,
+                messages,
+                instructions
             ),
             timeout=SUMMARIZE_TIMEOUT
         )
