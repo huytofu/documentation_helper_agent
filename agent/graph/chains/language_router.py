@@ -20,9 +20,14 @@ system = """You are a programming language detection expert. Analyze the query a
 
 You must choose between following four options. You must not select any option other than these four:
 - "python": Python-specific queries
-- "javascript": JavaScript/TypeScript queries
-- "others": Another programming language (that is not python or javascript) is specifically mentioned
-- "none": No programming language mentioned
+- "javascript": JavaScript/TypeScript-specific queries
+- "none": No programming language explicitly mentioned
+- "others": Another programming language like rust, go, C++, etc. is explicitly mentioned
+
+EXAMPLES:
+Even if you suspect that the query is about rust, 
+answer with "others" only when the word "rust" appears in the query.
+If it doesn't, answer with "none".
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 
