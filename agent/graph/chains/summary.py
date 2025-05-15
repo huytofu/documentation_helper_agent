@@ -40,8 +40,8 @@ def invoke_summary_chain(messages, instructions):
             ("system", system),
             *[(message["role"], clean_content(message["content"])) for message in messages]
         ]
-    ).partial(format_instructions=format_instructions, important_instructions=instructions)
+    ).partial(format_instructions=format_instructions)
     
     final_chain = summary_prompt | summary_chain
 
-    return final_chain.invoke({})
+    return final_chain.invoke({"important_instructions": instructions})
