@@ -35,6 +35,7 @@ VERY IMPORTANT: You must answer in JSON format that strictly follows the followi
     "language": your_selected_option
 }}
 
+DO NOT RETURN ANY OTHER TEXT AFTER THE JSON.
 """
 
 route_prompt = ChatPromptTemplate.from_messages([
