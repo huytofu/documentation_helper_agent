@@ -35,18 +35,26 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
     raise ValueError("USE_OLLAMA and USE_INFERENCE_CLIENT cannot be enabled simultaneously")
 
 # Model IDs
+# Format: [HF Hub ID (routed via InferenceClient provider), Together AI direct fallback ID]
+# Note: Together serverless does not carry Qwen3.6-35B-A3B (FP8 variant is
+# dedicated-only), so the direct fallback for router/graders is Qwen3.5-9B,
+# which supports function calling and structured outputs on Together serverless.
 MODEL_IDS = {
     "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
-    "router": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "sentiment_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "answer_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "retrieval_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    # "hallucinate_grader": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
-    # "summarizer": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
-    "hallucinate_grader": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    "summarizer": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    # "router": ["meta-llama/Meta-Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    "generator": ["deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", "arcee-ai/coder-large"]
+    "router": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "sentiment_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "answer_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "retrieval_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    # MoE with 5.1B active params: ~3.5x faster decode than dense Llama-3.3-70B,
+    # far stronger reasoning (GPQA 80% vs 50%), native structured output.
+    # Qwen3.5-397B-A17B was dropped from Together serverless, so gpt-oss-120b
+    # is used on both the HF-routed and Together-direct paths.
+    "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    # Primary: coding-specialized Qwen MoE (480B/35B active) on Nebius, Apache 2.0,
+    # 262K context. Fallback: DeepSeek V4 Flash on Together serverless — 284B/13B
+    # active, 1M context, near-frontier agentic coding at $0.14/$0.28 per 1M tokens.
+    "generator": ["Qwen/Qwen3-Coder-480B-A35B-Instruct", "deepseek-ai/DeepSeek-V4-Flash-0731"]
 }
 default_provider = os.getenv("INFERENCE_PROVIDER")
 PROVIDER_IDS = {
