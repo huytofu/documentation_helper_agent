@@ -21,6 +21,5 @@
     "ENVIRONMENT": "production",
     "SERVER_TYPE": "vercel"
   },
-  "regions": ["iad1"],
-  "public": false
+  "regions": ["iad1"]
 } 
