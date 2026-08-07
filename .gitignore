@@ -2,9 +2,14 @@
 /node_modules
 /.venv
 .env
+deployment_env/
 
 # Environment variables
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Cloud Run deployment env vars (generated from .env, contains secrets)
+env.yaml
+env_vars.txt

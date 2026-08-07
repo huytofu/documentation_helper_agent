@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@langchain/ollama": "^0.2.0"
+    "@langchain/ollama": "^0.2.0",
+    "@nrl-ai/chub": "^0.1.22"
   },
   "devDependencies": {
     "@types/next": "^8.0.7",

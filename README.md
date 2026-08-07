@@ -176,8 +176,10 @@ gcloud services enable run.googleapis.com
 # Build the Docker image
 gcloud builds submit --tag gcr.io/documentation-helper-agent/documentation-helper-agent
 
-# Deploy to Cloud Run
-powershell -Command "(Get-Content .env | Where-Object {$_ -notmatch '^#'} | ForEach-Object {$_.Trim()}) -join ',' | Out-File -Encoding ASCII env_vars.txt"
+# Generate env.yaml from .env (required by --env-vars-file below).
+# Note: env.yaml contains secrets - do not commit it. Also, --env-vars-file
+# replaces ALL env vars on the service, so it must contain the complete set.
+powershell -Command "Get-Content .env | Where-Object { $_ -match '^\s*[^#\s]' } | ForEach-Object { $kv = $_ -split '=', 2; '{0}: \"{1}\"' -f $kv[0].Trim(), $kv[1].Trim() } | Set-Content -Encoding ASCII env.yaml"
 
 gcloud beta run deploy documentation-helper-agent ^
   --image gcr.io/documentation-helper-agent/documentation-helper-agent ^
