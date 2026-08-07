@@ -1,0 +1,19 @@
+pins:
+- id: langgraph/package
+  lang: python
+  reason: core agent framework
+- id: openai/package
+  lang: python
+  reason: LLM SDK
+- id: openai/chat
+  lang: python
+  reason: chat API guide
+- id: pinecone/sdk
+  lang: python
+  reason: vector store
+- id: pinecone-client/package
+  lang: python
+  reason: pinecone client package
+- id: llama-index/package
+  lang: python
+  reason: llamaindex RAG

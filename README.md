@@ -116,6 +116,7 @@ cd documentation_helper_agent
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
+npm install   # provides the chub CLI (@nrl-ai/chub)
 ```
 
 3. Set up environment variables:
@@ -123,6 +124,18 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your configuration
 ```
+
+## Knowledge base ingestion
+
+Docs are indexed into Pinecone via **Firecrawl** (site URLs) and/or **chub** (curated package guides). See [docs/ingestion.md](docs/ingestion.md).
+
+```bash
+python -m ingestion --source chub          # curated pins → Pinecone
+python -m ingestion --source firecrawl     # scrape URL lists (needs FIRECRAWL_API_KEY)
+python -m mcp_servers.chub_docs            # MCP: search / get / ingest for user packages
+```
+
+Future graph-node wiring for realtime chub enrichment: [docs/chub-mcp-graph-integration.md](docs/chub-mcp-graph-integration.md).
 
 ## Usage
 
