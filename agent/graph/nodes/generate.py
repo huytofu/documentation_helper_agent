@@ -4,7 +4,7 @@ from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
 from langchain_core.messages import AIMessage
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
+from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
     GENERATION_TIMEOUT,
     cost_tracker,
@@ -68,9 +68,7 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
                 "error_type": None
             }
         ))
-        if config:
-            await copilotkit_emit_message(config, llm_generation)
-
+        
         return {
             "messages": messages,
             "documents": raw_documents
@@ -86,8 +84,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
                 "error_message": "Generation timed out"
             }
         ))
-        if config:
-            await copilotkit_emit_message(config, warning_message)
         return {
             "messages": messages,
             "documents": raw_documents,
@@ -106,8 +102,6 @@ async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
                 "error_message": str(e)
             }
         ))
-        if config:
-            await copilotkit_emit_message(config, warning_message)
         return {
             "messages": messages,
             "documents": raw_documents,

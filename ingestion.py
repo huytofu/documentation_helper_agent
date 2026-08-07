@@ -290,7 +290,7 @@ def ingest_documents(framework, docs_list):
         return False
 
 for framework, urls in zip(
-        ["openai", "smolagents", "langgraph", "copilotkit"], 
+        ["llamaindex", "smolagents", "langgraph", "copilotkit"], 
         [urls1, urls2, urls3, urls4]
     ):
     print(f"\nProcessing {framework} documentation...")

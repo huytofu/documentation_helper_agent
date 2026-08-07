@@ -18,11 +18,15 @@ except Exception as e:
 
         You are provided with the following set of technical documents:
 
+        !START OF DOCUMENTS!
         {documents}.
+        !END OF DOCUMENTS!
 
         Please refer to the provided documents to write code snippet(s) 
-        to produce the feature or solve the problem described in the user's query. 
+        to produce the feature or solve the problem described in the user's query.
+        Try your best to answer in code. Do not return answers with only text.
         Please add some comments or explanations to help the user understand.
+        
         Keep your code snippets to 100 lines or less.
         Keep your comments or explanations to 100 words or less.
         """

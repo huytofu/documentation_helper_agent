@@ -1,6 +1,5 @@
 from typing import Any, Dict
 import asyncio
-from agent.graph.chains.summary import summary_chain
 from agent.graph.state import GraphState
 from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
@@ -52,7 +51,9 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         # Use asyncio to handle concurrent summarization requests with timeout
         summary_result = await asyncio.wait_for(
             asyncio.to_thread(
-                invoke_summary_chain(messages, instructions)
+                invoke_summary_chain,
+                messages,
+                instructions
             ),
             timeout=SUMMARIZE_TIMEOUT
         )
