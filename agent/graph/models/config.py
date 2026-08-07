@@ -42,6 +42,7 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 MODEL_IDS = {
     "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
     "router": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "chub_expert": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
     "sentiment_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
     "answer_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
     "retrieval_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
@@ -65,12 +66,14 @@ PROVIDER_IDS = {
     "hallucinate_grader": default_provider,
     "summarizer": default_provider,
     "router": default_provider,
+    "chub_expert": default_provider,
     "generator": "nebius"
 }
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
     "router": "mistral:latest",
+    "chub_expert": "mistral:latest",
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",
     "retrieval_grader": "mistral:latest",

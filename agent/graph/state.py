@@ -1,9 +1,10 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Annotated
 from copilotkit import CopilotKitState
 import os
 import logging
 import shutil
 import fcntl
+from langgraph.graph.message import add_messages
 
 logger = logging.getLogger("graph.state")
 
@@ -189,4 +190,9 @@ class GraphState(InputGraphState, OutputGraphState):
     pass_summarize: bool = False
     summarized: bool = False
     documents: List[Any] = []
+    chub_messages: Annotated[list, add_messages]
+    chub_enrich_attempted: bool = False
+    chub_tool_rounds: int = 0
+    chub_consent: bool = False
+    pending_question: Optional[str] = None
 

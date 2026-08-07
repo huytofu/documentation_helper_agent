@@ -11,6 +11,8 @@ from agent.graph.consts import (
     RETRIEVE,
     WEBSEARCH,
     ROUTE_AND_FRAMEWORK,
+    CHUB_EXPERT,
+    CHUB_TOOLS,
     HUMAN_IN_LOOP,
     INITIALIZE,
     DECIDE_LANGUAGE,
@@ -26,6 +28,8 @@ from agent.graph.nodes import (
     grade_documents,
     retrieve,
     route_and_framework,
+    chub_expert,
+    chub_tools,
     decide_language,
     web_search,
     human_in_loop,
@@ -38,6 +42,7 @@ from agent.graph.nodes import (
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
 from agent.graph.utils.flow_state import check_iteration_limit
+from agent.graph.chains.chub_expert import MAX_CHUB_TOOL_ROUNDS
 from concurrent.futures import TimeoutError
 from threading import Lock
 import logging
@@ -213,14 +218,37 @@ def after_route_and_framework(state: GraphState) -> str:
     return WEBSEARCH
 
 
-def to_search_web_or_not(state: GraphState) -> str:
-    logger.info("---TO SEARCH WEB OR NOT---")
-    documents = state.get("documents", [])
+def after_grade(state: GraphState) -> str:
+    """After grading: generate, try chub enrich, or fall back to websearch."""
+    logger.info("---AFTER GRADE---")
+    documents = state.get("documents") or []
     if len(documents) > 0:
         return GENERATE
-    else:
+    if state.get("chub_enrich_attempted"):
+        logger.info("---CHUB ALREADY ATTEMPTED; WEB SEARCH---")
         return WEBSEARCH
-    
+    logger.info("---ROUTE TO CHUB EXPERT---")
+    return CHUB_EXPERT
+
+
+def after_chub_expert(state: GraphState) -> str:
+    """Continue tool loop, or finish to GENERATE / WEBSEARCH."""
+    logger.info("---AFTER CHUB EXPERT---")
+    msgs = state.get("chub_messages") or []
+    last = msgs[-1] if msgs else None
+    tool_calls = getattr(last, "tool_calls", None) if last is not None else None
+    rounds = int(state.get("chub_tool_rounds") or 0)
+    if tool_calls and rounds < MAX_CHUB_TOOL_ROUNDS:
+        logger.info("---CHUB TOOLS (round %s)---", rounds + 1)
+        return CHUB_TOOLS
+    docs = state.get("documents") or []
+    if docs:
+        logger.info("---CHUB ENRICH PRODUCED DOCS; GENERATE---")
+        return GENERATE
+    logger.info("---CHUB ENRICH EMPTY; WEB SEARCH---")
+    return WEBSEARCH
+
+
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
     try:
@@ -256,6 +284,12 @@ workflow.add_node(DECIDE_LANGUAGE, decide_language)
 workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
+workflow.add_node(
+    CHUB_EXPERT,
+    chub_expert,
+    destinations=(CHUB_EXPERT, GENERATE),
+)
+workflow.add_node(CHUB_TOOLS, chub_tools)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(REGENERATE, regenerate)
 workflow.add_node(WEBSEARCH, web_search)
@@ -281,12 +315,23 @@ workflow.add_conditional_edges(
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
 workflow.add_conditional_edges(
     GRADE_DOCUMENTS,
-    to_search_web_or_not,
+    after_grade,
     {
+        GENERATE: GENERATE,
+        CHUB_EXPERT: CHUB_EXPERT,
         WEBSEARCH: WEBSEARCH,
-        GENERATE: GENERATE
-    }
+    },
 )
+workflow.add_conditional_edges(
+    CHUB_EXPERT,
+    after_chub_expert,
+    {
+        CHUB_TOOLS: CHUB_TOOLS,
+        GENERATE: GENERATE,
+        WEBSEARCH: WEBSEARCH,
+    },
+)
+workflow.add_edge(CHUB_TOOLS, CHUB_EXPERT)
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,

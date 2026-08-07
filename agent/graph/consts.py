@@ -13,3 +13,6 @@ PRE_HUMAN_IN_LOOP = "pre_human_in_loop"
 POST_HUMAN_IN_LOOP = "post_human_in_loop"
 IMMEDIATE_MESSAGE_ONE = "immediate_message_one"
 IMMEDIATE_MESSAGE_TWO = "immediate_message_two"
+CHUB_EXPERT = "chub_expert"
+CHUB_TOOLS = "chub_tools"
+CHUB_ENRICH = CHUB_EXPERT  # CopilotKit / docs alias for the enrich step

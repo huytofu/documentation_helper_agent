@@ -4,6 +4,7 @@ from agent.graph.nodes.grade_documents import grade_documents
 from agent.graph.nodes.retrieve import retrieve
 from agent.graph.nodes.decide_vectorstore import decide_vectorstore
 from agent.graph.nodes.route_and_framework import route_and_framework
+from agent.graph.nodes.chub_expert import chub_expert, chub_tools
 from agent.graph.nodes.decide_language import decide_language
 from agent.graph.nodes.web_search import web_search
 from agent.graph.nodes.human_in_loop import human_in_loop
@@ -21,6 +22,8 @@ __all__ = [
     "retrieve",
     "decide_vectorstore",
     "route_and_framework",
+    "chub_expert",
+    "chub_tools",
     "decide_language",
     "web_search",
     "human_in_loop",
