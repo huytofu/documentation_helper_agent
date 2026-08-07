@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from agent.graph.chains.retrieval_grader import grade_single_document
@@ -14,6 +14,39 @@ from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.grade_documents")
+
+# Cap LLM grading fan-out (retrievers already return similarity-ordered hits).
+MAX_DOCS_TO_GRADE = 5
+
+
+def _retrieval_score(doc) -> float:
+    """Best-effort score from metadata; higher is better. Missing → 0."""
+    metadata = getattr(doc, "metadata", None) or {}
+    for key in ("score", "similarity", "relevance_score"):
+        value = metadata.get(key)
+        if isinstance(value, (int, float)):
+            return float(value)
+    return 0.0
+
+
+def _select_docs_to_grade(documents: List[Any]) -> List[Any]:
+    """Keep at most MAX_DOCS_TO_GRADE chunks, preferring higher retrieval scores."""
+    if len(documents) <= MAX_DOCS_TO_GRADE:
+        return documents
+    scored = [(_retrieval_score(doc), index, doc) for index, doc in enumerate(documents)]
+    if any(score > 0 for score, _, _ in scored):
+        scored.sort(key=lambda item: (-item[0], item[1]))
+        selected = [doc for _, _, doc in scored[:MAX_DOCS_TO_GRADE]]
+    else:
+        # Retriever order is typically best-first when scores are absent.
+        selected = documents[:MAX_DOCS_TO_GRADE]
+    logger.info(
+        "---BOUND GRADING TO %s OF %s DOCS---",
+        len(selected),
+        len(documents),
+    )
+    return selected
+
 
 async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """
@@ -41,6 +74,8 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
     if not documents:
         logger.info("---NO DOCUMENTS TO GRADE---")
         return {"documents": [], "query": query}
+
+    documents = _select_docs_to_grade(documents)
 
     filtered_docs = []
     errors = []

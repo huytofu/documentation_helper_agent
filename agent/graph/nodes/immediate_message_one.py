@@ -1,7 +1,7 @@
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.state import GraphState
 from typing import Dict, Any
-from langchain_core.messages import AIMessage
+from langchain_core.messages import SystemMessage
 from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
@@ -18,7 +18,7 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         SYSTEM: Seems like answer not grounded in the documents.
         SYSTEM: Please regenerate.
         '''
-        messages.append(AIMessage(content=content))
+        messages.append(SystemMessage(content=content))
 
     if config:
         generating_state = {

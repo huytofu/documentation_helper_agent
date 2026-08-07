@@ -2,11 +2,34 @@ from langgraph.graph import END, StateGraph
 from agent.graph.chains.answer_grader import answer_grader, GradeAnswer, grade_answer
 from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
 from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations
-from agent.graph.chains.query_router import query_router, RouteQuery
 from langchain_core.messages import AIMessage
-from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE, IMMEDIATE_MESSAGE_ONE, IMMEDIATE_MESSAGE_TWO
+from agent.graph.consts import (
+    GENERATE,
+    REGENERATE,
+    RETRIEVE,
+    WEBSEARCH,
+    ROUTE_AND_FRAMEWORK,
+    HUMAN_IN_LOOP,
+    INITIALIZE,
+    PRE_HUMAN_IN_LOOP,
+    POST_HUMAN_IN_LOOP,
+    SUMMARIZE,
+    IMMEDIATE_MESSAGE_ONE,
+    IMMEDIATE_MESSAGE_TWO,
+)
 from agent.graph.nodes import (
-    generate, regenerate, grade_documents, retrieve, decide_vectorstore, decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, post_human_in_loop, summarize, immediate_message_one, immediate_message_two
+    generate,
+    regenerate,
+    retrieve,
+    route_and_framework,
+    web_search,
+    human_in_loop,
+    initialize,
+    pre_human_in_loop,
+    post_human_in_loop,
+    summarize,
+    immediate_message_one,
+    immediate_message_two,
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
 from concurrent.futures import TimeoutError
@@ -77,32 +100,15 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
         return "not useful"
 
 
-def route_query(state: GraphState) -> str:
-    logger.info("---ROUTE QUERY---")
-    
-    # Validate query
-    query = state.get("query", "")
-    if not query:
-        logger.error("Missing or empty query")
-        cleanup_resources(state)
-        return "end_misery"
-        
-    source: RouteQuery = query_router.invoke({"query": query})
-    if source.datasource in ["websearch", None]:
-        logger.info("---ROUTE QUERY TO WEB SEARCH---")
-        return WEBSEARCH
-    elif source.datasource == "vectorstore":
-        language = state.get("language", "")
-        if language in ["python", "javascript"]:
-            logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
-            return DECIDE_VECTORSTORE
-        else:
-            logger.info("---ROUTE QUERY TO WEB SEARCH---")
-            return WEBSEARCH
-    else:
-        logger.info("---ROUTE QUERY TO NONE---")
-        return GENERATE
-        
+def after_route_and_framework(state: GraphState) -> str:
+    logger.info("---AFTER ROUTE AND FRAMEWORK---")
+    if state.get("datasource") == "vectorstore":
+        logger.info("---ROUTE TO RETRIEVE---")
+        return RETRIEVE
+    logger.info("---ROUTE TO WEB SEARCH---")
+    return WEBSEARCH
+
+
 def to_search_web_or_not(state: GraphState) -> str:
     logger.info("---TO SEARCH WEB OR NOT---")
     
@@ -131,7 +137,7 @@ workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
 # Add other nodes
-workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
+workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(REGENERATE, regenerate)
@@ -146,16 +152,16 @@ workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
 workflow.add_edge(INITIALIZE, SUMMARIZE)
+workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
 workflow.add_conditional_edges(
-    SUMMARIZE,
-    route_query,
+    ROUTE_AND_FRAMEWORK,
+    after_route_and_framework,
     {
         WEBSEARCH: WEBSEARCH,
-        DECIDE_VECTORSTORE: DECIDE_VECTORSTORE
+        RETRIEVE: RETRIEVE,
     },
 )
 
-workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
 workflow.add_conditional_edges(
     RETRIEVE,
     to_search_web_or_not,

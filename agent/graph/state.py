@@ -172,6 +172,7 @@ class OutputGraphState(CopilotKitState):
     rewritten_query: str = ""
     retry_count: int = 0
     framework: str = ""
+    datasource: str = ""
 
 class GraphState(InputGraphState, OutputGraphState):
     """
