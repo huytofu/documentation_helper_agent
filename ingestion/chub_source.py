@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Collection, Optional
 
 from langchain_core.documents import Document
 
@@ -48,7 +48,7 @@ def collect_targets() -> list[dict[str, Any]]:
 def load_chub_documents(
     *,
     match_env: bool = False,
-    namespace_filter: Optional[str] = None,
+    namespace_filter: Optional[Collection[str]] = None,
 ) -> list[Document]:
     """Fetch pinned docs and convert to Documents."""
     targets = collect_targets()
@@ -56,6 +56,12 @@ def load_chub_documents(
         logger.warning("No chub pins found in .chub/pins.yaml")
         return []
 
+    if namespace_filter is None:
+        allowed = None
+    elif isinstance(namespace_filter, str):
+        allowed = {namespace_filter}
+    else:
+        allowed = set(namespace_filter)
     docs: list[Document] = []
     successes = 0
     failures = 0
@@ -64,7 +70,7 @@ def load_chub_documents(
         doc_id = target["id"]
         lang = target.get("lang") or "python"
         ns = namespace_for_doc_id(doc_id)
-        if namespace_filter and ns != namespace_filter:
+        if allowed is not None and ns not in allowed:
             continue
 
         logger.info(

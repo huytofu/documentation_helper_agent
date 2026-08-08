@@ -39,7 +39,7 @@ def run_firecrawl_ingestion(
 def run_chub_ingestion(
     *,
     match_env: bool = False,
-    namespace_filter: Optional[str] = None,
+    namespace_filter: Optional[list[str]] = None,
 ) -> dict[str, int]:
     """Fetch pinned chub docs and ingest into mapped namespaces."""
     docs = load_chub_documents(
@@ -71,12 +71,9 @@ def run_ingestion(
 
     if source in ("chub", "all"):
         logger.info("=== Chub ingestion ===")
-        ns_filter = None
-        if frameworks and len(frameworks) == 1:
-            ns_filter = frameworks[0]
         results["chub"] = run_chub_ingestion(
             match_env=match_env,
-            namespace_filter=ns_filter,
+            namespace_filter=frameworks,
         )
 
     if source not in ("firecrawl", "chub", "all"):
