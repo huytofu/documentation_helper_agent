@@ -50,6 +50,31 @@ python -m ingestion --source firecrawl --framework langgraph
 python -m ingestion --source all
 ```
 
+`--framework` accepts `all` or a comma-separated list of known namespaces
+(`langgraph`, `llamaindex`, `smolagents`, `copilotkit`, `chub`). Example:
+`--framework langgraph,llamaindex`.
+
+### Clear / rebuild (embedding model change)
+
+Ingest **adds** vectors and does not replace the index. After changing the
+embedding model, clear first, then reingest:
+
+```bash
+# Clear entire index (interactive confirm; type yes)
+python -m ingestion --clear --framework all
+
+# Clear selected namespaces without prompt
+python -m ingestion --clear --framework langgraph,llamaindex -y
+
+# Clear then reingest everything
+python -m ingestion --clear --framework all --source all -y
+```
+
+- `--clear` requires `--framework`.
+- Without `--source`, `--clear` only deletes (no ingest).
+- With `--source`, clear runs first; ingest runs only if clear succeeds.
+- Omit `-y` / `--yes` to get an interactive confirmation prompt.
+
 ## Pin workflow (maintainer)
 
 Extend the agentic-dev expert baseline when you want a package always available offline in Pinecone:
