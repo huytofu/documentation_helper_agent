@@ -1,0 +1,14 @@
+# Keep image lean; linux node_modules comes from the Node build stage.
+node_modules/
+ui/node_modules/
+deployment_env/
+.venv/
+venv/
+.git/
+.pytest_cache/
+**/__pycache__/
+*.pyc
+.env
+.env.local
+.env.*.local
+.cursor/

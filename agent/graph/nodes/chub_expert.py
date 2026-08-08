@@ -56,12 +56,7 @@ async def chub_expert(
         pending_question: Optional[str] = state.get("pending_question")
         # First ask: pending_question is null (UI / emit shows the default consent prompt).
         # Retry after invalid answer: pending_question is "Please choose yes or no".
-        if config:
-            await copilotkit_emit_message(
-                config,
-                pending_question or CHUB_CONSENT_PROMPT,
-            )
-        answer = interrupt(pending_question)
+        answer = interrupt(pending_question or CHUB_CONSENT_PROMPT)
         normalized = str(answer).strip().lower()
 
         if normalized == "no":

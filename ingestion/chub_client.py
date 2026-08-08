@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, Optional
 
@@ -16,30 +18,92 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Mirrors @nrl-ai/chub bin/chub.js platform → optionalDependency map.
+_PLATFORM_PACKAGES = {
+    "linux-x64": "@nrl-ai/chub-linux-x64",
+    "linux-arm64": "@nrl-ai/chub-linux-arm64",
+    "darwin-x64": "@nrl-ai/chub-darwin-x64",
+    "darwin-arm64": "@nrl-ai/chub-darwin-arm64",
+    "win32-x64": "@nrl-ai/chub-win32-x64",
+}
+
+_CHUB_BIN_CACHE: Optional[str] = None
+
 
 class ChubError(RuntimeError):
     """Raised when a chub CLI invocation fails."""
 
 
+def _clear_chub_binary_cache() -> None:
+    """Reset cached binary path (tests / rare reconfigure)."""
+    global _CHUB_BIN_CACHE
+    _CHUB_BIN_CACHE = None
+
+
+def _node_platform_key() -> Optional[str]:
+    """Return Node-style platform-arch key (e.g. win32-x64, linux-x64)."""
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        arch = "x64"
+    elif machine in ("aarch64", "arm64"):
+        arch = "arm64"
+    else:
+        return None
+
+    if sys.platform.startswith("linux"):
+        return f"linux-{arch}"
+    if sys.platform == "darwin":
+        return f"darwin-{arch}"
+    if sys.platform == "win32":
+        return f"win32-{arch}"
+    return None
+
+
+def _platform_native_binary(root: Path) -> Optional[Path]:
+    """Path to the platform optionalDependency native binary, if present."""
+    key = _node_platform_key()
+    if not key:
+        return None
+    pkg = _PLATFORM_PACKAGES.get(key)
+    if not pkg:
+        return None
+    name = "chub.exe" if key.startswith("win32") else "chub"
+    path = root / "node_modules" / pkg / name
+    return path if path.exists() else None
+
+
 def _find_chub_binary() -> str:
-    """Resolve the chub executable (PATH, then local node_modules)."""
+    """Resolve the chub executable (env, platform package, shims, PATH).
+
+    Result is cached after the first successful resolve.
+    """
+    global _CHUB_BIN_CACHE
+    if _CHUB_BIN_CACHE:
+        return _CHUB_BIN_CACHE
+
     env_path = os.getenv("CHUB_BIN")
     if env_path and Path(env_path).exists():
-        return env_path
+        _CHUB_BIN_CACHE = env_path
+        return _CHUB_BIN_CACHE
+
+    native = _platform_native_binary(PROJECT_ROOT)
+    if native is not None:
+        _CHUB_BIN_CACHE = str(native)
+        return _CHUB_BIN_CACHE
+
+    # npm shims (Windows .cmd first; Git Bash / Unix use `chub`)
+    for path in (
+        PROJECT_ROOT / "node_modules" / ".bin" / "chub.cmd",
+        PROJECT_ROOT / "node_modules" / ".bin" / "chub",
+    ):
+        if path.exists():
+            _CHUB_BIN_CACHE = str(path)
+            return _CHUB_BIN_CACHE
 
     which = shutil.which("chub")
     if which:
-        return which
-
-    # Prefer Windows .cmd shim when running under PowerShell/cmd; bash uses `chub`
-    candidates = [
-        PROJECT_ROOT / "node_modules" / ".bin" / "chub.cmd",
-        PROJECT_ROOT / "node_modules" / ".bin" / "chub",
-        PROJECT_ROOT / "node_modules" / "@nrl-ai" / "chub" / "bin" / "chub.exe",
-    ]
-    for path in candidates:
-        if path.exists():
-            return str(path)
+        _CHUB_BIN_CACHE = which
+        return _CHUB_BIN_CACHE
 
     raise ChubError(
         "chub binary not found. Install with `npm install` "

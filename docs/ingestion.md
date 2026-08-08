@@ -25,14 +25,14 @@ When a **user** asks about a package that is missing or weak in Pinecone, use ch
 ## Prerequisites
 
 1. Python deps: `pip install -r requirements.txt` (activate `.venv` first when present).
-2. Node deps (for the chub CLI): `npm install` — provides `node_modules/.bin/chub`.
+2. Node deps (for the chub CLI): `npm install` — installs `@nrl-ai/chub` and the platform native binary under `node_modules/@nrl-ai/chub-<platform>/`.
 3. Env vars (see [`.env.example`](../.env.example)):
    - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`
    - `FIRECRAWL_API_KEY` (only for Firecrawl source)
    - Embedding provider settings already used by the agent
 4. Project pins: [`.chub/pins.yaml`](../.chub/pins.yaml) (created via `chub init` / `chub pin add`).
 
-Optional: set `CHUB_BIN` to a full path if the CLI is not on `PATH` and not under `node_modules/.bin`.
+Optional: set `CHUB_BIN` to the native binary path. Auto-detect order: `CHUB_BIN` → platform package → `node_modules/.bin` shims → `PATH`. Docker sets `CHUB_BIN=/app/node_modules/@nrl-ai/chub-linux-x64/chub`.
 
 ## Commands
 
