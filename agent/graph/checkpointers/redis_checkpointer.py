@@ -438,7 +438,7 @@ class RedisCheckpointer(BaseCheckpointSaver):
                 write_data = self.redis.hgetall(write_key)
                 if write_data:
                     channel = write_data[b"channel"].decode()
-                    idx = int(write_key.split(REDIS_KEY_SEPARATOR)[-1])
+                    idx = int(_as_str(write_key).split(REDIS_KEY_SEPARATOR)[-1])
                     existing_write_map[(task_id, WRITES_IDX_MAP.get(channel, idx))] = True
             
             # Process new writes
@@ -486,7 +486,7 @@ class RedisCheckpointer(BaseCheckpointSaver):
                 write_data = await self.async_redis.hgetall(write_key)
                 if write_data:
                     channel = write_data[b"channel"].decode()
-                    idx = int(write_key.split(REDIS_KEY_SEPARATOR)[-1])
+                    idx = int(_as_str(write_key).split(REDIS_KEY_SEPARATOR)[-1])
                     existing_write_map[(task_id, WRITES_IDX_MAP.get(channel, idx))] = True
             
             # Process new writes
