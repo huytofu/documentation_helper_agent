@@ -13,6 +13,7 @@ try:
 except Exception as e:
     print("Error pulling prompt from Langsmith")
     print(e)
+    # Fallback when LangSmith pull fails. Keep in sync with hosted `generation_prompt`.
     system = """
         You are a master coder who is very good at coding {extra_info}.
 
@@ -24,6 +25,9 @@ except Exception as e:
 
         Please refer to the provided documents to write code snippet(s) 
         to produce the feature or solve the problem described in the user's query.
+        Answer using your expertise or general knowledge only when the documents are empty or insufficient
+        for the query; If documents are present, they stand higher in truth hierachy.
+
         Try your best to answer in code. Do not return answers with only text.
         Please add some comments or explanations to help the user understand.
         
