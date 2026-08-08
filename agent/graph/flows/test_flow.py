@@ -11,6 +11,8 @@ from agent.graph.consts import (
     ROUTE_AND_FRAMEWORK,
     HUMAN_IN_LOOP,
     INITIALIZE,
+    CLASSIFY_INTENT,
+    CHITCHAT,
     PRE_HUMAN_IN_LOOP,
     POST_HUMAN_IN_LOOP,
     SUMMARIZE,
@@ -22,6 +24,8 @@ from agent.graph.nodes import (
     regenerate,
     retrieve,
     route_and_framework,
+    classify_intent,
+    chitchat,
     web_search,
     human_in_loop,
     initialize,
@@ -32,6 +36,7 @@ from agent.graph.nodes import (
     immediate_message_two,
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
+from agent.graph.utils.flow_state import reset_flow_state
 from concurrent.futures import TimeoutError
 import logging
 import os
@@ -100,13 +105,34 @@ def grade_generation_grounded_in_query(state: GraphState) -> str:
         return "not useful"
 
 
+def after_classify_intent(state: GraphState) -> str:
+    logger.info("---AFTER CLASSIFY INTENT---")
+    if state.get("intent") == "chitchat":
+        logger.info("---ROUTE TO CHITCHAT---")
+        return CHITCHAT
+    logger.info("---ROUTE TO SUMMARIZE---")
+    return SUMMARIZE
+
+
 def after_route_and_framework(state: GraphState) -> str:
     logger.info("---AFTER ROUTE AND FRAMEWORK---")
-    if state.get("datasource") == "vectorstore":
+    datasource = state.get("datasource")
+    if datasource == "vectorstore":
         logger.info("---ROUTE TO RETRIEVE---")
         return RETRIEVE
+    if datasource == "direct":
+        logger.info("---ROUTE TO GENERATE (direct)---")
+        return GENERATE
     logger.info("---ROUTE TO WEB SEARCH---")
     return WEBSEARCH
+
+
+def after_generate(state: GraphState) -> str:
+    if state.get("datasource") == "direct":
+        logger.info("---DIRECT GENERATE: END (skip graders/HITL)---")
+        reset_flow_state()
+        return "direct_end"
+    return grade_generation_grounded_in_query(state)
 
 
 def to_search_web_or_not(state: GraphState) -> str:
@@ -137,6 +163,8 @@ workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState
 # Add the initialize node
 workflow.add_node(INITIALIZE, initialize)
 # Add other nodes
+workflow.add_node(CLASSIFY_INTENT, classify_intent)
+workflow.add_node(CHITCHAT, chitchat)
 workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GENERATE, generate)
@@ -151,7 +179,16 @@ workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
-workflow.add_edge(INITIALIZE, SUMMARIZE)
+workflow.add_edge(INITIALIZE, CLASSIFY_INTENT)
+workflow.add_conditional_edges(
+    CLASSIFY_INTENT,
+    after_classify_intent,
+    {
+        CHITCHAT: CHITCHAT,
+        SUMMARIZE: SUMMARIZE,
+    },
+)
+workflow.add_edge(CHITCHAT, END)
 workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
 workflow.add_conditional_edges(
     ROUTE_AND_FRAMEWORK,
@@ -159,6 +196,7 @@ workflow.add_conditional_edges(
     {
         WEBSEARCH: WEBSEARCH,
         RETRIEVE: RETRIEVE,
+        GENERATE: GENERATE,
     },
 )
 
@@ -173,8 +211,9 @@ workflow.add_conditional_edges(
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
-    grade_generation_grounded_in_query,
+    after_generate,
     {
+        "direct_end": END,
         "useful": POST_HUMAN_IN_LOOP,
         "not useful": PRE_HUMAN_IN_LOOP,
     },

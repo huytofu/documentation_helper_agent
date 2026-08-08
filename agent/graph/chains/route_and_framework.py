@@ -1,4 +1,4 @@
-"""Merged query + vectorstore router: one LLM call for datasource and framework."""
+"""Merged query + vectorstore router: one LLM call for datasource, language, and framework."""
 
 from typing import Literal
 from functools import lru_cache
@@ -10,11 +10,18 @@ from agent.graph.models.router import llm
 
 
 class RouteAndFramework(BaseModel):
-    """Route a user query to websearch or a documentation vectorstore namespace."""
+    """Route a user query to websearch, vectorstore, or direct generation."""
 
-    datasource: Literal["vectorstore", "websearch"] = Field(
+    datasource: Literal["vectorstore", "websearch", "direct"] = Field(
         ...,
-        description="vectorstore for indexed docs; websearch for everything else",
+        description=(
+            "vectorstore for indexed docs; websearch when external/current info is needed; "
+            "direct for simple coding questions answerable from model knowledge alone"
+        ),
+    )
+    language: Literal["python", "javascript", "others", "none"] = Field(
+        ...,
+        description="Programming language mentioned in the query",
     )
     framework: Literal[
         "llamaindex", "smolagents", "langgraph", "copilotkit", "chub", "others"
@@ -22,18 +29,28 @@ class RouteAndFramework(BaseModel):
         ...,
         description=(
             "Pinecone namespace when datasource is vectorstore. "
-            "Use others when datasource is websearch or no namespace fits."
+            "Use others when datasource is websearch/direct or no namespace fits."
         ),
     )
 
 
 parser = PydanticOutputParser(pydantic_object=RouteAndFramework)
 
-system = """You are an expert at routing a user query to either websearch or a documentation vectorstore, and (when using the vectorstore) choosing the correct namespace.
+system = """You are an expert at routing a user query to vectorstore, websearch, or direct generation; detecting the programming language; and (when using the vectorstore) choosing the correct namespace.
 
 You must set "datasource" to exactly one of:
 - "vectorstore": queries about LlamaIndex, SmolAgents, LangGraph, CopilotKit (including Coagents), or related library/SDK docs we index (OpenAI API/SDK, Pinecone, and other curated package guides)
-- "websearch": all other queries, including general programming questions, new technologies, other topics
+- "direct": simple coding questions/tasks answerable from model knowledge alone — short snippets, syntax, idioms, language builtins, trivial refactors — that do NOT need indexed docs or web search
+- "websearch": queries that need external or current information, general programming beyond simple syntax/idioms, new technologies, or topics not covered by vectorstore/direct
+
+You must set "language" to exactly one of:
+- "python": Python-specific queries
+- "javascript": JavaScript/TypeScript-specific queries
+- "none": No programming language explicitly mentioned
+- "others": Another programming language like rust, go, C++, etc. is explicitly mentioned
+
+EXAMPLES for language:
+Even if you suspect that the query is about rust, answer with "others" only when the word "rust" appears in the query. If it doesn't, answer with "none".
 
 When datasource is "vectorstore", set "framework" to exactly one of:
 - "llamaindex": ONLY for queries specifically about the LlamaIndex framework
@@ -43,12 +60,13 @@ When datasource is "vectorstore", set "framework" to exactly one of:
 - "chub": for library/SDK/API docs that are not framework-specific above — especially OpenAI, Pinecone, and other curated package guides from the chub knowledge base
 - "others": For queries that do not fit any documentation namespace above
 
-When datasource is "websearch", set "framework" to "others".
+When datasource is "websearch" or "direct", set "framework" to "others".
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 
 {{
     "datasource": your_selected_datasource,
+    "language": your_selected_language,
     "framework": your_selected_framework
 }}
 
@@ -67,5 +85,5 @@ route_and_framework_router = route_prompt | llm | parser
 
 @lru_cache(maxsize=1000)
 def get_route_and_framework(query: str) -> RouteAndFramework:
-    """Cached merged route: datasource + framework in one LLM call."""
+    """Cached merged route: datasource + language + framework in one LLM call."""
     return route_and_framework_router.invoke({"query": query})

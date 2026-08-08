@@ -15,7 +15,8 @@ from agent.graph.consts import (
     CHUB_TOOLS,
     HUMAN_IN_LOOP,
     INITIALIZE,
-    DECIDE_LANGUAGE,
+    CLASSIFY_INTENT,
+    CHITCHAT,
     PRE_HUMAN_IN_LOOP,
     POST_HUMAN_IN_LOOP,
     SUMMARIZE,
@@ -30,7 +31,8 @@ from agent.graph.nodes import (
     route_and_framework,
     chub_expert,
     chub_tools,
-    decide_language,
+    classify_intent,
+    chitchat,
     web_search,
     human_in_loop,
     initialize,
@@ -41,7 +43,7 @@ from agent.graph.nodes import (
     immediate_message_two,
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
-from agent.graph.utils.flow_state import check_iteration_limit
+from agent.graph.utils.flow_state import check_iteration_limit, reset_flow_state
 from agent.graph.chains.chub_expert import MAX_CHUB_TOOL_ROUNDS
 from concurrent.futures import TimeoutError
 from threading import Lock
@@ -73,15 +75,6 @@ def validate_state(state: GraphState) -> bool:
             "min_length": 0,
             "validate": lambda x: all(isinstance(doc, Document) for doc in x)
         },
-        # "current_node": {
-        #     "type": str,
-        #     "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-        #                       "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-        #                       "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"],
-        #     "validate": lambda x: x in ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-        #                               "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-        #                               "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"]
-        # },
         "language": {
             "type": str,
             "allowed_values": ["python", "javascript", "others", "none"],
@@ -208,14 +201,38 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         cleanup_resources(state)
         return "end_misery"
 
+
+def after_classify_intent(state: GraphState) -> str:
+    """Branch after intent classification: chitchat vs programming pipeline."""
+    logger.info("---AFTER CLASSIFY INTENT---")
+    if state.get("intent") == "chitchat":
+        logger.info("---ROUTE TO CHITCHAT---")
+        return CHITCHAT
+    logger.info("---ROUTE TO SUMMARIZE---")
+    return SUMMARIZE
+
+
 def after_route_and_framework(state: GraphState) -> str:
-    """Branch after the merged router node (framework already on state)."""
+    """Branch after the merged router node (framework/language already on state)."""
     logger.info("---AFTER ROUTE AND FRAMEWORK---")
-    if state.get("datasource") == "vectorstore":
+    datasource = state.get("datasource")
+    if datasource == "vectorstore":
         logger.info("---ROUTE TO RETRIEVE---")
         return RETRIEVE
+    if datasource == "direct":
+        logger.info("---ROUTE TO GENERATE (direct)---")
+        return GENERATE
     logger.info("---ROUTE TO WEB SEARCH---")
     return WEBSEARCH
+
+
+def after_generate(state: GraphState) -> str:
+    """Skip graders/HITL for direct answers; otherwise run existing grading."""
+    if state.get("datasource") == "direct":
+        logger.info("---DIRECT GENERATE: END (skip graders/HITL)---")
+        reset_flow_state()
+        return "direct_end"
+    return grade_generation_grounded_in_documents_and_query(state)
 
 
 def after_grade(state: GraphState) -> str:
@@ -264,14 +281,6 @@ def determine_user_sentiment(state: GraphState) -> str:
         # Always clean up resources before ending
         cleanup_resources(state)
 
-# def skip_summarize_or_not(state: GraphState) -> str:
-#     logger.info("---SKIP SUMMARIZE OR NOT---")
-#     pass_summarize = state.get("pass_summarize", False)
-#     if not pass_summarize:
-#         return SUMMARIZE
-#     else:
-#         return GENERATE
-
 # Create the graph without executor parameter
 workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
@@ -280,7 +289,8 @@ workflow.add_node(INITIALIZE, initialize)
 # Add other 
 workflow.add_node(IMMEDIATE_MESSAGE_ONE, immediate_message_one)
 workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
-workflow.add_node(DECIDE_LANGUAGE, decide_language)
+workflow.add_node(CLASSIFY_INTENT, classify_intent)
+workflow.add_node(CHITCHAT, chitchat)
 workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -300,8 +310,16 @@ workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
-workflow.add_edge(INITIALIZE, DECIDE_LANGUAGE)
-workflow.add_edge(DECIDE_LANGUAGE, SUMMARIZE)
+workflow.add_edge(INITIALIZE, CLASSIFY_INTENT)
+workflow.add_conditional_edges(
+    CLASSIFY_INTENT,
+    after_classify_intent,
+    {
+        CHITCHAT: CHITCHAT,
+        SUMMARIZE: SUMMARIZE,
+    },
+)
+workflow.add_edge(CHITCHAT, END)
 workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
 workflow.add_conditional_edges(
     ROUTE_AND_FRAMEWORK,
@@ -309,6 +327,7 @@ workflow.add_conditional_edges(
     {
         WEBSEARCH: WEBSEARCH,
         RETRIEVE: RETRIEVE,
+        GENERATE: GENERATE,
     },
 )
 
@@ -335,8 +354,9 @@ workflow.add_edge(CHUB_TOOLS, CHUB_EXPERT)
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
-    grade_generation_grounded_in_documents_and_query,
+    after_generate,
     {
+        "direct_end": END,
         "need search web": IMMEDIATE_MESSAGE_ONE,
         "end_misery": POST_HUMAN_IN_LOOP,
         "useful": POST_HUMAN_IN_LOOP,
