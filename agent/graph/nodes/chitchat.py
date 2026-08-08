@@ -24,7 +24,6 @@ async def chitchat(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         await standard_sleep()
 
     query = state.get("query", "")
-    messages = list(state.get("messages", []))
 
     try:
         reply = await asyncio.wait_for(
@@ -37,40 +36,35 @@ async def chitchat(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
             cost=0.0,
             requests=1,
         )
-        messages.append(
-            AIMessage(
-                content=reply,
-                additional_kwargs={
-                    "display_in_chat": True,
-                    "error_type": None,
-                },
-            )
+        ai_message = AIMessage(
+            content=reply,
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": None,
+            },
         )
     except asyncio.TimeoutError:
         logger.error("Chitchat timed out")
-        messages.append(
-            AIMessage(
-                content="I'm a bit slow right now — try again in a moment?",
-                additional_kwargs={
-                    "display_in_chat": True,
-                    "error_type": "timeout",
-                    "error_message": "Chitchat timed out",
-                },
-            )
+        ai_message = AIMessage(
+            content="I'm a bit slow right now — try again in a moment?",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "timeout",
+                "error_message": "Chitchat timed out",
+            },
         )
     except Exception as e:
         logger.error(f"Error during chitchat: {e}")
-        messages.append(
-            AIMessage(
-                content="Something went wrong on my side. Mind saying that again?",
-                additional_kwargs={
-                    "display_in_chat": True,
-                    "error_type": "internal",
-                    "error_message": str(e),
-                },
-            )
+        ai_message = AIMessage(
+            content="Something went wrong on my side. Mind saying that again?",
+            additional_kwargs={
+                "display_in_chat": True,
+                "error_type": "internal",
+                "error_message": str(e),
+            },
         )
     finally:
         reset_flow_state()
 
-    return {"messages": messages}
+    # Return only the new message — GraphState.messages uses add_messages.
+    return {"messages": [ai_message]}

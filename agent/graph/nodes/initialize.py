@@ -20,17 +20,14 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
         await standard_sleep()
-    # Get and trim messages
+    # Get and trim messages (do not re-return messages — add_messages would duplicate)
     messages = trim_messages(state.get("messages", []))
-    # Simplified query and rewritten_query initialization
+    query = state.get("query", "print: please ask me a question")
     if messages:
-        # Extract query from last human message
         last_message_type = get_last_message_type(messages)
         if last_message_type == "human":
             query = messages[-1].content
-    else:
-        query = state.get("query", "print: please ask me a question")
-    
+
     # Extract basic state
     language = state.get("language", "python")
     comments = ""
@@ -39,14 +36,13 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     pass_summarize = False
     summarized = False
     documents = []
-    
+
     # Build result
     result = {
         "language": language,
         "comments": comments,
         "framework": framework,
         "retry_count": retry_count,
-        "messages": messages,
         "pass_summarize": pass_summarize,
         "summarized": summarized,
         "documents": documents,
