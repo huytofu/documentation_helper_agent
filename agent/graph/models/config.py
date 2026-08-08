@@ -50,6 +50,7 @@ MODEL_IDS = {
     # far stronger reasoning (GPQA 80% vs 50%), native structured output.
     # Qwen3.5-397B-A17B was dropped from Together serverless, so gpt-oss-120b
     # is used on both the HF-routed and Together-direct paths.
+    "complex_router": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
@@ -69,6 +70,7 @@ PROVIDER_IDS = {
     "chitchat": default_provider,
     "router": default_provider,
     "chub_expert": default_provider,
+    "complex_router": default_provider,
     "generator": "nebius"
 }
 # Ollama model names
@@ -84,6 +86,7 @@ OLLAMA_MODELS = {
     "hallucinate_grader": "llama3.3:latest",
     "summarizer": "llama3.3:latest",
     "chitchat": "llama3.3:latest",
+    "complex_router": "llama3.3:latest",
     # "router": "llama3.3:latest",
     "generator": "deepseek-coder:33b"
 }
