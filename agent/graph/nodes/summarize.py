@@ -45,6 +45,14 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         await standard_sleep()
     messages = state.get("messages", [])
     messages = trim_messages(messages)
+
+    # Skip LLM summarization for short conversations.
+    if len(messages) < 10:
+        return {
+            "pass_summarize": True,
+            "summarized": False,
+        }
+
     messages = simplify_messages(messages)
 
     try:
