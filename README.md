@@ -186,24 +186,26 @@ gcloud services enable run.googleapis.com
 
 4. Build and deploy with Cloud Build:
 ```bash
-# Build the Docker image
-gcloud builds submit --tag gcr.io/documentation-helper-agent/documentation-helper-agent
+# Build the Docker image (uses cloudbuild.yaml for layer caching via --cache-from)
+gcloud builds submit --config cloudbuild.yaml
 
 # Generate env.yaml from .env (required by --env-vars-file below).
 # Note: env.yaml contains secrets - do not commit it. Also, --env-vars-file
 # replaces ALL env vars on the service, so it must contain the complete set.
-powershell -Command "Get-Content .env | Where-Object { $_ -match '^\s*[^#\s]' } | ForEach-Object { $kv = $_ -split '=', 2; '{0}: \"{1}\"' -f $kv[0].Trim(), $kv[1].Trim() } | Set-Content -Encoding ASCII env.yaml"
+# Cloud Run expects a single JSON object with quoted keys and values, e.g.
+# { "KEY": "value", "ANOTHER_KEY": "another_value" }
+python scripts/env_to_yaml.py .env env.yaml
 
-gcloud beta run deploy documentation-helper-agent ^
-  --image gcr.io/documentation-helper-agent/documentation-helper-agent ^
-  --platform managed ^
-  --region us-central1 ^
-  --allow-unauthenticated ^
-  --cpu 1 ^
-  --memory 2Gi ^
+gcloud beta run deploy documentation-helper-agent \
+  --image gcr.io/documentation-helper-agent/documentation-helper-agent:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --cpu 1 \
+  --memory 2Gi \
   --env-vars-file=env.yaml
 
-#see error logs
+# see error logs
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=documentation-helper-agent AND resource.labels.revision_name=YOUR_REVISION_NAME" --format="table(textPayload)"
 ```
 

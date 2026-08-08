@@ -1,0 +1,20 @@
+# Cloud Build with Docker layer cache via --cache-from.
+# Reuses layers from the previously pushed :latest image so pip install
+# is skipped when requirements.txt is unchanged.
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull gcr.io/$PROJECT_ID/documentation-helper-agent:latest || exit 0
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/documentation-helper-agent:latest'
+      - '--cache-from'
+      - 'gcr.io/$PROJECT_ID/documentation-helper-agent:latest'
+      - '.'
+images:
+  - 'gcr.io/$PROJECT_ID/documentation-helper-agent:latest'
