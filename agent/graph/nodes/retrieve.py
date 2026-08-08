@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from agent.graph.state import GraphState
 from agent.graph.retrievers import get_retriever
-from copilotkit.langgraph import copilotkit_emit_state
+from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
 async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -13,6 +13,7 @@ async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)   
+        await copilotkit_emit_message(config, "Please wait while I retrieve useful context from knowledge base.")
         await standard_sleep()
         
     query = state.get("query", "")

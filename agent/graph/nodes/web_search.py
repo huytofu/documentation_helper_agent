@@ -11,7 +11,7 @@ from agent.graph.utils.api_utils import (
     APIResponse
 )
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state
+from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.web_search")
@@ -46,6 +46,7 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_message(config, "Please wait while I search the web for information.")
         await standard_sleep()
         
     query = state.get("query", "")
