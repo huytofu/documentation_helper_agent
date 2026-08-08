@@ -11,6 +11,7 @@ from agent.graph.consts import (
     RETRIEVE,
     WEBSEARCH,
     ROUTE_AND_FRAMEWORK,
+    ASK_CHUB_PERMISSION,
     CHUB_EXPERT,
     CHUB_TOOLS,
     HUMAN_IN_LOOP,
@@ -29,6 +30,7 @@ from agent.graph.nodes import (
     grade_documents,
     retrieve,
     route_and_framework,
+    ask_chub_permission,
     chub_expert,
     chub_tools,
     classify_intent,
@@ -261,7 +263,7 @@ def after_generate(state: GraphState) -> str:
 
 
 def after_grade(state: GraphState) -> str:
-    """After grading: generate, try chub enrich, or fall back to websearch."""
+    """After grading: generate, ask chub permission, or fall back to websearch."""
     logger.info("---AFTER GRADE---")
     documents = state.get("documents") or []
     if len(documents) > 0:
@@ -269,8 +271,8 @@ def after_grade(state: GraphState) -> str:
     if state.get("chub_enrich_attempted"):
         logger.info("---CHUB ALREADY ATTEMPTED; WEB SEARCH---")
         return WEBSEARCH
-    logger.info("---ROUTE TO CHUB EXPERT---")
-    return CHUB_EXPERT
+    logger.info("---ROUTE TO ASK CHUB PERMISSION---")
+    return ASK_CHUB_PERMISSION
 
 
 def after_chub_expert(state: GraphState) -> str:
@@ -320,10 +322,11 @@ workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
 workflow.add_node(
-    CHUB_EXPERT,
-    chub_expert,
-    destinations=(CHUB_EXPERT, GENERATE),
+    ASK_CHUB_PERMISSION,
+    ask_chub_permission,
+    destinations=(ASK_CHUB_PERMISSION, CHUB_EXPERT, GENERATE),
 )
+workflow.add_node(CHUB_EXPERT, chub_expert)
 workflow.add_node(CHUB_TOOLS, chub_tools)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(REGENERATE, regenerate)
@@ -362,10 +365,11 @@ workflow.add_conditional_edges(
     after_grade,
     {
         GENERATE: GENERATE,
-        CHUB_EXPERT: CHUB_EXPERT,
+        ASK_CHUB_PERMISSION: ASK_CHUB_PERMISSION,
         WEBSEARCH: WEBSEARCH,
     },
 )
+# ASK_CHUB_PERMISSION routes only via Command (no edges) — avoids parallel fan-out.
 workflow.add_conditional_edges(
     CHUB_EXPERT,
     after_chub_expert,

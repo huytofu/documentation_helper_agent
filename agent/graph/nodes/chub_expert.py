@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.types import Command, interrupt
@@ -9,7 +9,7 @@ from agent.graph.chains.chub_expert import (
     harvest_chub_documents,
     llm_with_tools,
 )
-from agent.graph.consts import CHUB_EXPERT, GENERATE
+from agent.graph.consts import ASK_CHUB_PERMISSION, CHUB_EXPERT, GENERATE
 from agent.graph.state import GraphState
 from agent.graph.utils.api_utils import standard_sleep
 
@@ -35,10 +35,61 @@ def _seed_messages(state: GraphState) -> List[Any]:
     ]
 
 
+async def ask_chub_permission(
+    state: GraphState, config: Dict[str, Any] = None
+) -> Command[Literal["ask_chub_permission", "chub_expert", "generate"]]:
+    """HITL yes/no before chub tools. Routes only via Command (no outgoing edges)."""
+    print("---ASK CHUB PERMISSION---")
+    if config:
+        await copilotkit_emit_state(
+            config,
+            {
+                **state,
+                "current_node": "ASK_CHUB_PERMISSION",
+                "pending_question": state.get("pending_question"),
+            },
+        )
+        await standard_sleep()
+
+    pending_question: Optional[str] = state.get("pending_question")
+    # First ask: pending_question is null (UI / emit shows the default consent prompt).
+    # Retry after invalid answer: pending_question is "Please choose yes or no".
+    answer = interrupt(pending_question or CHUB_CONSENT_PROMPT)
+    normalized = str(answer).strip().lower()
+
+    if normalized == "no":
+        return Command(
+            goto=GENERATE,
+            update={
+                "chub_enrich_attempted": True,
+                "chub_consent": False,
+                "pending_question": None,
+            },
+        )
+
+    if normalized != "yes":
+        return Command(
+            goto=ASK_CHUB_PERMISSION,
+            update={
+                "pending_question": "Please choose yes or no",
+                "chub_enrich_attempted": True,
+            },
+        )
+
+    return Command(
+        goto=CHUB_EXPERT,
+        update={
+            "chub_consent": True,
+            "chub_enrich_attempted": True,
+            "pending_question": None,
+        },
+    )
+
+
 async def chub_expert(
     state: GraphState, config: Dict[str, Any] = None
-) -> Union[Dict[str, Any], Command[Literal["chub_expert", "generate"]]]:
-    """Consent interrupt (first entry), then tool-bound chub expert LLM turn."""
+) -> Dict[str, Any]:
+    """Tool-bound chub expert LLM turn (consent handled by ASK_CHUB_PERMISSION)."""
     print("---CHUB EXPERT---")
     if config:
         await copilotkit_emit_state(
@@ -50,35 +101,6 @@ async def chub_expert(
             },
         )
         await standard_sleep()
-
-    # 1) Ask once before any tool-calling rounds (skip on later CHUB_TOOLS → expert loops).
-    if not state.get("chub_consent"):
-        pending_question: Optional[str] = state.get("pending_question")
-        # First ask: pending_question is null (UI / emit shows the default consent prompt).
-        # Retry after invalid answer: pending_question is "Please choose yes or no".
-        answer = interrupt(pending_question or CHUB_CONSENT_PROMPT)
-        normalized = str(answer).strip().lower()
-
-        if normalized == "no":
-            return Command(
-                goto=GENERATE,
-                update={
-                    "chub_enrich_attempted": True,
-                    "chub_consent": False,
-                    "pending_question": None,
-                },
-            )
-
-        if normalized != "yes":
-            return Command(
-                goto=CHUB_EXPERT,
-                update={
-                    "pending_question": "Please choose yes or no",
-                    "chub_enrich_attempted": True,
-                },
-            )
-
-        # "yes" — fall through into tool-calling; consent persisted in return updates.
 
     prior = list(state.get("chub_messages") or [])
     if not prior:
@@ -102,7 +124,7 @@ async def chub_expert(
     if harvested:
         updates["documents"] = harvested
 
-    # 3) When the expert finishes (no more tool_calls), append a short summary.
+    # When the expert finishes (no more tool_calls), append a short summary.
     if not getattr(response, "tool_calls", None):
         summary = AIMessage(content="Chub research done!")
         updates["messages"] = [summary]
@@ -127,7 +149,7 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         )
         await standard_sleep()
 
-    # 2) Tiny CopilotKit message per tool name about to run this round.
+    # Tiny CopilotKit message per tool name about to run this round.
     msgs = state.get("chub_messages") or []
     last = msgs[-1] if msgs else None
     tool_calls = getattr(last, "tool_calls", None) if last is not None else None

@@ -4,7 +4,7 @@ from agent.graph.nodes.grade_documents import grade_documents
 from agent.graph.nodes.retrieve import retrieve
 from agent.graph.nodes.decide_vectorstore import decide_vectorstore
 from agent.graph.nodes.route_and_framework import route_and_framework
-from agent.graph.nodes.chub_expert import chub_expert, chub_tools
+from agent.graph.nodes.chub_expert import ask_chub_permission, chub_expert, chub_tools
 from agent.graph.nodes.decide_language import decide_language
 from agent.graph.nodes.classify_intent import classify_intent
 from agent.graph.nodes.chitchat import chitchat
@@ -24,6 +24,7 @@ __all__ = [
     "retrieve",
     "decide_vectorstore",
     "route_and_framework",
+    "ask_chub_permission",
     "chub_expert",
     "chub_tools",
     "decide_language",
