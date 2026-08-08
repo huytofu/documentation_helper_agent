@@ -55,20 +55,19 @@ def scrape_urls(
         for url in batch:
             logger.info("FireCrawling %s", url)
             try:
-                result = app.scrape_url(url, formats=["markdown"])
-                if result and getattr(result, "success", False):
-                    content = result.markdown or ""
-                    if content.strip():
-                        docs.append(
-                            build_firecrawl_document(content, url, framework)
-                        )
-                        successes += 1
-                    else:
-                        failures += 1
-                        logger.warning("Empty markdown for %s", url)
+                # scrape_url returns response["data"] on success (dict with markdown),
+                # and raises on API/HTTP failure — there is no top-level success flag.
+                result = app.scrape_url(url, params={"formats": ["markdown"]})
+                if isinstance(result, dict):
+                    content = result.get("markdown") or ""
+                else:
+                    content = getattr(result, "markdown", None) or ""
+                if content.strip():
+                    docs.append(build_firecrawl_document(content, url, framework))
+                    successes += 1
                 else:
                     failures += 1
-                    logger.warning("Unsuccessful scrape for %s", url)
+                    logger.warning("Empty markdown for %s", url)
             except Exception as exc:  # noqa: BLE001 — continue batch on scrape errors
                 failures += 1
                 logger.error("Error loading %s: %s", url, exc)

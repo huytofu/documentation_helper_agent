@@ -40,7 +40,7 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 # Format: [Together AI direct primary ID, HF Hub ID (routed via InferenceClient fallback)]
 # Primary path is always Together direct. HF fallback uses PROVIDER_IDS (never "together").
 MODEL_IDS = {
-    "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
+    "embeddings": ["intfloat/multilingual-e5-large-instruct", "intfloat/multilingual-e5-large-instruct"],
     "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "chub_expert": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
