@@ -6,10 +6,12 @@ including switching between Ollama, Hugging Face models, and third-party provide
 
 Environment Variables:
     USE_OLLAMA: Set to "true" to use Ollama models (default: false)
-    USE_INFERENCE_CLIENT: Set to "true" to use InferenceClient with third-party providers
+    USE_INFERENCE_CLIENT: Set to "true" to use Together-primary + HF-fallback inference
     USE_RUNPOD: Set to "true" to use RunPod for generator model
-    
-    INFERENCE_API_KEY: API key for the specified provider
+
+    INFERENCE_API_KEY: Hugging Face API key (used for HF fallback InferenceClient)
+    INFERENCE_DIRECT_API_KEY: Together API key (primary path)
+    TOGETHER_TIMEOUT_SECONDS: Together primary-path timeout in seconds (default: 15)
     RUNPOD_API_KEY: RunPod API key
     RUNPOD_ENDPOINT_ID: RunPod endpoint ID
 """
@@ -35,44 +37,47 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
     raise ValueError("USE_OLLAMA and USE_INFERENCE_CLIENT cannot be enabled simultaneously")
 
 # Model IDs
-# Format: [HF Hub ID (routed via InferenceClient provider), Together AI direct fallback ID]
-# Note: Together serverless does not carry Qwen3.6-35B-A3B (FP8 variant is
-# dedicated-only), so the direct fallback for router/graders is Qwen3.5-9B,
-# which supports function calling and structured outputs on Together serverless.
+# Format: [Together AI direct primary ID, HF Hub ID (routed via InferenceClient fallback)]
+# Primary path is always Together direct. HF fallback uses PROVIDER_IDS (never "together").
 MODEL_IDS = {
     "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
-    "router": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
-    "chub_expert": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
-    "sentiment_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
-    "answer_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
-    "retrieval_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
-    # MoE with 5.1B active params: ~3.5x faster decode than dense Llama-3.3-70B,
-    # far stronger reasoning (GPQA 80% vs 50%), native structured output.
-    # Qwen3.5-397B-A17B was dropped from Together serverless, so gpt-oss-120b
-    # is used on both the HF-routed and Together-direct paths.
+    "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "chub_expert": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "answer_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "retrieval_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    # gpt-oss-120b on both paths (Together primary, HF provider fallback).
     "complex_router": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
-    # Primary: coding-specialized Qwen MoE (480B/35B active) on Nebius, Apache 2.0,
-    # 262K context. Fallback: DeepSeek V4 Flash on Together serverless — 284B/13B
-    # active, 1M context, near-frontier agentic coding at $0.14/$0.28 per 1M tokens.
-    "generator": ["Qwen/Qwen3-Coder-480B-A35B-Instruct", "deepseek-ai/DeepSeek-V4-Flash-0731"]
+    # Primary: DeepSeek V4 Flash on Together serverless — 284B/13B active, 1M context.
+    # Fallback: coding-specialized Qwen MoE (480B/35B active) via HF → Nebius.
+    "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-Coder-480B-A35B-Instruct"],
 }
-default_provider = os.getenv("INFERENCE_PROVIDER")
+
+# HF InferenceClient fallback providers only — never "together" (primary already failed).
+# Placeholder values (fireworks-ai / novita / hf-inference) may be revised later.
 PROVIDER_IDS = {
-    "embeddings": default_provider,
-    "sentiment_grader": default_provider,
-    "answer_grader": default_provider,
-    "retrieval_grader": default_provider,
-    "hallucinate_grader": default_provider,
-    "summarizer": default_provider,
-    "chitchat": default_provider,
-    "router": default_provider,
-    "chub_expert": default_provider,
-    "complex_router": default_provider,
-    "generator": "nebius"
+    "embeddings": "hf-inference",
+    "sentiment_grader": "novita",
+    "answer_grader": "novita",
+    "retrieval_grader": "novita",
+    "router": "novita",
+    "chub_expert": "novita",
+    "hallucinate_grader": "fireworks-ai",
+    "summarizer": "fireworks-ai",
+    "chitchat": "fireworks-ai",
+    "complex_router": "fireworks-ai",
+    "generator": "nebius",
 }
+
+if any((p or "").lower() == "together" for p in PROVIDER_IDS.values()):
+    raise ValueError(
+        "PROVIDER_IDS must not include 'together'; HF fallback cannot use the primary path"
+    )
+
+TOGETHER_TIMEOUT_SECONDS = float(os.environ.get("TOGETHER_TIMEOUT_SECONDS", "15"))
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
@@ -212,13 +217,16 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
     elif provider == "inference_client":
         return {
             "provider": provider,
+            # HF InferenceClient fallback provider (never "together")
             "provider_org": PROVIDER_IDS[component],
-            "direct_provider_org": default_provider,
+            # Together is always the primary direct path
+            "direct_provider_org": "together",
             "model": MODEL_IDS[component],
             "api_key": os.getenv("INFERENCE_API_KEY"),
             "direct_api_key": os.getenv("INFERENCE_DIRECT_API_KEY"),
             "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models"),
-            "max_tokens": int(os.getenv("INFERENCE_MAX_TOKENS", "2048"))
+            "max_tokens": int(os.getenv("INFERENCE_MAX_TOKENS", "2048")),
+            "together_timeout": TOGETHER_TIMEOUT_SECONDS,
         }
     else:  # default to ollama
         return {

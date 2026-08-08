@@ -1,8 +1,8 @@
 """
-Wrapper for Hugging Face InferenceClient to integrate with LangChain.
+Together-primary chat/embeddings wrappers with Hugging Face InferenceClient fallback.
 
-This module provides custom LangChain-compatible classes for using
-Hugging Face's InferenceClient with third-party providers.
+Primary path: Together direct API (timeout-bounded).
+Fallback path: Hugging Face InferenceClient with a non-Together provider.
 
 Tool-calling follows the OpenAI-compatible path used by LangChain's
 ChatOpenAI (langchain_openai.chat_models.base.BaseChatOpenAI.bind_tools):
@@ -12,7 +12,6 @@ normalize response tool_calls onto AIMessage.tool_calls via parse_tool_call.
 
 import json
 import logging
-import os
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from huggingface_hub import InferenceClient
@@ -36,12 +35,14 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from together import Together
-# Configure logging
+
 logger = logging.getLogger(__name__)
+
+DEFAULT_TOGETHER_TIMEOUT_SECONDS = 15.0
 
 
 class InferenceClientChatModel(BaseChatModel):
-    """Chat model that uses Hugging Face's InferenceClient with third-party providers."""
+    """Chat model: Together direct primary, HF InferenceClient fallback."""
 
     client: InferenceClient
     model: str
@@ -51,53 +52,76 @@ class InferenceClientChatModel(BaseChatModel):
     provider: str = ""
     direct_provider: str = ""
     direct_api_key: str
+    timeout: float = DEFAULT_TOGETHER_TIMEOUT_SECONDS
 
     def __init__(
         self,
         provider: str,
         direct_provider: str,
-        api_key: str,  # This is Hugging Face API key
-        direct_api_key: str,  # This is direct API key for the provider like Together AI
+        api_key: str,  # Hugging Face API key (fallback path)
+        direct_api_key: str,  # Together API key (primary path)
         model: List[str],
         temperature: float = 0.0,
         max_tokens: int = 1024,
+        timeout: float = DEFAULT_TOGETHER_TIMEOUT_SECONDS,
         **kwargs: Any,
     ):
         """Initialize the InferenceClientChatModel.
 
         Args:
-            provider: The provider to use (e.g., "together", "perplexity", "anyscale")
-            api_key: The API key for the provider
-            model: The model to use (should be a list of two models, the first is for the InferenceClient and the second is for the Together AI direct API)
-            temperature: The temperature to use for generation
-            max_tokens: The maximum number of tokens to generate
+            provider: HF InferenceClient fallback provider (must not be "together")
+            direct_provider: Primary direct provider (expected: "together")
+            api_key: Hugging Face API key for the fallback path
+            direct_api_key: Together API key for the primary path
+            model: [Together primary model ID, HF fallback model ID]
+            temperature: Sampling temperature
+            max_tokens: Max tokens to generate
+            timeout: Together primary-path timeout in seconds
             **kwargs: Additional keyword arguments
         """
-        # Create client first
+        if not provider or provider.lower() == "together":
+            raise ValueError(
+                "HF fallback provider must be set and must not be 'together' "
+                f"(got {provider!r})"
+            )
+        if (direct_provider or "").lower() != "together":
+            raise ValueError(
+                f"Primary direct_provider must be 'together' (got {direct_provider!r})"
+            )
+        if not isinstance(model, list) or len(model) < 2:
+            raise ValueError(
+                "model must be a list of [Together primary, HF fallback] model IDs"
+            )
+
+        # HF fallback client (used only if Together fails / times out)
         client = InferenceClient(
             provider=provider,
             api_key=api_key,
             headers={"X-wait-for-model": "true"},
+            timeout=timeout,
         )
 
-        # Include all parameters in kwargs for proper Pydantic validation
         all_kwargs = {
             "client": client,
-            "model": model[0],
-            "direct_model": model[1],
+            "direct_model": model[0],  # Together primary
+            "model": model[1],  # HF fallback
             "temperature": temperature,
             "max_tokens": max_tokens,
             "provider": provider,
             "direct_provider": direct_provider,
             "direct_api_key": direct_api_key,
+            "timeout": timeout,
             **kwargs,
         }
 
-        # Initialize with all parameters
         super().__init__(**all_kwargs)
         logger.info(
-            f"Initialized InferenceClientChatModel with provider: {provider}, "
-            f"model: {model[0]} and {model[1]}"
+            "Initialized InferenceClientChatModel: Together primary=%s, "
+            "HF fallback provider=%s model=%s, timeout=%ss",
+            model[0],
+            provider,
+            model[1],
+            timeout,
         )
 
     def bind_tools(
@@ -267,52 +291,41 @@ class InferenceClientChatModel(BaseChatModel):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> ChatResult:
-        """Generate a chat response using the InferenceClient.
-
-        Args:
-            messages: List of messages to generate a response for
-            stop: Optional list of stop sequences
-            run_manager: Optional callback manager
-            **kwargs: Additional parameters to pass to the API (incl. bound tools)
-
-        Returns:
-            ChatResult containing the generated response
-
-        Raises:
-            RuntimeError: If the API call fails
-        """
+        """Generate via Together primary, then HF InferenceClient on failure/timeout."""
         chat_messages = self._convert_messages_to_chat_format(messages)
 
-        # Prepare parameters - optimized for Together AI compatibility
-        params = {
+        max_tokens = kwargs.get("max_tokens", self.max_tokens)
+        temperature = kwargs.get("temperature", self.temperature)
+        top_p = kwargs.get("top_p", 0.9)
+        tools = kwargs.get("tools")
+        tool_choice = kwargs.get("tool_choice")
+
+        together_params: Dict[str, Any] = {
+            "model": self.direct_model,
+            "messages": chat_messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "stop": stop if stop else None,
+        }
+        if tools is not None:
+            together_params["tools"] = tools
+        if tool_choice is not None:
+            together_params["tool_choice"] = tool_choice
+
+        hf_params: Dict[str, Any] = {
             "model": self.model,
             "messages": chat_messages,
-            "max_tokens": kwargs.get("max_tokens", self.max_tokens),
-            "temperature": kwargs.get("temperature", self.temperature),
+            "max_tokens": max_tokens,
+            "temperature": temperature,
         }
+        if tools is not None:
+            hf_params["tools"] = tools
+        if tool_choice is not None:
+            hf_params["tool_choice"] = tool_choice
+        if stop:
+            hf_params["stop"] = stop
 
-        # Bound tools / tool_choice from bind_tools(...)
-        if "tools" in kwargs and kwargs["tools"] is not None:
-            params["tools"] = kwargs["tools"]
-        if "tool_choice" in kwargs and kwargs["tool_choice"] is not None:
-            params["tool_choice"] = kwargs["tool_choice"]
-
-        # Add provider-specific parameters
-        if self.provider.lower() == "together":
-            # Together AI specific parameters
-            params.update(
-                {
-                    "top_p": kwargs.get("top_p", 0.9),
-                    "frequency_penalty": kwargs.get("frequency_penalty", 1.1),
-                    "stop": stop if stop else None,
-                }
-            )
-        else:
-            # Generic parameters for other providers
-            if stop:
-                params["stop"] = stop
-
-        # Add any additional parameters from kwargs (except ones we already handled)
         skip_keys = {
             "max_tokens",
             "temperature",
@@ -322,100 +335,85 @@ class InferenceClientChatModel(BaseChatModel):
             "tool_choice",
         }
         for k, v in kwargs.items():
-            if k not in params and k not in skip_keys:
-                params[k] = v
+            if k not in hf_params and k not in skip_keys:
+                hf_params[k] = v
+
+        response_message_obj: Any = None
+        finish_reason = "unknown"
+        together_error: Optional[Exception] = None
 
         try:
-            # Log request for debugging
-            logger.debug(
-                f"Sending request through Hugging Face InferenceClient to provider "
-                f"{self.provider} with model {self.model}"
-            )
-
-            response_message_obj: Any = None
-            finish_reason = "unknown"
-
-            # Try Hugging Face's API first
+            # 1) Together direct (primary)
             try:
-                # Call the InferenceClient
-                completion: ChatCompletionOutput = self.client.chat_completion(**params)
+                logger.debug(
+                    "Sending request to Together direct API with model %s (timeout=%ss)",
+                    self.direct_model,
+                    self.timeout,
+                )
+                together_client = Together(
+                    api_key=self.direct_api_key,
+                    timeout=self.timeout,
+                )
+                response = together_client.chat.completions.create(**together_params)
+                if not response.choices:
+                    raise ValueError("No choices returned from Together API")
+                response_message_obj = response.choices[0].message
+                finish_reason = getattr(
+                    response.choices[0], "finish_reason", "unknown"
+                )
+                logger.debug(
+                    "Received response from Together AI direct API: %s", finish_reason
+                )
+            except Exception as err:  # noqa: BLE001 — any Together failure → HF fallback
+                together_error = err
+                logger.warning(
+                    "Together AI primary path failed; falling back to HF provider %s "
+                    "model %s: %s",
+                    self.provider,
+                    self.model,
+                    err,
+                )
 
-                # Verify we have choices before accessing
+                # 2) HF InferenceClient (fallback, non-Together provider)
+                completion: ChatCompletionOutput = self.client.chat_completion(
+                    **hf_params
+                )
                 if not completion.choices:
-                    raise ValueError(f"No choices returned from {self.provider} API")
-
+                    raise ValueError(
+                        f"No choices returned from HF provider {self.provider} API"
+                    )
                 response_message_obj = completion.choices[0].message
-                finish_reason = getattr(completion.choices[0], "finish_reason", "unknown")
-
-                # Log successful completion
-                logger.debug(f"Received response from {self.provider} API: {finish_reason}")
-
-            except Exception as hf_error:
-                # If Hugging Face's API fails, try Together AI directly
-                if self.direct_provider.lower() == "together":
-                    logger.warning(
-                        f"Hugging Face API failed, falling back to Together AI direct API: {str(hf_error)}"
-                    )
-
-                    # Set the API key for Together client
-                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
-
-                    # Create Together client
-                    together_client = Together()
-
-                    together_params = {
-                        "model": self.direct_model,
-                        "messages": chat_messages,
-                        "max_tokens": params["max_tokens"],
-                        "temperature": params["temperature"],
-                        "top_p": params.get("top_p", 0.9),
-                        "stop": params.get("stop"),
-                    }
-                    if params.get("tools") is not None:
-                        together_params["tools"] = params["tools"]
-                    if params.get("tool_choice") is not None:
-                        together_params["tool_choice"] = params["tool_choice"]
-
-                    # Call Together AI's API
-                    response = together_client.chat.completions.create(**together_params)
-
-                    response_message_obj = response.choices[0].message
-                    finish_reason = getattr(
-                        response.choices[0], "finish_reason", "unknown"
-                    )
-
-                    # Log successful completion
-                    logger.debug(
-                        f"Received response from Together AI direct API: {finish_reason}"
-                    )
-                else:
-                    # If not Together AI, re-raise the original error
-                    raise hf_error
+                finish_reason = getattr(
+                    completion.choices[0], "finish_reason", "unknown"
+                )
+                logger.debug(
+                    "Received response from HF provider %s API: %s",
+                    self.provider,
+                    finish_reason,
+                )
 
             ai_message = self._parse_ai_message(response_message_obj, finish_reason)
             generation = ChatGeneration(
                 message=ai_message,
                 generation_info={"finish_reason": finish_reason},
             )
-
-            # Return the ChatResult
             return ChatResult(generations=[generation])
 
         except Exception as e:
-            # Log the error
-            logger.error(f"Error calling {self.provider} API: {str(e)}")
-            if self.direct_provider.lower() == "together":
-                logger.error(f"Error calling direct {self.direct_provider} API: {str(e)}")
-
-            # Pass error to callback manager if available
+            logger.error(
+                "Together primary and HF fallback both failed. Together error: %s; "
+                "HF (%s) error: %s",
+                together_error,
+                self.provider,
+                e,
+            )
             if run_manager:
                 run_manager.on_llm_error(e, **kwargs)
-
-            # Raise a more informative exception
             raise RuntimeError(
-                f"Failed to generate response from {self.provider} API and direct "
-                f"{self.direct_provider} API: {str(e)}"
-            )
+                f"Failed to generate response from Together primary "
+                f"({self.direct_model}) and HF fallback provider {self.provider} "
+                f"({self.model}). Together error: {together_error}; HF error: {e}"
+            ) from e
 
     @property
     def _llm_type(self) -> str:
@@ -424,7 +422,7 @@ class InferenceClientChatModel(BaseChatModel):
 
 
 class InferenceClientEmbeddings:
-    """Embeddings model that uses Hugging Face's InferenceClient with third-party providers."""
+    """Embeddings: Together direct primary, HF InferenceClient fallback."""
 
     client: InferenceClient
     model: str
@@ -432,6 +430,7 @@ class InferenceClientEmbeddings:
     provider: str
     direct_provider: str
     direct_api_key: str
+    timeout: float
 
     def __init__(
         self,
@@ -440,96 +439,119 @@ class InferenceClientEmbeddings:
         api_key: str,
         direct_api_key: str,
         model: List[str],
+        timeout: float = DEFAULT_TOGETHER_TIMEOUT_SECONDS,
         **kwargs: Any,
     ):
         """Initialize the InferenceClientEmbeddings.
 
         Args:
-            provider: The provider to use (e.g., "together", "perplexity", "anyscale")
-            api_key: The API key for the provider
-            model: The model to use (should be a list of two models, the first is for the InferenceClient and the second is for the Together AI direct API)
-            **kwargs: Additional keyword arguments
+            provider: HF InferenceClient fallback provider (must not be "together")
+            direct_provider: Primary direct provider (expected: "together")
+            api_key: Hugging Face API key for the fallback path
+            direct_api_key: Together API key for the primary path
+            model: [Together primary model ID, HF fallback model ID]
+            timeout: Together primary-path timeout in seconds
+            **kwargs: Additional keyword arguments (ignored extras like max_tokens)
         """
-        self.client = InferenceClient(provider=provider, api_key=api_key)
-        self.model = model[0]
-        self.direct_model = model[1]
+        if not provider or provider.lower() == "together":
+            raise ValueError(
+                "HF fallback provider must be set and must not be 'together' "
+                f"(got {provider!r})"
+            )
+        if (direct_provider or "").lower() != "together":
+            raise ValueError(
+                f"Primary direct_provider must be 'together' (got {direct_provider!r})"
+            )
+        if not isinstance(model, list) or len(model) < 2:
+            raise ValueError(
+                "model must be a list of [Together primary, HF fallback] model IDs"
+            )
+
+        self.client = InferenceClient(
+            provider=provider, api_key=api_key, timeout=timeout
+        )
+        self.direct_model = model[0]
+        self.model = model[1]
         self.provider = provider
         self.direct_provider = direct_provider
         self.direct_api_key = direct_api_key
+        self.timeout = timeout
         logger.info(
-            f"Initialized InferenceClientEmbeddings with provider: {provider}, model: {model[0]}"
+            "Initialized InferenceClientEmbeddings: Together primary=%s, "
+            "HF fallback provider=%s model=%s, timeout=%ss",
+            model[0],
+            provider,
+            model[1],
+            timeout,
         )
 
+    def _together_client(self) -> Together:
+        return Together(api_key=self.direct_api_key, timeout=self.timeout)
+
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Embed a list of documents using the InferenceClient."""
-        embeddings = []
+        """Embed documents via Together primary, HF fallback on failure/timeout."""
+        together_error: Optional[Exception] = None
         try:
+            together_client = self._together_client()
+            embeddings: List[List[float]] = []
             for text in texts:
-                embedding = self.client.feature_extraction(text, model=self.model)
-                embeddings.append(embedding)
+                response = together_client.embeddings.create(
+                    model=self.direct_model, input=text
+                )
+                embeddings.append(response.data[0].embedding)
             return embeddings
-        except Exception as e:
+        except Exception as err:  # noqa: BLE001
+            together_error = err
             logger.warning(
-                f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}"
+                "Together embeddings primary path failed; falling back to HF "
+                "provider %s model %s: %s",
+                self.provider,
+                self.model,
+                err,
             )
 
-            # If Hugging Face's API fails, try Together AI directly
-            if self.direct_provider.lower() == "together":
-                try:
-                    # Set the API key for Together client
-                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
-
-                    # Create Together client
-                    together_client = Together()
-
-                    # Get embeddings for each text
-                    for text in texts:
-                        response = together_client.embeddings.create(
-                            model=self.direct_model, input=text
-                        )
-                        embeddings.append(response.data[0].embedding)
-                    return embeddings
-                except Exception as together_error:
-                    logger.error(f"Together AI API failed: {str(together_error)}")
-                    raise RuntimeError(
-                        f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}"
-                    )
-            else:
-                # If not Together AI, re-raise the original error
-                raise RuntimeError(
-                    f"Failed to embed documents with direct {self.direct_provider} API: {str(e)}"
-                )
+        try:
+            return [
+                self.client.feature_extraction(text, model=self.model) for text in texts
+            ]
+        except Exception as hf_error:
+            logger.error(
+                "Together and HF embeddings both failed. Together error: %s; HF error: %s",
+                together_error,
+                hf_error,
+            )
+            raise RuntimeError(
+                f"Both Together and HF embeddings failed. Together error: {together_error}, "
+                f"HF error: {hf_error}"
+            ) from hf_error
 
     def embed_query(self, text: str) -> List[float]:
-        """Embed a query using the InferenceClient."""
+        """Embed a query via Together primary, HF fallback on failure/timeout."""
+        together_error: Optional[Exception] = None
         try:
-            return self.client.feature_extraction(text, model=self.model)
-        except Exception as e:
+            response = self._together_client().embeddings.create(
+                model=self.direct_model, input=text
+            )
+            return response.data[0].embedding
+        except Exception as err:  # noqa: BLE001
+            together_error = err
             logger.warning(
-                f"Hugging Face API failed, falling back to Together AI direct API: {str(e)}"
+                "Together embeddings primary path failed; falling back to HF "
+                "provider %s model %s: %s",
+                self.provider,
+                self.model,
+                err,
             )
 
-            # If Hugging Face's API fails, try Together AI directly
-            if self.direct_provider.lower() == "together":
-                try:
-                    # Set the API key for Together client
-                    os.environ["TOGETHER_API_KEY"] = self.direct_api_key
-
-                    # Create Together client
-                    together_client = Together()
-
-                    # Get embedding
-                    response = together_client.embeddings.create(
-                        model=self.direct_model, input=text
-                    )
-                    return response.data[0].embedding
-                except Exception as together_error:
-                    logger.error(f"Together AI API failed: {str(together_error)}")
-                    raise RuntimeError(
-                        f"Both Hugging Face and Together AI APIs failed. HF error: {str(e)}, Together error: {str(together_error)}"
-                    )
-            else:
-                # If not Together AI, re-raise the original error
-                raise RuntimeError(
-                    f"Failed to embed query with direct {self.direct_provider} API: {str(e)}"
-                )
+        try:
+            return self.client.feature_extraction(text, model=self.model)
+        except Exception as hf_error:
+            logger.error(
+                "Together and HF embeddings both failed. Together error: %s; HF error: %s",
+                together_error,
+                hf_error,
+            )
+            raise RuntimeError(
+                f"Both Together and HF embeddings failed. Together error: {together_error}, "
+                f"HF error: {hf_error}"
+            ) from hf_error
