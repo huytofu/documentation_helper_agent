@@ -6,6 +6,8 @@ from agent.graph.nodes.decide_vectorstore import decide_vectorstore
 from agent.graph.nodes.route_and_framework import route_and_framework
 from agent.graph.nodes.chub_expert import chub_expert, chub_tools
 from agent.graph.nodes.decide_language import decide_language
+from agent.graph.nodes.classify_intent import classify_intent
+from agent.graph.nodes.chitchat import chitchat
 from agent.graph.nodes.web_search import web_search
 from agent.graph.nodes.human_in_loop import human_in_loop
 from agent.graph.nodes.initialize import initialize
@@ -25,6 +27,8 @@ __all__ = [
     "chub_expert",
     "chub_tools",
     "decide_language",
+    "classify_intent",
+    "chitchat",
     "web_search",
     "human_in_loop",
     "initialize",

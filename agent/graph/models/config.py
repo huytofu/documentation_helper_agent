@@ -52,6 +52,7 @@ MODEL_IDS = {
     # is used on both the HF-routed and Together-direct paths.
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     # Primary: coding-specialized Qwen MoE (480B/35B active) on Nebius, Apache 2.0,
     # 262K context. Fallback: DeepSeek V4 Flash on Together serverless — 284B/13B
     # active, 1M context, near-frontier agentic coding at $0.14/$0.28 per 1M tokens.
@@ -65,6 +66,7 @@ PROVIDER_IDS = {
     "retrieval_grader": default_provider,
     "hallucinate_grader": default_provider,
     "summarizer": default_provider,
+    "chitchat": default_provider,
     "router": default_provider,
     "chub_expert": default_provider,
     "generator": "nebius"
@@ -81,6 +83,7 @@ OLLAMA_MODELS = {
     # "summarizer": "llama3.1:latest",
     "hallucinate_grader": "llama3.3:latest",
     "summarizer": "llama3.3:latest",
+    "chitchat": "llama3.3:latest",
     # "router": "llama3.3:latest",
     "generator": "deepseek-coder:33b"
 }

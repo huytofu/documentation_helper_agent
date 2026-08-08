@@ -174,6 +174,7 @@ class OutputGraphState(CopilotKitState):
     retry_count: int = 0
     framework: str = ""
     datasource: str = ""
+    intent: str = ""
 
 class GraphState(InputGraphState, OutputGraphState):
     """
