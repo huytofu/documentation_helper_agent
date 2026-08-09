@@ -19,3 +19,4 @@ ASK_CHUB_PERMISSION = "ask_chub_permission"
 CHUB_EXPERT = "chub_expert"
 CHUB_TOOLS = "chub_tools"
 CHUB_ENRICH = CHUB_EXPERT  # CopilotKit / docs alias for the enrich step
+KB_META = "kb_meta"

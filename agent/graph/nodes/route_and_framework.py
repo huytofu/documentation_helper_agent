@@ -86,6 +86,16 @@ async def route_and_framework(
             "rewritten_query": rewritten_query,
         }
 
+    if datasource == "kb_meta":
+        return {
+            "datasource": "kb_meta",
+            "framework": "others",
+            "language": language,
+            "query": query,
+            "rewritten_query": rewritten_query,
+            "kb_catalog": package_block or "(none indexed yet)",
+        }
+
     if datasource != "vectorstore":
         return {
             "datasource": "websearch",

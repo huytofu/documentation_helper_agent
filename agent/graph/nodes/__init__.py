@@ -8,6 +8,7 @@ from agent.graph.nodes.chub_expert import ask_chub_permission, chub_expert, chub
 from agent.graph.nodes.decide_language import decide_language
 from agent.graph.nodes.classify_intent import classify_intent
 from agent.graph.nodes.chitchat import chitchat
+from agent.graph.nodes.kb_meta import kb_meta
 from agent.graph.nodes.web_search import web_search
 from agent.graph.nodes.human_in_loop import human_in_loop
 from agent.graph.nodes.initialize import initialize
@@ -30,6 +31,7 @@ __all__ = [
     "decide_language",
     "classify_intent",
     "chitchat",
+    "kb_meta",
     "web_search",
     "human_in_loop",
     "initialize",

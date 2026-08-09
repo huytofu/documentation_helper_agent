@@ -179,6 +179,7 @@ class OutputGraphState(CopilotKitState):
     framework: str = ""
     datasource: str = ""
     intent: str = ""
+    kb_catalog: str = ""
 
 class GraphState(InputGraphState, OutputGraphState):
     """

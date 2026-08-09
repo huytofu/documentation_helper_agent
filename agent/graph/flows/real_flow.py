@@ -18,6 +18,7 @@ from agent.graph.consts import (
     INITIALIZE,
     CLASSIFY_INTENT,
     CHITCHAT,
+    KB_META,
     PRE_HUMAN_IN_LOOP,
     POST_HUMAN_IN_LOOP,
     SUMMARIZE,
@@ -35,6 +36,7 @@ from agent.graph.nodes import (
     chub_tools,
     classify_intent,
     chitchat,
+    kb_meta,
     web_search,
     human_in_loop,
     initialize,
@@ -249,6 +251,9 @@ def after_route_and_framework(state: GraphState) -> str:
     if datasource == "direct":
         logger.info("---ROUTE TO GENERATE (direct)---")
         return GENERATE
+    if datasource == "kb_meta":
+        logger.info("---ROUTE TO KB_META---")
+        return KB_META
     logger.info("---ROUTE TO WEB SEARCH---")
     return WEBSEARCH
 
@@ -318,6 +323,7 @@ workflow.add_node(IMMEDIATE_MESSAGE_ONE, immediate_message_one)
 workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 workflow.add_node(CLASSIFY_INTENT, classify_intent)
 workflow.add_node(CHITCHAT, chitchat)
+workflow.add_node(KB_META, kb_meta)
 workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -348,6 +354,7 @@ workflow.add_conditional_edges(
     },
 )
 workflow.add_edge(CHITCHAT, END)
+workflow.add_edge(KB_META, END)
 workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
 workflow.add_conditional_edges(
     ROUTE_AND_FRAMEWORK,
@@ -356,6 +363,7 @@ workflow.add_conditional_edges(
         WEBSEARCH: WEBSEARCH,
         RETRIEVE: RETRIEVE,
         GENERATE: GENERATE,
+        KB_META: KB_META,
     },
 )
 

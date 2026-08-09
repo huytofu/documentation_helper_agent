@@ -11,11 +11,12 @@ from agent.graph.models.complex_router import llm
 class RouteAndFramework(BaseModel):
     """Route a user query to websearch, vectorstore, or direct generation."""
 
-    datasource: Literal["vectorstore", "websearch", "direct"] = Field(
+    datasource: Literal["vectorstore", "websearch", "direct", "kb_meta"] = Field(
         ...,
         description=(
             "vectorstore for indexed docs; websearch when external/current info is needed; "
-            "direct for simple coding questions answerable from model knowledge alone"
+            "direct for simple coding questions answerable from model knowledge alone; "
+            "kb_meta when the user asks what this app's knowledge base contains"
         ),
     )
     language: Literal["python", "javascript", "others", "none"] = Field(
@@ -41,6 +42,14 @@ You must set "datasource" to exactly one of:
 - "vectorstore": queries about LlamaIndex, SmolAgents, LangGraph, CopilotKit (including Coagents), or related library/SDK docs we indexed into chub vectorstore (OpenAI API/SDK, Pinecone, and other curated package guides)
 - "direct": simple coding questions/tasks answerable from model knowledge alone — short snippets, syntax, idioms, language builtins, trivial refactors — that do NOT need indexed docs or web search
 - "websearch": queries that need external or current information, general programming beyond simple syntax/idioms, new technologies, or topics not covered by vectorstore/direct
+- "kb_meta": ONLY when the user asks what THIS APP's knowledge base / indexed documentation contains (which frameworks or packages are indexed), not how to use a library
+
+EXAMPLES for datasource kb_meta (use kb_meta, framework="others"):
+- "What documentation do you have indexed?"
+- "Which packages are in your knowledge base?"
+- "What frameworks can you retrieve docs for?"
+
+Do NOT use kb_meta for how-to / API questions (use vectorstore/websearch/direct as appropriate).
 
 You must set "language" to exactly one of:
 - "python": Python-specific queries
@@ -59,7 +68,7 @@ When datasource is "vectorstore", set "framework" to exactly one of:
 - "chub": for library/SDK/API docs that are not framework-specific above — especially OpenAI, Pinecone, and other curated package guides
 - "others": For queries that do not fit any documentation namespace above
 
-When datasource is "websearch" or "direct", set "framework" to "others".
+When datasource is "websearch", "direct", or "kb_meta", set "framework" to "others".
 
 Indexed packages currently available in the chub vectorstore namespace (from long-term memory):
 {indexed_chub_packages}
