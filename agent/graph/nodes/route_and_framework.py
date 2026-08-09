@@ -1,13 +1,25 @@
-from typing import Any, Dict
+import logging
+from typing import Any, Dict, Optional
+
+from langchain_core.runnables import RunnableConfig
+from langgraph.runtime import Runtime
 
 from agent.graph.state import GraphState
 from agent.graph.chains.route_and_framework import get_route_and_framework
+from agent.graph.stores import (
+    CHUB_PACKAGES_NS,
+    format_chub_packages_for_prompt,
+)
 from copilotkit.langgraph import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
+logger = logging.getLogger("graph.nodes.route_and_framework")
+
 
 async def route_and_framework(
-    state: GraphState, config: Dict[str, Any] = None
+    state: GraphState,
+    runtime: Runtime,
+    config: Optional[RunnableConfig] = None,
 ) -> Dict[str, Any]:
     """One LLM call: datasource, programming language, and framework namespace."""
     print("---ROUTE AND FRAMEWORK---")
@@ -22,7 +34,22 @@ async def route_and_framework(
     query = state.get("query", "")
     state_language = state.get("language", "")
     rewritten_query = state.get("rewritten_query", query)
-    result = get_route_and_framework(query)
+
+    items = []
+    store = getattr(runtime, "store", None)
+    if store is not None:
+        try:
+            items = await store.asearch(CHUB_PACKAGES_NS, limit=200)
+        except Exception:
+            logger.exception("chub package catalog read failed")
+            items = []
+    else:
+        logger.warning("runtime.store is None; routing without chub package catalog")
+
+    package_block = format_chub_packages_for_prompt(items)
+    result = get_route_and_framework(
+        query, indexed_chub_packages=package_block
+    )
 
     datasource = result.datasource or "websearch"
     framework = result.framework or "others"

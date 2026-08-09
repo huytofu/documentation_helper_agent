@@ -23,10 +23,11 @@ parser = PydanticOutputParser(pydantic_object=IntentClassification)
 system = """You classify the user's latest message as either programming help or chitchat.
 
 You must set "intent" to exactly one of:
-- "chitchat": greetings, small talk, opinions about the agent, jokes, how-are-you, thanks with no coding ask, or other non-technical conversation
-- "programming": coding help, APIs, frameworks, bugs, how-to code, documentation questions, or any technical/programming task
+- "chitchat": greetings, small talk, opinions about the agent, jokes, how-are-you, thanks, or other non-technical conversation
+- "programming": coding help, APIs, frameworks, chub docs, build agents/apps, bugs, how-to code, documentation questions, or any technical/programming task
 
 When unsure, prefer "programming".
+when code excerpts/snippets are requested, prefer "programming".
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 

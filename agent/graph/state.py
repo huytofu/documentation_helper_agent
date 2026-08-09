@@ -1,4 +1,8 @@
 from typing import List, Optional, Dict, Any, Annotated
+
+from agent.graph.langgraph_compat import ensure_compiled_graph_alias
+
+ensure_compiled_graph_alias()
 from copilotkit import CopilotKitState
 import os
 import logging

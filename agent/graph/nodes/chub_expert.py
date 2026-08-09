@@ -126,8 +126,6 @@ async def chub_expert(
 
     # When the expert finishes (no more tool_calls), append a short summary.
     if not getattr(response, "tool_calls", None):
-        summary = AIMessage(content="Chub research done!")
-        updates["messages"] = [summary]
         if config:
             await copilotkit_emit_message(config, "Chub research done!")
 

@@ -11,9 +11,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
+
+from agent.graph.langgraph_compat import ensure_compiled_graph_alias
+
+ensure_compiled_graph_alias()
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
 from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
 from agent.graph.graph import app as agent_app
@@ -45,8 +51,20 @@ logging.getLogger("copilotkit").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.info("Initializing FastAPI application for Vercel...")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Ensure Redis/InMemory long-term store indices are ready on startup."""
+    from agent.graph.stores import aensure_store_setup, get_store
+
+    store = get_store()
+    await aensure_store_setup(store)
+    logger.info("Long-term store ready: %s", store.__class__.__name__)
+    yield
+
+
 # Create FastAPI app
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Debug log the app instance
 logger.info(f"FastAPI app instance: {id(app)} at {app}")

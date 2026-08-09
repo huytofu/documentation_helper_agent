@@ -77,6 +77,10 @@ LOG_LEVEL=INFO
 CHECKPOINTER_TYPE=redis  # Options: memory, vercel_kv, postgres, redis
 REDIS_URL=your_redis_url
 
+# LangGraph long-term Store (app-level memory; chub package catalog for routing)
+# Uses REDIS_URL when set. Set STORE_TYPE=memory to force InMemoryStore.
+STORE_TYPE=redis  # Options: redis, memory (default: redis if REDIS_URL set, else memory)
+
 # Vector store configuration
 VECTOR_STORE_TYPE=pinecone  # Options: chroma, pinecone
 PINECONE_API_KEY=your_pinecone_api_key

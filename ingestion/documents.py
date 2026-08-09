@@ -111,6 +111,25 @@ def ingest_documents(
         framework,
     )
     vector_store.add_documents(doc_splits)
+
+    # App-level catalog: packages successfully indexed under Pinecone `chub`.
+    if framework == "chub":
+        try:
+            from agent.graph.stores import remember_chub_package
+
+            for doc in docs_list:
+                doc_id = (doc.metadata or {}).get("doc_id") or (
+                    doc.metadata or {}
+                ).get("source")
+                if not doc_id:
+                    continue
+                title = (doc.metadata or {}).get("title")
+                remember_chub_package(str(doc_id), title)
+        except Exception:
+            logger.exception(
+                "Failed to update chub package catalog after ingest"
+            )
+
     return True
 
 
