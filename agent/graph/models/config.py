@@ -52,8 +52,8 @@ MODEL_IDS = {
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     # Primary: DeepSeek V4 Flash on Together serverless — 284B/13B active, 1M context.
-    # Fallback: coding-specialized Qwen MoE (480B/35B active) via HF → Nebius.
-    "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-Coder-480B-A35B-Instruct"],
+    # Fallback: coding-specialized Qwen MoE (235B/22B active) via HF → Nebius.
+    "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
 }
 
 # HF InferenceClient fallback providers only — never "together" (primary already failed).

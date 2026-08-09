@@ -194,6 +194,25 @@ def list_docs(
     return run_chub_json(*args)
 
 
+FETCHED_DIR_REL = ".chub/fetched"
+
+
+def fetched_path_for_doc_id(doc_id: str) -> Path:
+    """Absolute path under `.chub/fetched/<doc_id>.md` (nested on `/`)."""
+    parts = [p for p in doc_id.replace("\\", "/").split("/") if p]
+    if not parts or any(p == ".." for p in parts):
+        raise ChubError(f"Invalid doc_id for fetch path: {doc_id!r}")
+    *dirs, name = parts
+    if not name.endswith(".md"):
+        name = f"{name}.md"
+    return PROJECT_ROOT.joinpath(".chub", "fetched", *dirs, name)
+
+
+def rel_fetched_path(doc_id: str) -> str:
+    """Project-relative POSIX path for tool JSON (e.g. `.chub/fetched/stripe/api.md`)."""
+    return fetched_path_for_doc_id(doc_id).relative_to(PROJECT_ROOT).as_posix()
+
+
 def get_doc(
     doc_id: str,
     *,
@@ -225,6 +244,47 @@ def get_doc(
 
     data = run_chub_json(*args)
     return _content_from_get(data)
+
+
+def get_doc_to_file(
+    doc_id: str,
+    output_path: Path,
+    *,
+    lang: Optional[str] = None,
+    version: Optional[str] = None,
+    match_env: bool = False,
+) -> Path:
+    """
+    Fetch a doc via `chub get -o <absolute-path>`.
+
+    On --match-env failure, retries without match-env. Returns the resolved path.
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_out = str(output_path.resolve())
+
+    args = ["get", doc_id, "-o", abs_out]
+    if lang:
+        args.extend(["--lang", lang])
+    if version:
+        args.extend(["--version", version])
+
+    if match_env:
+        try:
+            run_chub(*args, "--match-env")
+            if output_path.exists():
+                return output_path.resolve()
+        except ChubError as exc:
+            logger.warning(
+                "chub get %s -o --match-env failed (%s); retrying without --match-env",
+                doc_id,
+                exc,
+            )
+
+    run_chub(*args)
+    if not output_path.exists():
+        raise ChubError(f"chub get -o did not create file: {abs_out}")
+    return output_path.resolve()
 
 
 def get_pinned() -> list[dict[str, Any]]:

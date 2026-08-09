@@ -157,7 +157,7 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         for call in tool_calls:
             name = call.get("name") if isinstance(call, dict) else getattr(call, "name", None)
             if name:
-                await copilotkit_emit_message(config, str(name))
+                await copilotkit_emit_message(config, "Calling chub tool: " + str(name))
 
     rounds = int(state.get("chub_tool_rounds") or 0) + 1
     tool_updates = chub_tool_node.invoke(state)

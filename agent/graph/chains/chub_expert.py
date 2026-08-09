@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any, List, Optional
 
 from langchain_core.documents import Document
@@ -26,11 +27,107 @@ Pinecone retrieval returned nothing useful. Use chub tools to find curated libra
 Rules:
 - Prefer search_docs then get_doc (at most 1–3 docs).
 - Use list_pins when the topic matches the pinned expert corpus.
-- Call ingest_doc only when a fetched doc is clearly worth caching for later sessions.
-- Stop when you have enough markdown to answer, or when search/get returns nothing useful.
-- Do not invent doc_ids. Only use ids returned by tools.
-- When finished, reply with a short plain-text summary of what you fetched (no more tool calls).
+- get_doc saves a file and returns only {doc_id, name, path} — never document body.
+- Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path.
+- If get_doc returns an error, do not call ingest_doc for that id.
+- Do not invent doc_ids or paths. Only use values returned by tools.
+- Never request or echo document bodies.
+- When finished, reply with a short plain-text summary of saved names/paths (no more tool calls).
+
+SCENARIOS:
+
+A)
+STEP 1:
+Called search_docs. Argument: query="stripe payments"
+search_docs(query="stripe payments")
+Output/Observation:
+{
+  "query": "stripe payments",
+  "results": [],
+  "showing": 0,
+  "total": 0
+}
+Conclusion: No results. Stop. Do not call get_doc or ingest_doc.
+
+B)
+STEP 1:
+Called search_docs. Argument: query="stripe payments"
+search_docs(query="stripe payments")
+Output/Observation:
+{
+  "query": "stripe payments",
+  "results": ["stripe/api", "stripe/payments"],
+  "showing": 2,
+  "total": 2
+}
+Conclusion: Call get_doc for each result; after each successful get_doc, call ingest_doc with that path.
+
+STEP 2:
+Called get_doc. Argument: doc_id="stripe/api"
+get_doc(doc_id="stripe/api")
+Output/Observation:
+{
+  "doc_id": "stripe/api",
+  "name": "stripe/api",
+  "path": ".chub/fetched/stripe/api.md"
+}
+Conclusion: File saved. Must call ingest_doc next.
+
+STEP 3:
+Called ingest_doc. Argument: path=".chub/fetched/stripe/api.md"
+ingest_doc(path=".chub/fetched/stripe/api.md")
+Output/Observation:
+{
+  "success": true,
+  "doc_id": "stripe/api",
+  "namespace": "chub",
+  "title": "stripe/api",
+  "path": ".chub/fetched/stripe/api.md"
+}
+Conclusion: Ingested. Repeat get_doc + ingest_doc for "stripe/payments", then stop with a short path summary.
 """
+
+
+def _get_doc_success_payload(doc_id: str) -> dict[str, str]:
+    return {
+        "doc_id": doc_id,
+        "name": doc_id,
+        "path": chub_client.rel_fetched_path(doc_id),
+    }
+
+
+def _resolve_under_fetched(path: str) -> Path:
+    """Resolve path to an absolute file under `.chub/fetched/`; raise ValueError otherwise."""
+    root = chub_client.PROJECT_ROOT.resolve()
+    fetched_root = (root / ".chub" / "fetched").resolve()
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = (root / path).resolve()
+    else:
+        candidate = candidate.resolve()
+    try:
+        candidate.relative_to(fetched_root)
+    except ValueError as exc:
+        raise ValueError(f"path must be under .chub/fetched/: {path}") from exc
+    if not candidate.is_file():
+        raise FileNotFoundError(f"fetched file not found: {path}")
+    return candidate
+
+
+def _doc_id_from_fetched_file(path: Path, markdown: str) -> str:
+    frontmatter, _ = chub_client.parse_frontmatter(markdown)
+    name = frontmatter.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    fetched_root = (chub_client.PROJECT_ROOT / ".chub" / "fetched").resolve()
+    rel = path.resolve().relative_to(fetched_root).as_posix()
+    if rel.endswith(".md"):
+        rel = rel[: -len(".md")]
+    return rel
+
+
+def _project_rel_posix(path: Path) -> str:
+    return path.resolve().relative_to(chub_client.PROJECT_ROOT.resolve()).as_posix()
 
 
 @tool
@@ -60,11 +157,18 @@ def get_doc(
     version: Optional[str] = None,
     match_env: bool = False,
 ) -> str:
-    """Fetch a chub documentation entry as markdown."""
+    """Fetch a chub doc to `.chub/fetched/` and return {doc_id, name, path} only (no body)."""
     try:
-        return chub_client.get_doc(
-            doc_id, lang=lang, version=version, match_env=match_env
-        )
+        abs_path = chub_client.fetched_path_for_doc_id(doc_id)
+        if not abs_path.is_file():
+            chub_client.get_doc_to_file(
+                doc_id,
+                abs_path,
+                lang=lang,
+                version=version,
+                match_env=match_env,
+            )
+        return json.dumps(_get_doc_success_payload(doc_id), indent=2)
     except ChubError as exc:
         return json.dumps({"error": str(exc)})
     except Exception as exc:  # noqa: BLE001
@@ -74,21 +178,18 @@ def get_doc(
 
 @tool
 def ingest_doc(
-    doc_id: str,
-    lang: Optional[str] = "python",
-    version: Optional[str] = None,
-    match_env: bool = False,
+    path: str,
     namespace: Optional[str] = None,
 ) -> str:
-    """Fetch a chub doc, chunk it, and add it to the Pinecone namespace."""
+    """Ingest a previously saved chub markdown file from `.chub/fetched/` into Pinecone."""
     try:
         from ingestion.documents import build_chub_document, ingest_documents
 
-        markdown = chub_client.get_doc(
-            doc_id, lang=lang, version=version, match_env=match_env
-        )
+        abs_path = _resolve_under_fetched(path)
+        markdown = abs_path.read_text(encoding="utf-8")
+        doc_id = _doc_id_from_fetched_file(abs_path, markdown)
         ns = namespace or namespace_for_doc_id(doc_id)
-        doc = build_chub_document(markdown, doc_id, language=lang, namespace=ns)
+        doc = build_chub_document(markdown, doc_id, namespace=ns)
         ok = ingest_documents(ns, [doc])
         return json.dumps(
             {
@@ -96,7 +197,7 @@ def ingest_doc(
                 "doc_id": doc_id,
                 "namespace": ns,
                 "title": doc.metadata.get("title"),
-                "markdown_preview": markdown[:2000],
+                "path": _project_rel_posix(abs_path),
             },
             indent=2,
         )
@@ -147,10 +248,12 @@ def _tool_name_by_call_id(messages: List[BaseMessage]) -> dict[str, str]:
 
 
 def harvest_chub_documents(chub_messages: List[Any]) -> List[Document]:
-    """Build Documents from successful get_doc / ingest_doc ToolMessages."""
+    """Build Documents by reading files listed in get_doc / ingest_doc ToolMessages."""
+    from ingestion.documents import build_chub_document
+
     name_by_id = _tool_name_by_call_id(chub_messages)
     documents: List[Document] = []
-    seen_fingerprints: set[str] = set()
+    seen_paths: set[str] = set()
 
     for message in chub_messages:
         if not isinstance(message, ToolMessage):
@@ -158,46 +261,34 @@ def harvest_chub_documents(chub_messages: List[Any]) -> List[Document]:
         tool_name = name_by_id.get(message.tool_call_id) or getattr(
             message, "name", None
         )
-        content = message.content if isinstance(message.content, str) else str(message.content)
-        if not content or content.strip().startswith('{"error"'):
+        if tool_name not in ("get_doc", "ingest_doc"):
             continue
-
-        if tool_name == "get_doc":
-            fingerprint = content[:200]
-            if fingerprint in seen_fingerprints:
-                continue
-            seen_fingerprints.add(fingerprint)
-            documents.append(
-                Document(
-                    page_content=content,
-                    metadata={"source": "chub", "tool": "get_doc"},
-                )
-            )
-        elif tool_name == "ingest_doc":
-            try:
-                payload = json.loads(content)
-            except json.JSONDecodeError:
-                continue
-            if payload.get("error"):
-                continue
-            preview = payload.get("markdown_preview") or ""
-            if not preview:
-                continue
-            fingerprint = preview[:200]
-            if fingerprint in seen_fingerprints:
-                continue
-            seen_fingerprints.add(fingerprint)
-            documents.append(
-                Document(
-                    page_content=preview,
-                    metadata={
-                        "source": "chub",
-                        "tool": "ingest_doc",
-                        "doc_id": payload.get("doc_id"),
-                        "namespace": payload.get("namespace"),
-                        "title": payload.get("title"),
-                    },
-                )
-            )
+        content = (
+            message.content if isinstance(message.content, str) else str(message.content)
+        )
+        if not content:
+            continue
+        try:
+            payload = json.loads(content)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict) or payload.get("error"):
+            continue
+        rel_path = payload.get("path")
+        if not isinstance(rel_path, str) or not rel_path or rel_path in seen_paths:
+            continue
+        seen_paths.add(rel_path)
+        abs_path = (chub_client.PROJECT_ROOT / rel_path).resolve()
+        if not abs_path.is_file():
+            logger.warning("harvest skip missing file: %s", rel_path)
+            continue
+        try:
+            markdown = abs_path.read_text(encoding="utf-8")
+        except OSError:
+            logger.exception("harvest failed reading %s", rel_path)
+            continue
+        doc_id = payload.get("doc_id") or _doc_id_from_fetched_file(abs_path, markdown)
+        doc = build_chub_document(markdown, str(doc_id))
+        documents.append(doc)
 
     return documents
