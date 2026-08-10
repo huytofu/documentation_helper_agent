@@ -48,7 +48,7 @@ async def summarize(state: GraphState, config: Optional[RunnableConfig] = None) 
     messages = trim_messages(messages)
 
     # Skip LLM summarization for short conversations.
-    if len(messages) < 10:
+    if len(messages) < 8:
         return {
             "pass_summarize": True,
             "summarized": False,

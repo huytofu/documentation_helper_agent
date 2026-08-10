@@ -17,6 +17,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _assistant_message(content: str, *, message_id: Optional[str] = None, error_type=None, error_message=None) -> AIMessage:
+    additional_kwargs = {
+        "display_in_chat": True,
+        "error_type": error_type,
+    }
+    if error_message is not None:
+        additional_kwargs["error_message"] = error_message
+    return AIMessage(
+        id=message_id or str(uuid.uuid4()),
+        content=content,
+        additional_kwargs=additional_kwargs,
+    )
+
+
 async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
     
@@ -42,6 +56,8 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         generation = ""
     elif last_message_type == "ai":
         generation = messages[-1].content
+    else:
+        generation = ""
         
     
     comments = state.get("comments", "")
@@ -54,7 +70,7 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         extra_info = ""
 
     try:
-        llm_generation = await astream_chain_text(
+        llm_generation, stream_message_id = await astream_chain_text(
             regeneration_chain,
             {
                 "extra_info": extra_info,
@@ -73,33 +89,21 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
-        
-        messages.append(AIMessage(
-            id=str(uuid.uuid4()),
-            content=llm_generation,
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": None
-            }
-        ))
 
+        # Return only the new message — GraphState.messages uses add_messages.
         return {
-            "messages": messages,
+            "messages": [_assistant_message(llm_generation, message_id=stream_message_id)],
             "documents": raw_documents,
             "current_node": "REGENERATE",
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
-        messages.append(AIMessage(
-            content="BACKEND AGENT DEAD! Please try again later.",
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "timeout",
-                "error_message": "Generation timed out"
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_assistant_message(
+                "BACKEND AGENT DEAD! Please try again later.",
+                error_type="timeout",
+                error_message="Generation timed out",
+            )],
             "documents": raw_documents,
             "error": "Generation timed out",
             "current_node": "REGENERATE",
@@ -108,16 +112,12 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         import traceback
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
-        messages.append(AIMessage(
-            content="BACKENDS AGENT DEAD! Please try again later.",
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "internal",
-                "error_message": str(e)
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_assistant_message(
+                "BACKENDS AGENT DEAD! Please try again later.",
+                error_type="internal",
+                error_message=str(e),
+            )],
             "documents": raw_documents,
             "error": str(e),
             "current_node": "REGENERATE",

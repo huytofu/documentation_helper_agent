@@ -15,6 +15,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _assistant_message(content: str, *, message_id: Optional[str] = None, error_type=None, error_message=None) -> AIMessage:
+    additional_kwargs = {
+        "display_in_chat": True,
+        "error_type": error_type,
+    }
+    if error_message is not None:
+        additional_kwargs["error_message"] = error_message
+    return AIMessage(
+        id=message_id or str(uuid.uuid4()),
+        content=content,
+        additional_kwargs=additional_kwargs,
+    )
+
+
 async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---GENERATE---")
     # Emit only one "GENERATE" state update before generation
@@ -29,7 +43,6 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
     rewritten_query = state.get("rewritten_query", "")
     documents = state.get("documents", [])
     framework = state.get("framework", "")
-    messages = state.get("messages", [])
 
     raw_documents = convert_to_raw_documents(documents)
 
@@ -41,7 +54,7 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
         extra_info = ""
 
     try:
-        llm_generation = await astream_chain_text(
+        llm_generation, stream_message_id = await astream_chain_text(
             generation_chain,
             {
                 "extra_info": extra_info,
@@ -58,34 +71,22 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
-        
-        messages.append(AIMessage(
-            id=str(uuid.uuid4()),
-            content=llm_generation,
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": None
-            }
-        ))
-        
+
+        # Return only the new message — GraphState.messages uses add_messages.
         return {
-            "messages": messages,
+            "messages": [_assistant_message(llm_generation, message_id=stream_message_id)],
             "documents": raw_documents,
             "current_node": "GENERATE",
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
         warning_message = "BACKEND AGENT DEAD! Please try again later."
-        messages.append(AIMessage(
-            content=warning_message,
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "timeout",
-                "error_message": "Generation timed out"
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_assistant_message(
+                warning_message,
+                error_type="timeout",
+                error_message="Generation timed out",
+            )],
             "documents": raw_documents,
             "error": "Generation timed out",
             "current_node": "GENERATE",
@@ -95,16 +96,12 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
         warning_message = "BACKEND AGENT DEAD! Please try again later."
-        messages.append(AIMessage(
-            content=warning_message,
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "internal",
-                "error_message": str(e)
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_assistant_message(
+                warning_message,
+                error_type="internal",
+                error_message=str(e),
+            )],
             "documents": raw_documents,
             "error": str(e),
             "current_node": "GENERATE",
