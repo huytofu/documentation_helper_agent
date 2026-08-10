@@ -1,5 +1,4 @@
 import { InferenceClient } from "@huggingface/inference";
-import { ChatOllama } from "@langchain/ollama";
 import Together from "together-ai";
 
 // Environment flags
@@ -13,17 +12,6 @@ const INFERENCE_DIRECT_API_KEY = process.env.INFERENCE_DIRECT_API_KEY || "";
 if (USE_OLLAMA && USE_INFERENCE_CLIENT) {
   throw new Error("USE_OLLAMA and USE_INFERENCE_CLIENT cannot be enabled simultaneously");
 }
-
-// Model configurations
-const OLLAMA_CONFIG = {
-  model: "deepseek-coder:33b",
-  temperature: 0,
-  maxTokens: 2048,
-  topP: 0.95,
-  topK: 50,
-  stop: ["</s>", "Human:", "Assistant:"],
-  streaming: true
-};
 
 const INFERENCE_CLIENT_CONFIG = {
   provider: INFERENCE_PROVIDER,
@@ -44,7 +32,6 @@ const TOGETHER_DIRECT_CONFIG = {
   stop: ["</s>", "Human:", "Assistant:"],
 };
 
-// Create a client wrapper that provides a compatible interface with ChatOllama
 class HFInferenceClientWrapper {
   private client: InferenceClient;
   private togetherClient: Together;
@@ -60,7 +47,6 @@ class HFInferenceClientWrapper {
     this.config = config;
   }
 
-  // Add invoke method for compatibility with the route.ts usage
   async invoke(prompt: string): Promise<string> {
     return this.call(prompt);
   }
@@ -92,18 +78,17 @@ class HFInferenceClientWrapper {
     }
   }
 
-  // Direct API call to Together AI using client library
   private async callTogetherDirectAPI(prompt: string): Promise<string> {
     try {
       console.log("Making API call using Together client");
       const completion = await this.togetherClient.chat.completions.create({
         model: TOGETHER_DIRECT_CONFIG.model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: "user", content: prompt }],
         temperature: TOGETHER_DIRECT_CONFIG.temperature,
         max_tokens: TOGETHER_DIRECT_CONFIG.max_tokens,
         top_p: TOGETHER_DIRECT_CONFIG.top_p,
         top_k: TOGETHER_DIRECT_CONFIG.top_k,
-        stop: TOGETHER_DIRECT_CONFIG.stop
+        stop: TOGETHER_DIRECT_CONFIG.stop,
       });
 
       return completion.choices?.[0]?.message?.content || "";
@@ -113,20 +98,19 @@ class HFInferenceClientWrapper {
     }
   }
 
-  // Add streaming method if needed
-  async stream(prompt: string): Promise<AsyncIterable<string>> {
-    // Implementation depends on if the InferenceClient supports streaming
+  async stream(_prompt: string): Promise<AsyncIterable<string>> {
     throw new Error("Streaming not implemented for InferenceClient");
   }
 }
 
-// Get the appropriate model based on environment configuration
 export function getModel() {
   if (USE_OLLAMA) {
-    return new ChatOllama(OLLAMA_CONFIG);
-  } else if (USE_INFERENCE_CLIENT) {
-    return new HFInferenceClientWrapper(INFERENCE_CLIENT_CONFIG);
-  } else {
-    throw new Error("No model provider enabled. Please set either USE_OLLAMA or USE_INFERENCE_CLIENT to true");
+    throw new Error(
+      "USE_OLLAMA is no longer supported in the AG-UI CopilotKit path; enable USE_INFERENCE_CLIENT or use the LangGraph agent backend"
+    );
   }
-} 
+  if (USE_INFERENCE_CLIENT) {
+    return new HFInferenceClientWrapper(INFERENCE_CLIENT_CONFIG);
+  }
+  throw new Error("No model provider enabled. Please set USE_INFERENCE_CLIENT to true");
+}

@@ -9,8 +9,7 @@ import json
 import logging
 import logging.config
 from fastapi import FastAPI, Request
-from copilotkit.integrations.fastapi import add_fastapi_endpoint
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAGUIAgent
+from agent.graph.agui_endpoint import register_agui_endpoint
 from agent.graph.graph import app as agent_app
 from fastapi.middleware.cors import CORSMiddleware
 from agent.graph.utils.api_utils import (
@@ -46,25 +45,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create SDK instance
-sdk = CopilotKitRemoteEndpoint(
-    agents=[
-        LangGraphAGUIAgent(
-            name="coding_agent",
-            description="Expert coding agent that assists users with answering coding-related questions, code documentation, code completion and implementation.",
-            graph=agent_app,
-            config={
-                "force_use": True,  # Force using the LangGraph agent
-                "priority": 1,  # Highest priority
-                "metadata": {
-                    "requires_langgraph": True,
-                    "timestamp": "auto"
-                },
-            }
-        )
-    ],
-)
-
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -95,7 +75,20 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
+# AG-UI stream endpoint (replaces retired CopilotKitRemoteEndpoint + execute())
+register_agui_endpoint(
+    app,
+    agent_app,
+    path="/api/copilotkitagent",
+    config={
+        "force_use": True,
+        "priority": 1,
+        "metadata": {
+            "requires_langgraph": True,
+            "timestamp": "auto",
+        },
+    },
+)
 
 # # Add the CopilotKit info endpoint with both GET and POST methods
 # @app.get("/copilotkit/info")
