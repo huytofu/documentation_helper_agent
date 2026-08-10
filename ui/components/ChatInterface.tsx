@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import "@copilotkit/react-ui/styles.css";
 import { CopilotChat } from '@copilotkit/react-ui';
 import { MessageSquare } from 'lucide-react';
-import { useCopilotChat } from '@copilotkit/react-core';
+import { useCopilotChatInternal } from '@copilotkit/react-core';
 import { AgentState } from '@/types/agent';
 import { AuthService } from '@/lib/auth';
 import { User } from '@/types/user';
@@ -24,7 +24,10 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
   const [remainingChats, setRemainingChats] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const authService = AuthService.getInstance();
-  const { visibleMessages } = useCopilotChat();
+  // useCopilotChat omits AG-UI `messages`; visibleMessages is deprecated/empty.
+  const { messages } = useCopilotChatInternal();
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   
   // Ensure component is mounted before rendering CopilotChat
   useEffect(() => {
@@ -76,14 +79,14 @@ export default function ChatInterface({ state, setState }: ChatInterfaceProps) {
       setChatInProgress(false);
       try {
         // Save the assistant's response to the database when chat completes
-        if (visibleMessages.length > 0) {
-          // Get the last message (which should be the assistant's response)
-          const lastMessage = visibleMessages[visibleMessages.length - 1];
+        const currentMessages = messagesRef.current;
+        if (currentMessages.length > 0) {
+          // Prefer the latest assistant message (AG-UI may append tool results after it)
+          const lastMessage = [...currentMessages]
+            .reverse()
+            .find((message) => 'role' in message && message.role === 'assistant');
           
-          // Type guard to check if it's an assistant message
-          if ('role' in lastMessage && 
-              lastMessage.role === 'assistant' && 
-              'content' in lastMessage) {
+          if (lastMessage && 'content' in lastMessage) {
             console.log('Saving assistant response to database');
             
             // Get message content with type safety
