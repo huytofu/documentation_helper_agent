@@ -1,6 +1,6 @@
 from typing import Any, Dict
 import logging
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_community.tools.tavily_search import TavilySearchResults
 from agent.graph.state import GraphState
 from agent.graph.utils.timeout import timeout

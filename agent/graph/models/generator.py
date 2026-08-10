@@ -1,16 +1,15 @@
 from langchain_ollama import ChatOllama
 from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientChatModel
-from langchain.chat_models.base import BaseChatModel
-from langchain.callbacks.manager import CallbackManagerForLLMRun
-from langchain.schema import (
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+from langchain_core.messages import (
     AIMessage,
     HumanMessage,
     SystemMessage,
     BaseMessage,
-    ChatResult,
-    ChatGeneration,
 )
+from langchain_core.outputs import ChatResult, ChatGeneration
 from typing import Any, List, Mapping, Optional, Iterator, Dict, Union, cast
 
 class RunPodChatModel(BaseChatModel):
