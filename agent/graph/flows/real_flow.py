@@ -254,6 +254,9 @@ def after_route_and_framework(state: GraphState) -> str:
     if datasource == "kb_meta":
         logger.info("---ROUTE TO KB_META---")
         return KB_META
+    if datasource == "chub":
+        logger.info("---ROUTE TO ASK CHUB PERMISSION---")
+        return ASK_CHUB_PERMISSION
     logger.info("---ROUTE TO WEB SEARCH---")
     return WEBSEARCH
 
@@ -364,6 +367,7 @@ workflow.add_conditional_edges(
         RETRIEVE: RETRIEVE,
         GENERATE: GENERATE,
         KB_META: KB_META,
+        ASK_CHUB_PERMISSION: ASK_CHUB_PERMISSION,
     },
 )
 

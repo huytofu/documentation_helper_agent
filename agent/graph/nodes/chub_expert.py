@@ -14,8 +14,7 @@ from agent.graph.state import GraphState
 from agent.graph.utils.api_utils import standard_sleep
 
 CHUB_CONSENT_PROMPT = (
-    "Pinecone retrieval found no useful docs. "
-    "Is it OK for the agent to use chub tools to search for better context? "
+    "Is it OK for the agent to use chub tools to search curated package documentation? "
     "Reply yes or no."
 )
 

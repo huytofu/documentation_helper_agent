@@ -99,6 +99,16 @@ async def route_and_framework(
             "current_node": "ROUTE_AND_FRAMEWORK",
         }
 
+    if datasource == "chub":
+        return {
+            "datasource": "chub",
+            "framework": "others",
+            "language": language,
+            "query": query,
+            "rewritten_query": rewritten_query,
+            "current_node": "ROUTE_AND_FRAMEWORK",
+        }
+
     if datasource != "vectorstore":
         return {
             "datasource": "websearch",

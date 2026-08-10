@@ -1,0 +1,32 @@
+---
+description: Use deployment_env as the project Python virtualenv (not .venv)
+alwaysApply: true
+---
+
+# Python virtualenv
+
+This repo uses **`deployment_env/`**, not `.venv`.
+
+## Activate (Git Bash on Windows)
+
+```bash
+# ❌ BAD — .venv does not exist in this project
+source .venv/Scripts/activate
+
+# ✅ GOOD
+source deployment_env/Scripts/activate
+```
+
+## Invoke Python
+
+Prefer the venv interpreter explicitly when not activated:
+
+```bash
+# ❌ BAD
+.venv/Scripts/python.exe script.py
+
+# ✅ GOOD
+deployment_env/Scripts/python.exe script.py
+```
+
+When running modules (MCP servers, smoke scripts), activate `deployment_env` first, set `PYTHONPATH=.` from the repo root if needed, then run `python`.
