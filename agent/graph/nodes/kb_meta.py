@@ -15,7 +15,7 @@ from agent.graph.stores import (
 )
 from agent.graph.utils.flow_state import reset_flow_state
 from agent.graph.utils.api_utils import GENERATION_TIMEOUT, cost_tracker, standard_sleep
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 
 logger = logging.getLogger(__name__)
 

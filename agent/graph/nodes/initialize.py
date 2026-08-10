@@ -3,7 +3,7 @@ from typing import Any, Dict
 from agent.graph.state import GraphState
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.firebase_utils import save_conversation_message_api
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.message_utils import trim_messages
 from agent.graph.utils.api_utils import standard_sleep
 

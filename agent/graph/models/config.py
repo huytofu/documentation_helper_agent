@@ -42,7 +42,6 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 MODEL_IDS = {
     "embeddings": ["intfloat/multilingual-e5-large-instruct", "intfloat/multilingual-e5-large-instruct"],
     "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
-    "chub_expert": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "answer_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "retrieval_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
@@ -51,6 +50,7 @@ MODEL_IDS = {
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "chub_expert": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     # Primary: DeepSeek V4 Flash on Together serverless — 284B/13B active, 1M context.
     # Fallback: coding-specialized Qwen MoE (235B/22B active) via HF → Nebius.
     "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],

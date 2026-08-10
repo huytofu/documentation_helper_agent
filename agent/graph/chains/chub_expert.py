@@ -20,16 +20,20 @@ from ingestion.namespace_map import namespace_for_doc_id
 logger = logging.getLogger("graph.chains.chub_expert")
 
 MAX_CHUB_TOOL_ROUNDS = 6
+# ToolNode has no max-calls param; we trim before invoke and pass max_concurrency.
+MAX_CHUB_TOOLS_PER_ROUND = 1
 
 CHUB_EXPERT_SYSTEM = """You are a documentation enricher for a RAG agent.
 Pinecone retrieval returned nothing useful. Use chub tools to find curated library docs.
 
 Rules:
-- Prefer search_docs then get_doc (at most 1–3 docs).
+- You are given multiple rounds to use tools and observe their results so select 1 tool each round only.
+- Prefer search_docs then get_doc (at most 2–4 docs), one call per round.
 - Use list_pins when the topic matches the pinned expert corpus.
+- get_doc doc_id MUST be taken strictly from the results list returned by search_docs (or from list_pins). Never invent, guess, or rewrite ids. Pick the id that matches the user's query the most.
 - get_doc saves a file and returns only {doc_id, name, path} — never document body.
-- Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path.
-- If get_doc returns an error, do not call ingest_doc for that id.
+- Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path (next round).
+- If get_doc returns an error, do not call ingest_doc for that id. Next round: call get_doc again with a correct id from the prior search_docs results (if any remain).
 - Do not invent doc_ids or paths. Only use values returned by tools.
 - Never request or echo document bodies.
 - When finished, reply with a short plain-text summary of saved names/paths (no more tool calls).
@@ -39,7 +43,7 @@ SCENARIOS:
 A)
 STEP 1:
 Called search_docs. Argument: query="stripe payments"
-search_docs(query="stripe payments")
+search_docs(query="stripe payments", limit=3)
 Output/Observation:
 {
   "query": "stripe payments",
@@ -60,7 +64,7 @@ Output/Observation:
   "showing": 2,
   "total": 2
 }
-Conclusion: Call get_doc for each result; after each successful get_doc, call ingest_doc with that path.
+Conclusion: Next round call get_doc for the first result only (one tool per round). Use only ids from this results list.
 
 STEP 2:
 Called get_doc. Argument: doc_id="stripe/api"
@@ -71,7 +75,7 @@ Output/Observation:
   "name": "stripe/api",
   "path": ".chub/fetched/stripe/api.md"
 }
-Conclusion: File saved. Must call ingest_doc next.
+Conclusion: File saved. Next round must call ingest_doc only.
 
 STEP 3:
 Called ingest_doc. Argument: path=".chub/fetched/stripe/api.md"
@@ -84,8 +88,74 @@ Output/Observation:
   "title": "stripe/api",
   "path": ".chub/fetched/stripe/api.md"
 }
-Conclusion: Ingested. Repeat get_doc + ingest_doc for "stripe/payments", then stop with a short path summary.
+Conclusion: Ingested. Later rounds: get_doc then ingest_doc for "stripe/payments" (still one tool per round), then stop with a short path summary.
+
+C)
+STEP 1:
+Called search_docs. Argument: query="binance trading"
+search_docs(query="binance trading")
+Output/Observation:
+{
+  "query": "binance trading",
+  "results": ["binance/trading"],
+  "showing": 1,
+  "total": 1
+}
+Conclusion: Only "binance/trading" is valid. Do not invent ids like "binance/sdk" or "binance/api".
+
+STEP 2 (WRONG — invented id):
+Called get_doc. Argument: doc_id="binance/sdk"
+get_doc(doc_id="binance/sdk")
+Output/Observation:
+{
+  "error": "chub get binance/sdk -o /app/.chub/fetched/binance/sdk.md --lang python failed (exit 1): \\u001b[31mError: No doc or skill found with id \\"binance/sdk\\".\\u001b[39m"
+}
+Conclusion: get_doc failed. Do NOT call ingest_doc. Next round call get_doc with the correct id from search results: "binance/trading".
+
+STEP 3 (recovery):
+Called get_doc. Argument: doc_id="binance/trading"
+get_doc(doc_id="binance/trading")
+Output/Observation:
+{
+  "doc_id": "binance/trading",
+  "name": "binance/trading",
+  "path": ".chub/fetched/binance/trading.md"
+}
+Conclusion: Success. Next round call ingest_doc with that path only.
 """
+
+
+def limit_ai_message_tool_calls(
+    message: AIMessage, max_calls: int = MAX_CHUB_TOOLS_PER_ROUND
+) -> AIMessage:
+    """Keep only the first N tool_calls so at most N reach ToolNode."""
+    tool_calls = list(message.tool_calls or [])
+    if len(tool_calls) <= max_calls:
+        return message
+
+    kept = tool_calls[:max_calls]
+    kept_ids = {call.get("id") for call in kept if call.get("id")}
+    additional_kwargs = dict(message.additional_kwargs or {})
+    raw = additional_kwargs.get("tool_calls")
+    if isinstance(raw, list) and kept_ids:
+        filtered = []
+        for item in raw:
+            call_id = item.get("id") if isinstance(item, dict) else getattr(item, "id", None)
+            if call_id in kept_ids:
+                filtered.append(item)
+        if filtered:
+            additional_kwargs["tool_calls"] = filtered
+        else:
+            additional_kwargs.pop("tool_calls", None)
+
+    return AIMessage(
+        content=message.content,
+        tool_calls=kept,
+        id=message.id,
+        name=message.name,
+        additional_kwargs=additional_kwargs,
+        response_metadata=dict(getattr(message, "response_metadata", None) or {}),
+    )
 
 
 def _get_doc_success_payload(doc_id: str) -> dict[str, str]:
@@ -226,7 +296,9 @@ CHUB_TOOLS = [list_pins, search_docs, get_doc, ingest_doc]
 # a) Attach tool schemas so the model can emit structured tool_calls
 llm_with_tools = llm.bind_tools(CHUB_TOOLS)
 
-# b) ToolNode runs tool_calls from the last AIMessage (incl. parallel calls)
+# b) ToolNode runs tool_calls from the last AIMessage.
+# ToolNode has no max-calls setting; chub_tools trims to MAX_CHUB_TOOLS_PER_ROUND
+# and invokes with max_concurrency=MAX_CHUB_TOOLS_PER_ROUND.
 chub_tool_node = ToolNode(
     CHUB_TOOLS,
     messages_key="chub_messages",

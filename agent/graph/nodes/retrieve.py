@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from agent.graph.state import GraphState
 from agent.graph.retrievers import get_retriever
-from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
 async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:

@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List, Set, Callable, Awaitable
 import asyncio
 import logging
 from agent.graph.state import GraphState
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from agent.graph.state import GraphState
 from langgraph.types import interrupt
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 import logging
 

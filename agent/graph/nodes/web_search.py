@@ -11,7 +11,7 @@ from agent.graph.utils.api_utils import (
     APIResponse
 )
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.web_search")

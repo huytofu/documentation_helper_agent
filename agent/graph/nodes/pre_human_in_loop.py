@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from agent.graph.state import GraphState
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
 async def pre_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:

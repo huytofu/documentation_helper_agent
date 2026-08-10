@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from agent.graph.state import GraphState
 from agent.graph.chains.language_router import get_language_route
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
 async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:

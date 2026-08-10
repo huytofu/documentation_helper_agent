@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.types import Command, interrupt
-from copilotkit.langgraph import copilotkit_emit_message, copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_message, copilotkit_emit_state
 
 from agent.graph.chains.chub_expert import (
     CHUB_EXPERT_SYSTEM,
@@ -138,7 +138,11 @@ async def chub_expert(
 async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Execute pending tool_calls via ToolNode; emit each tool name for UX."""
     print("---CHUB TOOLS---")
-    from agent.graph.chains.chub_expert import chub_tool_node
+    from agent.graph.chains.chub_expert import (
+        MAX_CHUB_TOOLS_PER_ROUND,
+        chub_tool_node,
+        limit_ai_message_tool_calls,
+    )
 
     if config:
         await copilotkit_emit_state(
@@ -150,10 +154,20 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         )
         await standard_sleep()
 
-    # Tiny CopilotKit message per tool name about to run this round.
-    msgs = state.get("chub_messages") or []
+    msgs = list(state.get("chub_messages") or [])
     last = msgs[-1] if msgs else None
     tool_calls = getattr(last, "tool_calls", None) if last is not None else None
+
+    invoke_state: Dict[str, Any] = state
+    message_updates: List[Any] = []
+    if isinstance(last, AIMessage) and tool_calls and len(tool_calls) > MAX_CHUB_TOOLS_PER_ROUND:
+        trimmed = limit_ai_message_tool_calls(last, MAX_CHUB_TOOLS_PER_ROUND)
+        invoke_state = {**state, "chub_messages": msgs[:-1] + [trimmed]}
+        message_updates.append(trimmed)
+        last = trimmed
+        tool_calls = trimmed.tool_calls
+
+    # Tiny CopilotKit message per tool name about to run this round.
     if config and tool_calls:
         for call in tool_calls:
             name = call.get("name") if isinstance(call, dict) else getattr(call, "name", None)
@@ -161,9 +175,15 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
                 await copilotkit_emit_message(config, "Calling chub tool: " + str(name))
 
     rounds = int(state.get("chub_tool_rounds") or 0) + 1
-    tool_updates = chub_tool_node.invoke(state)
+    # max_concurrency caps parallel workers; trim above caps how many calls reach ToolNode.
+    tool_updates = chub_tool_node.invoke(
+        invoke_state,
+        config={"max_concurrency": MAX_CHUB_TOOLS_PER_ROUND},
+    )
+    tool_messages = list(tool_updates.get("chub_messages") or [])
     return {
         **tool_updates,
+        "chub_messages": message_updates + tool_messages,
         "chub_tool_rounds": rounds,
         "current_node": "CHUB_ENRICH",
     }

@@ -10,7 +10,7 @@ from agent.graph.stores import (
     CHUB_PACKAGES_NS,
     format_chub_packages_for_prompt,
 )
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.nodes.route_and_framework")

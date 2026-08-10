@@ -4,7 +4,7 @@ from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
 from langchain_core.messages import AIMessage
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
     GENERATION_TIMEOUT,
     cost_tracker,
