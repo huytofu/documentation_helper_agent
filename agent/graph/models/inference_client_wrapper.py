@@ -489,6 +489,29 @@ class InferenceClientChatModel(BaseChatModel):
             run_manager.on_llm_new_token(text, chunk=chunk)
         return chunk
 
+    def _should_stream(
+        self,
+        *,
+        async_api: bool,
+        run_manager: Optional[
+            Union[CallbackManagerForLLMRun, AsyncCallbackManagerForLLMRun]
+        ] = None,
+        **kwargs: Any,
+    ) -> bool:
+        """Stream only when explicitly requested.
+
+        BaseChatModel auto-streams whenever a ``_StreamingCallbackHandler`` is
+        attached (LangGraph ``astream_events`` / AG-UI). That would leak
+        router/grader/intent JSON into the chat UI for every ``invoke()``.
+        Generate/regenerate use ``chain.astream()``, which passes ``stream=True``.
+        """
+        del async_api, run_manager  # intentional: ignore callback-driven auto-stream
+        if kwargs.get("stream"):
+            return True
+        if "streaming" in self.model_fields_set and getattr(self, "streaming", None) is True:
+            return True
+        return False
+
     def _stream(
         self,
         messages: List[BaseMessage],
