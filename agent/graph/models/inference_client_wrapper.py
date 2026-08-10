@@ -12,21 +12,25 @@ normalize response tool_calls onto AIMessage.tool_calls via parse_tool_call.
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, AsyncIterator, Callable, Dict, Iterator, List, Optional, Sequence, Union
 
 from huggingface_hub import InferenceClient
 from huggingface_hub.inference._client import ChatCompletionOutput
-from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+from langchain_core.callbacks.manager import (
+    AsyncCallbackManagerForLLMRun,
+    CallbackManagerForLLMRun,
+)
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
+    AIMessageChunk,
     BaseMessage,
     ChatMessage,
     HumanMessage,
     SystemMessage,
     ToolMessage,
 )
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.output_parsers.openai_tools import (
     make_invalid_tool_call,
     parse_tool_call,
@@ -414,6 +418,169 @@ class InferenceClientChatModel(BaseChatModel):
                 f"({self.direct_model}) and HF fallback provider {self.provider} "
                 f"({self.model}). Together error: {together_error}; HF error: {e}"
             ) from e
+
+    def _build_request_params(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        """Build Together and HF request param dicts from messages/kwargs."""
+        chat_messages = self._convert_messages_to_chat_format(messages)
+
+        max_tokens = kwargs.get("max_tokens", self.max_tokens)
+        temperature = kwargs.get("temperature", self.temperature)
+        top_p = kwargs.get("top_p", 0.9)
+        tools = kwargs.get("tools")
+        tool_choice = kwargs.get("tool_choice")
+
+        together_params: Dict[str, Any] = {
+            "model": self.direct_model,
+            "messages": chat_messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "stop": stop if stop else None,
+        }
+        if tools is not None:
+            together_params["tools"] = tools
+        if tool_choice is not None:
+            together_params["tool_choice"] = tool_choice
+
+        hf_params: Dict[str, Any] = {
+            "model": self.model,
+            "messages": chat_messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if tools is not None:
+            hf_params["tools"] = tools
+        if tool_choice is not None:
+            hf_params["tool_choice"] = tool_choice
+        if stop:
+            hf_params["stop"] = stop
+
+        skip_keys = {
+            "max_tokens",
+            "temperature",
+            "top_p",
+            "frequency_penalty",
+            "tools",
+            "tool_choice",
+        }
+        for k, v in kwargs.items():
+            if k not in hf_params and k not in skip_keys:
+                hf_params[k] = v
+
+        return together_params, hf_params
+
+    def _yield_text_chunk(
+        self,
+        text: str,
+        *,
+        finish_reason: Optional[str] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+    ) -> ChatGenerationChunk:
+        chunk = ChatGenerationChunk(
+            message=AIMessageChunk(content=text),
+            generation_info={"finish_reason": finish_reason} if finish_reason else None,
+        )
+        if run_manager and text:
+            run_manager.on_llm_new_token(text, chunk=chunk)
+        return chunk
+
+    def _stream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> Iterator[ChatGenerationChunk]:
+        """Stream via Together primary; HF one-shot fallback on Together failure."""
+        together_params, hf_params = self._build_request_params(
+            messages, stop=stop, **kwargs
+        )
+        together_params = {**together_params, "stream": True}
+        together_error: Optional[Exception] = None
+
+        try:
+            together_client = Together(
+                api_key=self.direct_api_key,
+                timeout=self.timeout,
+            )
+            stream = together_client.chat.completions.create(**together_params)
+            yielded = False
+            for raw_chunk in stream:
+                choices = getattr(raw_chunk, "choices", None) or []
+                if not choices:
+                    continue
+                choice = choices[0]
+                delta = getattr(choice, "delta", None)
+                content = getattr(delta, "content", None) if delta is not None else None
+                finish_reason = getattr(choice, "finish_reason", None)
+                if content:
+                    yielded = True
+                    yield self._yield_text_chunk(
+                        content, finish_reason=finish_reason, run_manager=run_manager
+                    )
+                elif finish_reason and not yielded:
+                    # No content tokens; still surface finish for empty generations.
+                    continue
+            return
+        except Exception as err:  # noqa: BLE001 — any Together failure → HF fallback
+            together_error = err
+            logger.warning(
+                "Together AI stream primary path failed; falling back to HF provider %s "
+                "model %s: %s",
+                self.provider,
+                self.model,
+                err,
+            )
+
+        try:
+            completion: ChatCompletionOutput = self.client.chat_completion(**hf_params)
+            if not completion.choices:
+                raise ValueError(
+                    f"No choices returned from HF provider {self.provider} API"
+                )
+            response_message_obj = completion.choices[0].message
+            finish_reason = getattr(completion.choices[0], "finish_reason", "unknown")
+            ai_message = self._parse_ai_message(response_message_obj, finish_reason)
+            text = ai_message.content if isinstance(ai_message.content, str) else str(
+                ai_message.content or ""
+            )
+            yield self._yield_text_chunk(
+                text, finish_reason=finish_reason, run_manager=run_manager
+            )
+        except Exception as e:
+            logger.error(
+                "Together stream and HF fallback both failed. Together error: %s; "
+                "HF (%s) error: %s",
+                together_error,
+                self.provider,
+                e,
+            )
+            if run_manager:
+                run_manager.on_llm_error(e, **kwargs)
+            raise RuntimeError(
+                f"Failed to stream response from Together primary "
+                f"({self.direct_model}) and HF fallback provider {self.provider} "
+                f"({self.model}). Together error: {together_error}; HF error: {e}"
+            ) from e
+
+    async def _astream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """Async wrapper around sync `_stream` for LangGraph / AG-UI astream paths."""
+        sync_manager = run_manager.get_sync() if run_manager else None
+        for chunk in self._stream(
+            messages, stop=stop, run_manager=sync_manager, **kwargs
+        ):
+            yield chunk
 
     @property
     def _llm_type(self) -> str:

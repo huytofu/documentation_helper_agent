@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 from langchain_core.runnables import RunnableConfig
 import asyncio
+import uuid
 
 from agent.graph.chains.regeneration import regeneration_chain
 from agent.graph.state import GraphState
@@ -8,12 +9,10 @@ from langchain_core.messages import AIMessage
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.message_utils import get_content
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
-from agent.graph.utils.api_utils import (
-    GENERATION_TIMEOUT,
-    cost_tracker,
-)
+from agent.graph.utils.api_utils import cost_tracker
 from agent.graph.utils.message_utils import convert_to_raw_documents
 from agent.graph.utils.api_utils import standard_sleep
+from agent.graph.utils.stream_utils import astream_chain_text
 import logging
 logger = logging.getLogger(__name__)
 
@@ -55,19 +54,16 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         extra_info = ""
 
     try:
-        # Use asyncio to handle concurrent generation requests
-        llm_generation = await asyncio.wait_for(
-            asyncio.to_thread(
-                regeneration_chain.invoke,
-                {
-                    "extra_info": extra_info,
-                    "documents": joined_documents,
-                    "query": rewritten_query,
-                    "generation": generation,
-                    "comments": comments
-                }
-            ),
-            timeout=GENERATION_TIMEOUT
+        llm_generation = await astream_chain_text(
+            regeneration_chain,
+            {
+                "extra_info": extra_info,
+                "documents": joined_documents,
+                "query": rewritten_query,
+                "generation": generation,
+                "comments": comments,
+            },
+            config,
         )
         
         # Track API usage
@@ -79,6 +75,7 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         )
         
         messages.append(AIMessage(
+            id=str(uuid.uuid4()),
             content=llm_generation,
             additional_kwargs={
                 "display_in_chat": True,
@@ -125,4 +122,3 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
             "error": str(e),
             "current_node": "REGENERATE",
         }
-
