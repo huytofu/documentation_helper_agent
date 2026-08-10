@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
 from agent.graph.state import GraphState
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
@@ -25,7 +26,7 @@ def simplify_messages(messages: list) -> list:
             simplified_messages.append({"role": "assistant", "content": message.content})
     return simplified_messages
 
-async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def summarize(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---SUMMARIZE---")
     # Emit state update for summarization
     query = state.get("query", "")

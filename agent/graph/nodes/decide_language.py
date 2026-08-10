@@ -1,10 +1,11 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.state import GraphState
 from agent.graph.chains.language_router import get_language_route
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
-async def decide_language(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def decide_language(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---DECIDE LANGUAGE---")
     if config:
         generating_state = {

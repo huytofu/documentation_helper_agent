@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 
 from agent.graph.state import GraphState
 from agent.graph.chains.intent_classifier import get_intent
@@ -7,7 +8,7 @@ from agent.graph.utils.api_utils import standard_sleep
 
 
 async def classify_intent(
-    state: GraphState, config: Dict[str, Any] = None
+    state: GraphState, config: Optional[RunnableConfig] = None
 ) -> Dict[str, Any]:
     """Classify the query as programming help vs chitchat."""
     print("---CLASSIFY INTENT---")

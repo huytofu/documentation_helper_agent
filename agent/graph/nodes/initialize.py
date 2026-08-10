@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.state import GraphState
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.firebase_utils import save_conversation_message_api
@@ -9,7 +10,7 @@ from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.graph")
 
-async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def initialize(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Initialize the graph with the necessary state."""
     print("---INITIALIZE---")
     if config:

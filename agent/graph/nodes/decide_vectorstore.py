@@ -1,10 +1,11 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.chains.vectorstore_router import get_vectorstore_route
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.state import GraphState
 from agent.graph.utils.api_utils import standard_sleep
 
-async def decide_vectorstore(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def decide_vectorstore(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Decide which vectorstore to use based on the query."""
     print("---DECIDE VECTORSTORE---")
     if config:

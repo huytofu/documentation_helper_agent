@@ -1,11 +1,12 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.state import GraphState
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from langchain_core.messages import AIMessage
 from agent.graph.utils.flow_state import reset_flow_state
 from agent.graph.utils.api_utils import standard_sleep
 
-async def post_human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def post_human_in_loop(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---POST HUMAN IN LOOP---")
     messages = state.get("messages", [])
 

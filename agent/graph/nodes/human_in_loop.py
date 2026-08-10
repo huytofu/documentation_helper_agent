@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.state import GraphState
 from langgraph.types import interrupt
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
@@ -7,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def human_in_loop(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     logger.info("---HUMAN IN LOOP---")
     if config:
         generating_state = {

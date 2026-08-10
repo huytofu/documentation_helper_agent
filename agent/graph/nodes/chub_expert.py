@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional
+from langchain_core.runnables import RunnableConfig
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.types import Command, interrupt
@@ -35,7 +36,7 @@ def _seed_messages(state: GraphState) -> List[Any]:
 
 
 async def ask_chub_permission(
-    state: GraphState, config: Dict[str, Any] = None
+    state: GraphState, config: Optional[RunnableConfig] = None
 ) -> Command[Literal["ask_chub_permission", "chub_expert", "generate"]]:
     """HITL yes/no before chub tools. Routes only via Command (no outgoing edges)."""
     print("---ASK CHUB PERMISSION---")
@@ -89,7 +90,7 @@ async def ask_chub_permission(
 
 
 async def chub_expert(
-    state: GraphState, config: Dict[str, Any] = None
+    state: GraphState, config: Optional[RunnableConfig] = None
 ) -> Dict[str, Any]:
     """Tool-bound chub expert LLM turn (consent handled by ASK_CHUB_PERMISSION)."""
     print("---CHUB EXPERT---")
@@ -104,14 +105,16 @@ async def chub_expert(
         )
         await standard_sleep()
 
+    from agent.graph.chains.chub_expert import prepare_chub_ai_message
+
     prior = list(state.get("chub_messages") or [])
     if not prior:
         invoke_messages = _seed_messages(state)
-        response = llm_with_tools.invoke(invoke_messages)
+        response = prepare_chub_ai_message(llm_with_tools.invoke(invoke_messages))
         new_messages = invoke_messages + [response]
         full_transcript = new_messages
     else:
-        response = llm_with_tools.invoke(prior)
+        response = prepare_chub_ai_message(llm_with_tools.invoke(prior))
         new_messages = [response]
         full_transcript = prior + [response]
 
@@ -135,13 +138,13 @@ async def chub_expert(
     return updates
 
 
-async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def chub_tools(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Execute pending tool_calls via ToolNode; emit each tool name for UX."""
     print("---CHUB TOOLS---")
     from agent.graph.chains.chub_expert import (
         MAX_CHUB_TOOLS_PER_ROUND,
         chub_tool_node,
-        limit_ai_message_tool_calls,
+        prepare_chub_ai_message,
     )
 
     if config:
@@ -160,12 +163,13 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
 
     invoke_state: Dict[str, Any] = state
     message_updates: List[Any] = []
-    if isinstance(last, AIMessage) and tool_calls and len(tool_calls) > MAX_CHUB_TOOLS_PER_ROUND:
-        trimmed = limit_ai_message_tool_calls(last, MAX_CHUB_TOOLS_PER_ROUND)
-        invoke_state = {**state, "chub_messages": msgs[:-1] + [trimmed]}
-        message_updates.append(trimmed)
-        last = trimmed
-        tool_calls = trimmed.tool_calls
+    if isinstance(last, AIMessage) and tool_calls:
+        prepared = prepare_chub_ai_message(last, MAX_CHUB_TOOLS_PER_ROUND)
+        if prepared is not last:
+            invoke_state = {**state, "chub_messages": msgs[:-1] + [prepared]}
+            message_updates.append(prepared)
+            last = prepared
+            tool_calls = prepared.tool_calls
 
     # Tiny CopilotKit message per tool name about to run this round.
     if config and tool_calls:

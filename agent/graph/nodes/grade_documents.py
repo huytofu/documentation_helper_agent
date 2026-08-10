@@ -1,4 +1,5 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from langchain_core.runnables import RunnableConfig
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from agent.graph.chains.retrieval_grader import grade_single_document
@@ -48,7 +49,7 @@ def _select_docs_to_grade(documents: List[Any]) -> List[Any]:
     return selected
 
 
-async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def grade_documents(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """
     Determines whether the retrieved documents are relevant to the query using parallel processing
     

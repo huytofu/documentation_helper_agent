@@ -26,17 +26,24 @@ MAX_CHUB_TOOLS_PER_ROUND = 1
 CHUB_EXPERT_SYSTEM = """You are a documentation enricher for a RAG agent.
 Pinecone retrieval returned nothing useful. Use chub tools to find curated library docs.
 
+STOP RULES (critical — gpt-oss multi-channel models):
+- You are given multiple rounds to use tools and observe their results so select exactly 1 tool each round only.
+- After emitting that one tool call, STOP immediately. Do not continue generating.
+- Do NOT invent tool results, Output/Observation, or "Now we have…" text in the same turn.
+- Do NOT call a second tool (e.g. ingest_doc) in the same turn as get_doc or search_docs.
+- Do NOT write a final summary in the same turn as any tool call. Final text only when you make zero tool calls.
+- Wait for the real ToolMessage in the next round before deciding the next action.
+
 Rules:
-- You are given multiple rounds to use tools and observe their results so select 1 tool each round only.
 - Prefer search_docs then get_doc (at most 2–4 docs), one call per round.
 - Use list_pins when the topic matches the pinned expert corpus.
 - get_doc doc_id MUST be taken strictly from the results list returned by search_docs (or from list_pins). Never invent, guess, or rewrite ids. Pick the id that matches the user's query the most.
 - get_doc saves a file and returns only {doc_id, name, path} — never document body.
-- Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path (next round).
+- Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path (next round only, after you see the get_doc ToolMessage).
 - If get_doc returns an error, do not call ingest_doc for that id. Next round: call get_doc again with a correct id from the prior search_docs results (if any remain).
 - Do not invent doc_ids or paths. Only use values returned by tools.
 - Never request or echo document bodies.
-- When finished, reply with a short plain-text summary of saved names/paths (no more tool calls).
+- When finished (all desired docs ingested, or no valid ids left), reply with a short plain-text summary of saved names/paths (no more tool calls).
 
 SCENARIOS:
 
@@ -155,6 +162,35 @@ def limit_ai_message_tool_calls(
         name=message.name,
         additional_kwargs=additional_kwargs,
         response_metadata=dict(getattr(message, "response_metadata", None) or {}),
+        invalid_tool_calls=list(getattr(message, "invalid_tool_calls", None) or []),
+    )
+
+
+def prepare_chub_ai_message(
+    message: AIMessage, max_calls: int = MAX_CHUB_TOOLS_PER_ROUND
+) -> AIMessage:
+    """Trim tool_calls and clear content when tools are present.
+
+    gpt-oss often appends fake observations / ingest / final in the same
+    completion as the first tool call; storing that content poisons the next round.
+    """
+    if not message.tool_calls:
+        return message
+
+    limited = limit_ai_message_tool_calls(message, max_calls)
+    content = limited.content
+    has_content = bool(content) if not isinstance(content, str) else bool(content.strip())
+    if limited is message and not has_content:
+        return message
+
+    return AIMessage(
+        content="",
+        tool_calls=list(limited.tool_calls or []),
+        id=limited.id,
+        name=limited.name,
+        additional_kwargs=dict(limited.additional_kwargs or {}),
+        response_metadata=dict(getattr(limited, "response_metadata", None) or {}),
+        invalid_tool_calls=list(getattr(limited, "invalid_tool_calls", None) or []),
     )
 
 

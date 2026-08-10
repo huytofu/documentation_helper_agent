@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import logging
 from langchain_core.documents import Document
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -37,7 +38,7 @@ async def perform_web_search(query: str) -> APIResponse:
             data=[]
         )
 
-async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def web_search(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     logger.info("---WEB SEARCH---")
     if config:
         generating_state = {

@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
 import logging
 
@@ -12,7 +13,7 @@ from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 logger = logging.getLogger(__name__)
 
 
-async def chitchat(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def chitchat(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Answer casual conversation and end the flow (no graders / HITL)."""
     print("---CHITCHAT---")
     if config:

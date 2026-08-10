@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
 
 from agent.graph.chains.regeneration import regeneration_chain
@@ -17,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
     
     # Get state variables

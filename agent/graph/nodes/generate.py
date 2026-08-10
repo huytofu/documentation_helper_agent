@@ -1,4 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
 from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
@@ -14,7 +15,7 @@ from agent.graph.utils.api_utils import standard_sleep
 import logging
 logger = logging.getLogger(__name__)
 
-async def generate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---GENERATE---")
     # Emit only one "GENERATE" state update before generation
     if config:
