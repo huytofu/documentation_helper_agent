@@ -51,6 +51,7 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         return {
             "pass_summarize": True,
             "summarized": False,
+            "current_node": "SUMMARIZE",
         }
 
     messages = simplify_messages(messages)
@@ -88,20 +89,23 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         if rewritten_query == "":
             return {
                 "pass_summarize": True,
-                "summarized": True
+                "summarized": True,
+                "current_node": "SUMMARIZE",
             }
         else:
             return {
                 "rewritten_query": rewritten_query,
                 "pass_summarize": True,
-                "summarized": True
+                "summarized": True,
+                "current_node": "SUMMARIZE",
             }
     except asyncio.TimeoutError:
         logger.error("Summarization timed out")
         return {
             "error": "Summarization timed out",
             "pass_summarize": True,
-            "summarized": False
+            "summarized": False,
+            "current_node": "SUMMARIZE",
         }
     except Exception as e:
         import traceback
@@ -110,5 +114,6 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         return {
             "error": str(e),
             "pass_summarize": True,
-            "summarized": False
+            "summarized": False,
+            "current_node": "SUMMARIZE",
         }

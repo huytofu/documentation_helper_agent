@@ -73,7 +73,8 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
     
     if not documents:
         logger.info("---NO DOCUMENTS TO GRADE---")
-        return {"documents": [], "query": query}
+        return {"documents": [], "query": query, "current_node": "GRADE_DOCUMENTS"}
+
 
     documents = _select_docs_to_grade(documents)
 
@@ -161,5 +162,7 @@ async def grade_documents(state: GraphState, config: Dict[str, Any] = None) -> D
     return {
         "documents": filtered_docs,
         "query": query,
-        "errors": errors if errors else None
+        "errors": errors if errors else None,
+        "current_node": "GRADE_DOCUMENTS",
     }
+

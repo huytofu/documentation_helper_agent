@@ -75,6 +75,7 @@ async def route_and_framework(
             "language": language,
             "query": query,
             "rewritten_query": rewritten_query,
+            "current_node": "ROUTE_AND_FRAMEWORK",
         }
 
     if datasource == "direct":
@@ -84,6 +85,7 @@ async def route_and_framework(
             "language": language,
             "query": query,
             "rewritten_query": rewritten_query,
+            "current_node": "ROUTE_AND_FRAMEWORK",
         }
 
     if datasource == "kb_meta":
@@ -94,6 +96,7 @@ async def route_and_framework(
             "query": query,
             "rewritten_query": rewritten_query,
             "kb_catalog": package_block or "(none indexed yet)",
+            "current_node": "ROUTE_AND_FRAMEWORK",
         }
 
     if datasource != "vectorstore":
@@ -103,6 +106,7 @@ async def route_and_framework(
             "language": language,
             "query": query,
             "rewritten_query": rewritten_query,
+            "current_node": "ROUTE_AND_FRAMEWORK",
         }
 
     return {
@@ -111,4 +115,5 @@ async def route_and_framework(
         "language": language,
         "query": query,
         "rewritten_query": rewritten_query,
+        "current_node": "ROUTE_AND_FRAMEWORK",
     }

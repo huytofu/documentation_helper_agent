@@ -21,7 +21,9 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     # Create result state with current_node
     result_state = {
         "comments": "",  # Will be updated after interrupt
+        "current_node": "HUMAN_IN_LOOP",
     }
+
     
     human_in_loop = interrupt(
         "We have an answer to your question.\n" + 

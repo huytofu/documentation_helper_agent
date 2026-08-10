@@ -64,6 +64,7 @@ async def ask_chub_permission(
                 "chub_enrich_attempted": True,
                 "chub_consent": False,
                 "pending_question": None,
+                "current_node": "ASK_CHUB_PERMISSION",
             },
         )
 
@@ -73,6 +74,7 @@ async def ask_chub_permission(
             update={
                 "pending_question": "Please choose yes or no",
                 "chub_enrich_attempted": True,
+                "current_node": "ASK_CHUB_PERMISSION",
             },
         )
 
@@ -82,6 +84,7 @@ async def ask_chub_permission(
             "chub_consent": True,
             "chub_enrich_attempted": True,
             "pending_question": None,
+            "current_node": "ASK_CHUB_PERMISSION",
         },
     )
 
@@ -118,6 +121,7 @@ async def chub_expert(
         "chub_enrich_attempted": True,
         "chub_consent": True,
         "pending_question": None,
+        "current_node": "CHUB_ENRICH",
     }
 
     harvested = harvest_chub_documents(full_transcript)
@@ -162,4 +166,6 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
     return {
         **tool_updates,
         "chub_tool_rounds": rounds,
+        "current_node": "CHUB_ENRICH",
     }
+

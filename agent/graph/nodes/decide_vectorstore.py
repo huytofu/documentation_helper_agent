@@ -21,4 +21,4 @@ async def decide_vectorstore(state: GraphState, config: Dict[str, Any] = None) -
     result = get_vectorstore_route(query)
     framework = result.datasource or "none"
     
-    return {"framework": framework}
+    return {"framework": framework, "current_node": "DECIDE_VECTORSTORE"}

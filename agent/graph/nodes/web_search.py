@@ -63,10 +63,25 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
                 documents.append(web_results)
             else:
                 documents = [web_results]
-            return {"documents": documents, "retry_count": retry_count}
+            return {
+                "documents": documents,
+                "retry_count": retry_count,
+                "current_node": "WEBSEARCH",
+            }
         else:
             logger.error(f"Web search failed: {response.error}")
-            return {"documents": documents, "error": response.error, "retry_count": retry_count}
+            return {
+                "documents": documents,
+                "error": response.error,
+                "retry_count": retry_count,
+                "current_node": "WEBSEARCH",
+            }
     except Exception as e:
         logger.error(f"Unexpected error in web search: {str(e)}")
-        return {"documents": documents, "error": str(e), "retry_count": retry_count}
+        return {
+            "documents": documents,
+            "error": str(e),
+            "retry_count": retry_count,
+            "current_node": "WEBSEARCH",
+        }
+

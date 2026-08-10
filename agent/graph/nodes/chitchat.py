@@ -67,4 +67,4 @@ async def chitchat(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
         reset_flow_state()
 
     # Return only the new message — GraphState.messages uses add_messages.
-    return {"messages": [ai_message]}
+    return {"messages": [ai_message], "current_node": "CHITCHAT"}

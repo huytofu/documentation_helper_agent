@@ -87,7 +87,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
 
         return {
             "messages": messages,
-            "documents": raw_documents
+            "documents": raw_documents,
+            "current_node": "REGENERATE",
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
@@ -102,7 +103,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         return {
             "messages": messages,
             "documents": raw_documents,
-            "error": "Generation timed out"
+            "error": "Generation timed out",
+            "current_node": "REGENERATE",
         }
     except Exception as e:
         import traceback
@@ -119,5 +121,7 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         return {
             "messages": messages,
             "documents": raw_documents,
-            "error": str(e)
+            "error": str(e),
+            "current_node": "REGENERATE",
         }
+

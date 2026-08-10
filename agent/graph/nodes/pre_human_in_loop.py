@@ -16,5 +16,8 @@ async def pre_human_in_loop(state: GraphState, config: Dict[str, Any] = None) ->
         
     need_human_feedback = state.get("need_human_feedback", False)
     received_human_feedback = state.get("received_human_feedback", False)
-    return {"need_human_feedback": need_human_feedback, 
-            "received_human_feedback": received_human_feedback}
+    return {
+        "need_human_feedback": need_human_feedback,
+        "received_human_feedback": received_human_feedback,
+        "current_node": "PRE_HUMAN_IN_LOOP",
+    }

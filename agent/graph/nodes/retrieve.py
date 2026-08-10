@@ -19,10 +19,10 @@ async def retrieve(state: GraphState, config: Dict[str, Any] = None) -> Dict[str
     query = state.get("query", "")
     vectorstore = state.get("framework", None)
     if vectorstore in [None, "others"]:
-        return {"documents": []}
+        return {"documents": [], "current_node": "RETRIEVE"}
     retriever = get_retriever(vectorstore)
     if retriever is None:
-        return {"documents": []}
+        return {"documents": [], "current_node": "RETRIEVE"}
     else:
         documents = retriever.invoke(query)
-        return {"documents": documents}
+        return {"documents": documents, "current_node": "RETRIEVE"}

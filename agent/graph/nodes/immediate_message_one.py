@@ -30,4 +30,4 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         await standard_sleep()
         # await asyncio.sleep(10)
 
-    return {"messages": messages}
+    return {"messages": messages, "current_node": "IMMEDIATE_MESSAGE_1"}

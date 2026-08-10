@@ -46,6 +46,7 @@ async def initialize(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         "pass_summarize": pass_summarize,
         "summarized": summarized,
         "documents": documents,
+        "current_node": "INITIALIZE",
     }
 
     # Save the query as a question in the database if available

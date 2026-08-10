@@ -22,4 +22,4 @@ async def classify_intent(
     query = state.get("query", "")
     result = get_intent(query)
     intent = result.intent or "programming"
-    return {"intent": intent}
+    return {"intent": intent, "current_node": "CLASSIFY_INTENT"}

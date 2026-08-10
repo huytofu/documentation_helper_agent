@@ -10,7 +10,7 @@ import logging
 import logging.config
 from fastapi import FastAPI, Request
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent, CopilotKitContext
+from copilotkit import CopilotKitRemoteEndpoint, LangGraphAGUIAgent
 from agent.graph.graph import app as agent_app
 from fastapi.middleware.cors import CORSMiddleware
 from agent.graph.utils.api_utils import (
@@ -49,7 +49,7 @@ app.add_middleware(
 # Create SDK instance
 sdk = CopilotKitRemoteEndpoint(
     agents=[
-        LangGraphAgent(
+        LangGraphAGUIAgent(
             name="coding_agent",
             description="Expert coding agent that assists users with answering coding-related questions, code documentation, code completion and implementation.",
             graph=agent_app,

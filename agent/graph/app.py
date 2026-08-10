@@ -21,7 +21,7 @@ from agent.graph.langgraph_compat import ensure_compiled_graph_alias
 
 ensure_compiled_graph_alias()
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
+from copilotkit import CopilotKitRemoteEndpoint, LangGraphAGUIAgent
 from agent.graph.graph import app as agent_app
 from agent.graph.state import GraphState
 from agent.graph.models.config import with_concurrency_limit
@@ -221,7 +221,7 @@ async def log_requests(request: Request, call_next):
 # Create SDK instance
 sdk = CopilotKitRemoteEndpoint(
     agents=[
-        LangGraphAgent(
+        LangGraphAGUIAgent(
             name="coding_agent",
             description="Expert coding agent that assists users with answering coding-related questions, code documentation, code completion and implementation.",
             graph=agent_app,

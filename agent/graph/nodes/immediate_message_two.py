@@ -35,4 +35,5 @@ async def immediate_message_two(state: GraphState, config: Dict[str, Any] = None
 
     return {
         "messages": messages,
+        "current_node": "IMMEDIATE_MESSAGE_2",
     }

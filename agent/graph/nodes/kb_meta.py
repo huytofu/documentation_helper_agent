@@ -107,4 +107,9 @@ async def kb_meta(
     finally:
         reset_flow_state()
 
-    return {"messages": [ai_message], "kb_catalog": kb_catalog}
+    return {
+        "messages": [ai_message],
+        "kb_catalog": kb_catalog,
+        "current_node": "KB_META",
+    }
+
