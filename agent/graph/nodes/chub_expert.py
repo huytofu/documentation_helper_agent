@@ -175,11 +175,19 @@ async def chub_tools(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
                 await copilotkit_emit_message(config, "Calling chub tool: " + str(name))
 
     rounds = int(state.get("chub_tool_rounds") or 0) + 1
-    # max_concurrency caps parallel workers; trim above caps how many calls reach ToolNode.
-    tool_updates = chub_tool_node.invoke(
-        invoke_state,
-        config={"max_concurrency": MAX_CHUB_TOOLS_PER_ROUND},
-    )
+    # Trim above caps how many calls reach ToolNode.
+    # Never invoke ToolNode with a bare {max_concurrency: ...} config — that
+    # replaces the parent LangGraph runtime and raises:
+    #   ValueError: Missing required config key 'N/A' for 'tools'
+    # Prefer ambient config (no second arg). If we have the parent config,
+    # merge max_concurrency into it.
+    if config:
+        tool_updates = chub_tool_node.invoke(
+            invoke_state,
+            config={**config, "max_concurrency": MAX_CHUB_TOOLS_PER_ROUND},
+        )
+    else:
+        tool_updates = chub_tool_node.invoke(invoke_state)
     tool_messages = list(tool_updates.get("chub_messages") or [])
     return {
         **tool_updates,
