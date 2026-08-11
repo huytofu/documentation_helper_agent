@@ -5,7 +5,7 @@ import uuid
 
 from agent.graph.chains.regeneration import regeneration_chain
 from agent.graph.state import GraphState
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.message_utils import get_content
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
@@ -17,17 +17,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _assistant_message(content: str, *, message_id: Optional[str] = None, error_type=None, error_message=None) -> AIMessage:
-    additional_kwargs = {
-        "display_in_chat": True,
-        "error_type": error_type,
-    }
-    if error_message is not None:
-        additional_kwargs["error_message"] = error_message
+def _assistant_message(content: str, *, message_id: Optional[str] = None) -> AIMessage:
     return AIMessage(
         id=message_id or str(uuid.uuid4()),
         content=content,
-        additional_kwargs=additional_kwargs,
+        additional_kwargs={
+            "display_in_chat": True,
+            "error_type": None,
+        },
+    )
+
+
+def _error_system_message(content: str, *, error_type: str, error_message: str) -> SystemMessage:
+    """Internal note — SystemMessage so CopilotChat does not render a bubble."""
+    return SystemMessage(
+        id=str(uuid.uuid4()),
+        content=content,
+        additional_kwargs={
+            "error_type": error_type,
+            "error_message": error_message,
+        },
     )
 
 
@@ -99,7 +108,7 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
         return {
-            "messages": [_assistant_message(
+            "messages": [_error_system_message(
                 "BACKEND AGENT DEAD! Please try again later.",
                 error_type="timeout",
                 error_message="Generation timed out",
@@ -113,8 +122,8 @@ async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None)
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
         return {
-            "messages": [_assistant_message(
-                "BACKENDS AGENT DEAD! Please try again later.",
+            "messages": [_error_system_message(
+                "BACKEND AGENT DEAD! Please try again later.",
                 error_type="internal",
                 error_message=str(e),
             )],

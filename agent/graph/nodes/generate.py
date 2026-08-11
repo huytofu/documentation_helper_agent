@@ -4,7 +4,7 @@ import asyncio
 import uuid
 from agent.graph.chains.generation import generation_chain
 from agent.graph.state import GraphState
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from agent.graph.utils.message_utils import get_content
 from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import cost_tracker
@@ -15,17 +15,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _assistant_message(content: str, *, message_id: Optional[str] = None, error_type=None, error_message=None) -> AIMessage:
-    additional_kwargs = {
-        "display_in_chat": True,
-        "error_type": error_type,
-    }
-    if error_message is not None:
-        additional_kwargs["error_message"] = error_message
+def _assistant_message(content: str, *, message_id: Optional[str] = None) -> AIMessage:
     return AIMessage(
         id=message_id or str(uuid.uuid4()),
         content=content,
-        additional_kwargs=additional_kwargs,
+        additional_kwargs={
+            "display_in_chat": True,
+            "error_type": None,
+        },
+    )
+
+
+def _error_system_message(content: str, *, error_type: str, error_message: str) -> SystemMessage:
+    """Internal note — SystemMessage so CopilotChat does not render a bubble."""
+    return SystemMessage(
+        id=str(uuid.uuid4()),
+        content=content,
+        additional_kwargs={
+            "error_type": error_type,
+            "error_message": error_message,
+        },
     )
 
 
@@ -82,7 +91,7 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
         logger.error("Generation timed out")
         warning_message = "BACKEND AGENT DEAD! Please try again later."
         return {
-            "messages": [_assistant_message(
+            "messages": [_error_system_message(
                 warning_message,
                 error_type="timeout",
                 error_message="Generation timed out",
@@ -97,7 +106,7 @@ async def generate(state: GraphState, config: Optional[RunnableConfig] = None) -
         logger.error(f"Error during generation: {str(e)}")
         warning_message = "BACKEND AGENT DEAD! Please try again later."
         return {
-            "messages": [_assistant_message(
+            "messages": [_error_system_message(
                 warning_message,
                 error_type="internal",
                 error_message=str(e),

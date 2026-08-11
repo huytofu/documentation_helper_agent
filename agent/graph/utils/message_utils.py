@@ -1,4 +1,4 @@
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, ToolMessage, SystemMessage
 from langchain_core.documents import Document
 from typing import Dict, Any, List, Set
 import inspect
@@ -44,8 +44,11 @@ def _message_text(message: BaseMessage) -> str:
 
 
 def is_ephemeral_chat_message(message: BaseMessage) -> bool:
-    """True for tool traffic / status emits that AG-UI may merge into messages."""
+    """True for tool traffic / status emits / system notes that AG-UI may merge into messages."""
     if isinstance(message, ToolMessage) or getattr(message, "type", None) == "tool":
+        return True
+
+    if isinstance(message, SystemMessage) or getattr(message, "type", None) == "system":
         return True
 
     is_ai = isinstance(message, AIMessage) or getattr(message, "type", None) == "ai"
