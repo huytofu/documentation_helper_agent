@@ -133,7 +133,9 @@ async def grade_documents(state: GraphState, config: Optional[RunnableConfig] = 
                 try:
                     result = future.result(timeout=GRADER_TIMEOUT)
                     if result.success:
-                        if result.binary_score and result.binary_score.lower() == "yes":
+                        # GradingResponse.binary_score is bool (Pydantic coerces
+                        # retrieval grader's "yes"/"no" strings).
+                        if result.binary_score:
                             logger.info("---GRADE: DOCUMENT RELEVANT---")
                             filtered_docs.append(doc)
                         else:

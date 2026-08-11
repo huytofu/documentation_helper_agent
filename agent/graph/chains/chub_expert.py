@@ -19,7 +19,7 @@ from ingestion.namespace_map import namespace_for_doc_id
 
 logger = logging.getLogger("graph.chains.chub_expert")
 
-MAX_CHUB_TOOL_ROUNDS = 6
+MAX_CHUB_TOOL_ROUNDS = 4
 # ToolNode has no max-calls param; we trim before invoke and pass max_concurrency.
 MAX_CHUB_TOOLS_PER_ROUND = 1
 
@@ -36,15 +36,13 @@ STOP RULES (critical — gpt-oss multi-channel models):
 
 Rules:
 - Prefer search_docs then get_doc (at most 2–4 docs), one call per round.
-- Use list_pins when the topic matches the pinned expert corpus.
-- get_doc doc_id MUST be taken strictly from the results list returned by search_docs (or from list_pins). Never invent, guess, or rewrite ids. Pick the id that matches the user's query the most.
+- get_doc doc_id MUST be taken strictly from the results list returned by search_docs. Never invent, guess, or rewrite ids. Pick the id that matches the user's query the most.
 - get_doc saves a file and returns only {doc_id, name, path} — never document body.
 - Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path (next round only, after you see the get_doc ToolMessage).
 - ingest_doc derives doc_id from the path under .chub/fetched/ (strip .md), matching get_doc's doc_id — e.g. path ".chub/fetched/stripe/package.md" → doc_id "stripe/package". That keeps stripe/package and binance/package distinct even when file frontmatter name is a bare slug like "package".
 - If get_doc returns an error, do not call ingest_doc for that id. Next round: call get_doc again with a correct id from the prior search_docs results (if any remain).
-- Do not invent doc_ids or paths. Only use values returned by tools.
-- Never request or echo document bodies.
-- When finished (all desired docs ingested, or no valid ids left), reply with a short plain-text summary of saved names/paths (no more tool calls).
+- Never echo document bodies or use them as tool arguments.
+- When finished (doc ingested, {max_rounds} rounds completed), reply with a short plain-text summary of saved names/paths (no more tool calls).
 
 SCENARIOS:
 
@@ -143,7 +141,7 @@ Output/Observation:
   "path": ".chub/fetched/binance/package.md"
 }
 Conclusion: Ingested as "binance/package", separate from "stripe/package". Stop with a short path summary.
-"""
+""".replace("{max_rounds}", str(MAX_CHUB_TOOL_ROUNDS))
 
 
 def limit_ai_message_tool_calls(
@@ -334,21 +332,7 @@ def ingest_doc(
         logger.exception("ingest_doc failed")
         return json.dumps({"error": str(exc)})
 
-
-@tool
-def list_pins() -> str:
-    """List the curated expert corpus pinned in .chub/pins.yaml."""
-    try:
-        pins = chub_client.list_pins() or chub_client.read_pins_yaml()
-        return json.dumps({"pins": pins, "total": len(pins)}, indent=2)
-    except ChubError as exc:
-        return json.dumps({"error": str(exc)})
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("list_pins failed")
-        return json.dumps({"error": str(exc)})
-
-
-CHUB_TOOLS = [list_pins, search_docs, get_doc, ingest_doc]
+CHUB_TOOLS = [search_docs, get_doc, ingest_doc]
 
 # a) Attach tool schemas so the model can emit structured tool_calls
 llm_with_tools = llm.bind_tools(CHUB_TOOLS)

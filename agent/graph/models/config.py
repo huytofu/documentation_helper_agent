@@ -49,10 +49,9 @@ MODEL_IDS = {
     "complex_router": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
-    "chitchat": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
-    "chub_expert": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
-    # Primary: DeepSeek V4 Flash on Together serverless — 284B/13B active, 1M context.
-    # Fallback: coding-specialized Qwen MoE (235B/22B active) via HF → Nebius.
+    "chub_expert": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    # "chub_expert": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    "chitchat": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
     "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
 }
 
