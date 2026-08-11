@@ -4,7 +4,7 @@ A LangGraph-based agent that answers coding and documentation questions. It clas
 
 ## Try it
 
-1. Open the hosted app: [documentation-helper-agent (Vercel)](https://documentation-helper-agent-aur6f7jff-huy-tos-projects.vercel.app/)
+1. Open the hosted app: [documentation-helper-agent (Vercel)](https://documentation-helper-agent-23xyu7s0y-huy-tos-projects.vercel.app/)
 2. Register or log in
 3. Ask a coding or docs question in the chat
 
