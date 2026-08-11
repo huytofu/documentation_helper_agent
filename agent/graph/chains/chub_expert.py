@@ -40,6 +40,7 @@ Rules:
 - get_doc doc_id MUST be taken strictly from the results list returned by search_docs (or from list_pins). Never invent, guess, or rewrite ids. Pick the id that matches the user's query the most.
 - get_doc saves a file and returns only {doc_id, name, path} — never document body.
 - Every successful get_doc MUST be followed by an ingest_doc attempt with the returned path (next round only, after you see the get_doc ToolMessage).
+- ingest_doc derives doc_id from the path under .chub/fetched/ (strip .md), matching get_doc's doc_id — e.g. path ".chub/fetched/stripe/package.md" → doc_id "stripe/package". That keeps stripe/package and binance/package distinct even when file frontmatter name is a bare slug like "package".
 - If get_doc returns an error, do not call ingest_doc for that id. Next round: call get_doc again with a correct id from the prior search_docs results (if any remain).
 - Do not invent doc_ids or paths. Only use values returned by tools.
 - Never request or echo document bodies.
@@ -62,53 +63,53 @@ Conclusion: No results. Stop. Do not call get_doc or ingest_doc.
 
 B)
 STEP 1:
-Called search_docs. Argument: query="stripe payments"
-search_docs(query="stripe payments")
+Called search_docs. Argument: query="stripe package"
+search_docs(query="stripe package")
 Output/Observation:
 {
-  "query": "stripe payments",
-  "results": ["stripe/api", "stripe/payments"],
+  "query": "stripe package",
+  "results": ["stripe/package", "stripe/payments"],
   "showing": 2,
   "total": 2
 }
 Conclusion: Next round call get_doc for the first result only (one tool per round). Use only ids from this results list.
 
 STEP 2:
-Called get_doc. Argument: doc_id="stripe/api"
-get_doc(doc_id="stripe/api")
+Called get_doc. Argument: doc_id="stripe/package"
+get_doc(doc_id="stripe/package")
 Output/Observation:
 {
-  "doc_id": "stripe/api",
-  "name": "stripe/api",
-  "path": ".chub/fetched/stripe/api.md"
+  "doc_id": "stripe/package",
+  "name": "stripe/package",
+  "path": ".chub/fetched/stripe/package.md"
 }
 Conclusion: File saved. Next round must call ingest_doc only.
 
 STEP 3:
-Called ingest_doc. Argument: path=".chub/fetched/stripe/api.md"
-ingest_doc(path=".chub/fetched/stripe/api.md")
+Called ingest_doc. Argument: path=".chub/fetched/stripe/package.md"
+ingest_doc(path=".chub/fetched/stripe/package.md")
 Output/Observation:
 {
   "success": true,
-  "doc_id": "stripe/api",
+  "doc_id": "stripe/package",
   "namespace": "chub",
-  "title": "stripe/api",
-  "path": ".chub/fetched/stripe/api.md"
+  "title": "package",
+  "path": ".chub/fetched/stripe/package.md"
 }
-Conclusion: Ingested. Later rounds: get_doc then ingest_doc for "stripe/payments" (still one tool per round), then stop with a short path summary.
+Conclusion: Ingested as "stripe/package" (path-derived; not bare frontmatter "package"). Later rounds: get_doc then ingest_doc for "stripe/payments" (still one tool per round), then stop with a short path summary.
 
 C)
 STEP 1:
-Called search_docs. Argument: query="binance trading"
-search_docs(query="binance trading")
+Called search_docs. Argument: query="binance package"
+search_docs(query="binance package")
 Output/Observation:
 {
-  "query": "binance trading",
-  "results": ["binance/trading"],
+  "query": "binance package",
+  "results": ["binance/package"],
   "showing": 1,
   "total": 1
 }
-Conclusion: Only "binance/trading" is valid. Do not invent ids like "binance/sdk" or "binance/api".
+Conclusion: Only "binance/package" is valid. Do not invent ids like "binance/sdk" or "binance/api".
 
 STEP 2 (WRONG — invented id):
 Called get_doc. Argument: doc_id="binance/sdk"
@@ -117,18 +118,31 @@ Output/Observation:
 {
   "error": "chub get binance/sdk -o /app/.chub/fetched/binance/sdk.md --lang python failed (exit 1): \\u001b[31mError: No doc or skill found with id \\"binance/sdk\\".\\u001b[39m"
 }
-Conclusion: get_doc failed. Do NOT call ingest_doc. Next round call get_doc with the correct id from search results: "binance/trading".
+Conclusion: get_doc failed. Do NOT call ingest_doc. Next round call get_doc with the correct id from search results: "binance/package".
 
 STEP 3 (recovery):
-Called get_doc. Argument: doc_id="binance/trading"
-get_doc(doc_id="binance/trading")
+Called get_doc. Argument: doc_id="binance/package"
+get_doc(doc_id="binance/package")
 Output/Observation:
 {
-  "doc_id": "binance/trading",
-  "name": "binance/trading",
-  "path": ".chub/fetched/binance/trading.md"
+  "doc_id": "binance/package",
+  "name": "binance/package",
+  "path": ".chub/fetched/binance/package.md"
 }
 Conclusion: Success. Next round call ingest_doc with that path only.
+
+STEP 4:
+Called ingest_doc. Argument: path=".chub/fetched/binance/package.md"
+ingest_doc(path=".chub/fetched/binance/package.md")
+Output/Observation:
+{
+  "success": true,
+  "doc_id": "binance/package",
+  "namespace": "chub",
+  "title": "package",
+  "path": ".chub/fetched/binance/package.md"
+}
+Conclusion: Ingested as "binance/package", separate from "stripe/package". Stop with a short path summary.
 """
 
 
@@ -220,11 +234,14 @@ def _resolve_under_fetched(path: str) -> Path:
     return candidate
 
 
-def _doc_id_from_fetched_file(path: Path, markdown: str) -> str:
-    frontmatter, _ = chub_client.parse_frontmatter(markdown)
-    name = frontmatter.get("name")
-    if isinstance(name, str) and name.strip():
-        return name.strip()
+def _doc_id_from_fetched_file(path: Path, markdown: str = "") -> str:
+    """Stable doc_id from path under `.chub/fetched/` (matches get_doc argument).
+
+    Frontmatter ``name`` is often a bare slug (e.g. ``package``); path keeps
+    package identity distinct (``stripe/package`` vs ``binance/package``).
+    ``markdown`` is ignored (kept for call-site compatibility).
+    """
+    _ = markdown
     fetched_root = (chub_client.PROJECT_ROOT / ".chub" / "fetched").resolve()
     rel = path.resolve().relative_to(fetched_root).as_posix()
     if rel.endswith(".md"):
@@ -287,13 +304,17 @@ def ingest_doc(
     path: str,
     namespace: Optional[str] = None,
 ) -> str:
-    """Ingest a previously saved chub markdown file from `.chub/fetched/` into Pinecone."""
+    """Ingest a previously saved chub markdown file from `.chub/fetched/` into Pinecone.
+
+    doc_id is always the path relative to `.chub/fetched/` without `.md`
+    (same string as get_doc's doc_id), so catalog memory stays namespaced.
+    """
     try:
         from ingestion.documents import build_chub_document, ingest_documents
 
         abs_path = _resolve_under_fetched(path)
         markdown = abs_path.read_text(encoding="utf-8")
-        doc_id = _doc_id_from_fetched_file(abs_path, markdown)
+        doc_id = _doc_id_from_fetched_file(abs_path)
         ns = namespace or namespace_for_doc_id(doc_id)
         doc = build_chub_document(markdown, doc_id, namespace=ns)
         ok = ingest_documents(ns, [doc])
@@ -395,7 +416,9 @@ def harvest_chub_documents(chub_messages: List[Any]) -> List[Document]:
         except OSError:
             logger.exception("harvest failed reading %s", rel_path)
             continue
-        doc_id = payload.get("doc_id") or _doc_id_from_fetched_file(abs_path, markdown)
+        # Prefer path-derived id so harvest matches ingest / get_doc even when
+        # an older ToolMessage stored a bare frontmatter name.
+        doc_id = _doc_id_from_fetched_file(abs_path) or payload.get("doc_id")
         doc = build_chub_document(markdown, str(doc_id))
         documents.append(doc)
 
