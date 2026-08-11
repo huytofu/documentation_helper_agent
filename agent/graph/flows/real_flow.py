@@ -19,6 +19,7 @@ from agent.graph.consts import (
     CLASSIFY_INTENT,
     CHITCHAT,
     KB_META,
+    BROWSE_REFUSE,
     PRE_HUMAN_IN_LOOP,
     POST_HUMAN_IN_LOOP,
     SUMMARIZE,
@@ -37,6 +38,7 @@ from agent.graph.nodes import (
     classify_intent,
     chitchat,
     kb_meta,
+    browse_refuse,
     web_search,
     human_in_loop,
     initialize,
@@ -261,6 +263,21 @@ def after_route_and_framework(state: GraphState) -> str:
     return WEBSEARCH
 
 
+def after_retrieve(state: GraphState) -> str:
+    """Branch after retrieve: browse refuse, skip grade on direct dump, or grade."""
+    logger.info("---AFTER RETRIEVE---")
+    mode = state.get("retrieval_mode") or "embedding_match"
+    framework = state.get("framework")
+    if isinstance(mode, str) and mode.startswith("direct_") and framework != "chub":
+        logger.info("---ROUTE TO BROWSE_REFUSE---")
+        return BROWSE_REFUSE
+    if isinstance(mode, str) and mode.startswith("direct_"):
+        logger.info("---ROUTE TO GENERATE (direct topic dump)---")
+        return GENERATE
+    logger.info("---ROUTE TO GRADE_DOCUMENTS---")
+    return GRADE_DOCUMENTS
+
+
 def after_generate(state: GraphState) -> str:
     """Skip graders/HITL for direct answers; otherwise run existing grading."""
     if state.get("datasource") == "direct":
@@ -327,6 +344,7 @@ workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
 workflow.add_node(CLASSIFY_INTENT, classify_intent)
 workflow.add_node(CHITCHAT, chitchat)
 workflow.add_node(KB_META, kb_meta)
+workflow.add_node(BROWSE_REFUSE, browse_refuse)
 workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
@@ -358,6 +376,7 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge(CHITCHAT, END)
 workflow.add_edge(KB_META, END)
+workflow.add_edge(BROWSE_REFUSE, END)
 workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
 workflow.add_conditional_edges(
     ROUTE_AND_FRAMEWORK,
@@ -371,7 +390,15 @@ workflow.add_conditional_edges(
     },
 )
 
-workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
+workflow.add_conditional_edges(
+    RETRIEVE,
+    after_retrieve,
+    {
+        GRADE_DOCUMENTS: GRADE_DOCUMENTS,
+        GENERATE: GENERATE,
+        BROWSE_REFUSE: BROWSE_REFUSE,
+    },
+)
 workflow.add_conditional_edges(
     GRADE_DOCUMENTS,
     after_grade,

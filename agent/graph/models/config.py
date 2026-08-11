@@ -42,6 +42,7 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 MODEL_IDS = {
     "embeddings": ["intfloat/multilingual-e5-large-instruct", "intfloat/multilingual-e5-large-instruct"],
     "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "retrieval_mode": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "answer_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
     "retrieval_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
@@ -64,6 +65,7 @@ PROVIDER_IDS = {
     "answer_grader": "novita",
     "retrieval_grader": "novita",
     "router": "novita",
+    "retrieval_mode": "novita",
     "chub_expert": "novita",
     "hallucinate_grader": "fireworks-ai",
     "summarizer": "fireworks-ai",
@@ -82,6 +84,7 @@ TOGETHER_TIMEOUT_SECONDS = float(os.environ.get("TOGETHER_TIMEOUT_SECONDS", "15"
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
     "router": "mistral:latest",
+    "retrieval_mode": "mistral:latest",
     "chub_expert": "mistral:latest",
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",

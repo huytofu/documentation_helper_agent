@@ -9,6 +9,7 @@ from agent.graph.nodes.decide_language import decide_language
 from agent.graph.nodes.classify_intent import classify_intent
 from agent.graph.nodes.chitchat import chitchat
 from agent.graph.nodes.kb_meta import kb_meta
+from agent.graph.nodes.browse_refuse import browse_refuse
 from agent.graph.nodes.web_search import web_search
 from agent.graph.nodes.human_in_loop import human_in_loop
 from agent.graph.nodes.initialize import initialize
@@ -32,6 +33,7 @@ __all__ = [
     "classify_intent",
     "chitchat",
     "kb_meta",
+    "browse_refuse",
     "web_search",
     "human_in_loop",
     "initialize",

@@ -180,6 +180,7 @@ class OutputGraphState(CopilotKitState):
     datasource: str = ""
     intent: str = ""
     kb_catalog: str = ""
+    retrieval_mode: str = "embedding_match"
 
 class GraphState(InputGraphState, OutputGraphState):
     """
