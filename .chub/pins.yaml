@@ -1,7 +1,4 @@
 pins:
-- id: langgraph/package
-  lang: python
-  reason: core agent framework
 - id: openai/package
   lang: python
   reason: LLM SDK

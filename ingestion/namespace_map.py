@@ -6,10 +6,7 @@ from __future__ import annotations
 # Framework-specific docs land in existing namespaces; everything else → chub.
 _NAMESPACE_RULES: list[tuple[str, str]] = [
     ("langgraph/", "langgraph"),
-    ("llama-index/", "llamaindex"),
-    ("llamaindex/", "llamaindex"),
     ("copilotkit/", "copilotkit"),
-    ("smolagents/", "smolagents"),
 ]
 
 DEFAULT_CHUB_NAMESPACE = "chub"
@@ -17,7 +14,7 @@ DEFAULT_CHUB_NAMESPACE = "chub"
 # Explicit seed overrides (optional extras beyond prefix rules)
 DOC_ID_OVERRIDES: dict[str, str] = {
     "langgraph/package": "langgraph",
-    "llama-index/package": "llamaindex",
+    "copilotkit/package": "copilotkit",
 }
 
 
@@ -33,8 +30,6 @@ def namespace_for_doc_id(doc_id: str) -> str:
 
 VALID_NAMESPACES = frozenset(
     {
-        "llamaindex",
-        "smolagents",
         "langgraph",
         "copilotkit",
         "chub",

@@ -78,7 +78,7 @@ def ingest_doc(
     """Fetch a chub doc, chunk it, and add it to the Pinecone namespace.
 
     Namespace is inferred from doc_id unless overridden
-    (langgraph/* → langgraph, llama-index/* → llamaindex, else chub).
+    (langgraph/* → langgraph, copilotkit/* → copilotkit, else chub).
 
     Args:
         doc_id: Entry id to ingest.

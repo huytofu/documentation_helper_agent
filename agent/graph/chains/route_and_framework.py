@@ -25,7 +25,7 @@ class RouteAndFramework(BaseModel):
         description="Programming language mentioned in the query",
     )
     framework: Literal[
-        "llamaindex", "smolagents", "langgraph", "copilotkit", "chub", "others"
+        "langgraph", "copilotkit", "chub", "others"
     ] = Field(
         ...,
         description=(
@@ -42,7 +42,7 @@ system = """You are an expert at routing a user query to vectorstore, websearch,
 You must set "datasource" to exactly one of (priority order):
 - "kb_meta": ONLY when the user asks what THIS APP's knowledge base / indexed documentation contains (which frameworks or packages are indexed), not how to use a library
 - "direct": simple coding questions/tasks answerable from model knowledge alone — short snippets, syntax, idioms, language builtins, trivial refactors — that do NOT need indexed docs, chub, or web search
-- "vectorstore": queries about LlamaIndex, SmolAgents, LangGraph, CopilotKit (including Coagents), or a package listed in the indexed chub packages catalog below
+- "vectorstore": queries about LangGraph, CopilotKit (including Coagents), or a package listed in the indexed chub packages catalog below
 - "chub": library/package/SDK/API documentation questions that look like curated package guides, when the package is NOT in the indexed catalog below (so Pinecone retrieval would miss)
 - "websearch": queries that need external or current information from the open web, or topics that are not package/library documentation shaped
 
@@ -71,8 +71,6 @@ EXAMPLES for language:
 Even if you suspect that the query is about rust, answer with "others" only when the word "rust" appears in the query. If it doesn't, answer with "none".
 
 When datasource is "vectorstore", set "framework" to exactly one of:
-- "llamaindex": ONLY for queries specifically about the LlamaIndex framework
-- "smolagents": ONLY for queries specifically about the SmolAgents framework
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
 - "chub": for library/SDK/API docs that are not framework-specific above — especially OpenAI, Pinecone, and other curated package guides already indexed

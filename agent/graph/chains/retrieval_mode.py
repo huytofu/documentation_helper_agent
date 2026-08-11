@@ -40,7 +40,7 @@ You must set "mode" to exactly one of:
 
 When mode is "direct", set "topic_id" to either:
 - an exact chub catalog doc_id (e.g. stripe/package), OR
-- a framework namespace name when the user wants to dump that whole corpus: langgraph, llamaindex, smolagents, copilotkit, or chub
+- a framework namespace name when the user wants to dump that whole corpus: langgraph, copilotkit, or chub
 Never invent other ids.
 When mode is "embedding_match", set "topic_id" to "".
 

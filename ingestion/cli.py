@@ -23,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Namespace selector: 'all' or comma-separated known namespaces "
-            "(langgraph,llamaindex,smolagents,copilotkit,chub). "
+            "(langgraph,copilotkit,chub). "
             "Required with --clear."
         ),
     )

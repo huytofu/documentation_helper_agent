@@ -11,8 +11,6 @@ from typing import Any, Dict, List
 
 # Must stay in sync with agent/graph/chains/vectorstore_router.py
 KNOWN_FRAMEWORKS = [
-    "llamaindex",
-    "smolagents",
     "langgraph",
     "copilotkit",
     "chub",

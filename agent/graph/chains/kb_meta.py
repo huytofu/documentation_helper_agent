@@ -7,8 +7,6 @@ system = """You answer questions about THIS APP's documentation knowledge base o
 
 Static framework namespaces we can retrieve from:
 - langgraph
-- llamaindex
-- smolagents
 - copilotkit
 - chub (other curated package/SDK docs such as OpenAI, Pinecone, etc.)
 
