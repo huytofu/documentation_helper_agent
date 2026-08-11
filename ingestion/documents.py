@@ -79,8 +79,9 @@ def ingest_documents(
     framework: str,
     docs_list: list[Document],
     *,
-    chunk_size: int = 500,
-    chunk_overlap: int = 50,
+    # Under e5's 512 limit; tiktoken undercounts vs the embedding tokenizer.
+    chunk_size: int = 400,
+    chunk_overlap: int = 40,
 ) -> bool:
     """Chunk documents and add them to the vector store namespace."""
     from agent.graph.models.embeddings import embeddings
