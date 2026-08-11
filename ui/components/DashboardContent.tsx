@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -15,6 +15,8 @@ import { getUserId } from '@/lib/userUtils';
 // Dynamically import components that use CopilotKit features
 const ChatInterface = dynamic(() => import('@/components/ChatInterface'), { ssr: false });
 const AgentStatePanel = dynamic(() => import('@/components/AgentStatePanel'), { ssr: false });
+
+type WarmupStatus = 'loading' | 'ready' | 'error';
 
 interface DashboardContentProps {
   user: User | null;
@@ -31,10 +33,38 @@ export default function DashboardContent({
 }: DashboardContentProps) {
   // State to track if we're mounted on the client
   const [mounted, setMounted] = useState(false);
+  const [warmupStatus, setWarmupStatus] = useState<WarmupStatus>('loading');
+  const [warmupError, setWarmupError] = useState<string | null>(null);
+  const [warmupAttempt, setWarmupAttempt] = useState(0);
   const {state, setState} = useCoAgent<AgentState>({
     name: AGENT_NAME
   });
 
+  const runWarmup = useCallback(async () => {
+    setWarmupStatus('loading');
+    setWarmupError(null);
+    try {
+      const response = await fetch('/api/warmup-models', { method: 'POST' });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        const detail =
+          data?.error ||
+          (data?.models
+            ? Object.values(data.models)
+                .filter((m: any) => m && !m.ok)
+                .map((m: any) => `${m.model}: ${m.error || 'failed'}`)
+                .join('; ')
+            : null) ||
+          `Warm-up failed (${response.status})`;
+        throw new Error(detail);
+      }
+      setWarmupStatus('ready');
+    } catch (error) {
+      console.error('Model warm-up failed:', error);
+      setWarmupError(error instanceof Error ? error.message : 'Warm-up failed');
+      setWarmupStatus('error');
+    }
+  }, []);
 
   // Set mounted to true when component mounts on client
   useEffect(() => {
@@ -56,6 +86,13 @@ export default function DashboardContent({
     }
   }, [mounted, selectedLanguage]);
 
+  useEffect(() => {
+    if (!mounted || hasExceededLimit) {
+      return;
+    }
+    void runWarmup();
+  }, [mounted, hasExceededLimit, warmupAttempt, runWarmup]);
+
   // Don't render anything with CopilotKit until we're mounted on client
   if (!mounted) {
     return (
@@ -67,6 +104,8 @@ export default function DashboardContent({
       </div>
     );
   }
+
+  const chatReady = warmupStatus === 'ready';
 
   return (
     <div className="flex flex-col space-y-6 w-full">
@@ -102,11 +141,33 @@ export default function DashboardContent({
             </p>
             </div>
         </div>
+        ) : warmupStatus === 'loading' ? (
+        <div className="flex justify-center items-center p-8 h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-700 font-medium">Warming AI models…</p>
+            <p className="text-gray-500 text-sm mt-2">
+              Waiting for Ping/Pong from gpt-oss and DeepSeek before chat unlocks.
+            </p>
+          </div>
+        </div>
+        ) : warmupStatus === 'error' ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-xl mx-auto">
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Model warm-up failed</h2>
+          <p className="text-red-600 text-sm mb-4">{warmupError || 'Please try again.'}</p>
+          <button
+            type="button"
+            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            onClick={() => setWarmupAttempt((n) => n + 1)}
+          >
+            Retry warm-up
+          </button>
+        </div>
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-16rem)]">
             {/* Chat Interface - Takes 3/4 of the width on large screens */}
             <div className="lg:col-span-3 h-full">
-              <ChatInterface state={state} setState={setState} />
+              {chatReady && <ChatInterface state={state} setState={setState} />}
             </div>
             
             {/* Agent State Panel - Takes 1/4 of the width on large screens */}
@@ -120,4 +181,4 @@ export default function DashboardContent({
     </div>
     </div>
   );
-} 
+}

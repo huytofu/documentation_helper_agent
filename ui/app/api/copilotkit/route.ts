@@ -7,6 +7,12 @@ import {
 import { LangGraphHttpAgent } from "@copilotkit/runtime/langgraph";
 import { API_ENDPOINT, BACKEND_ENDPOINT, AGENT_NAME } from "@/constants";
 
+// This Next route is a Vercel Function that fetch-streams Cloud Run (not a
+// vercel.json external rewrite). Bound by Function maxDuration, not the 120s
+// "proxied request" rewrite limit. Hobby plan max is 60s.
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const serviceAdapter = new ExperimentalEmptyAdapter();
 
 const runtime = new CopilotRuntime({

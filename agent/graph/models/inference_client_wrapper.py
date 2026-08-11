@@ -45,6 +45,22 @@ logger = logging.getLogger(__name__)
 DEFAULT_TOGETHER_TIMEOUT_SECONDS = 15.0
 
 
+def _normalize_finish_reason(finish_reason: Any) -> str:
+    """Coerce provider finish_reason (incl. Together str Enum) to a plain str.
+
+    Together returns ``together.types.common.FinishReason`` which is a ``str``
+    Enum. Storing the enum in message metadata makes LangGraph msgpack warn on
+    checkpoint round-trip; AG-UI also drops stream events that carry any truthy
+    ``finish_reason`` in ``response_metadata``.
+    """
+    if finish_reason is None:
+        return "unknown"
+    value = getattr(finish_reason, "value", finish_reason)
+    if value is None or value == "":
+        return "unknown"
+    return str(value)
+
+
 class InferenceClientChatModel(BaseChatModel):
     """Chat model: Together direct primary, HF InferenceClient fallback."""
 
@@ -257,7 +273,7 @@ class InferenceClientChatModel(BaseChatModel):
                 )
         return normalized
 
-    def _parse_ai_message(self, message: Any, finish_reason: str) -> AIMessage:
+    def _parse_ai_message(self, message: Any, finish_reason: Any) -> AIMessage:
         """Build AIMessage with standardized tool_calls from a provider message."""
         content = getattr(message, "content", None)
         if content is None and isinstance(message, dict):
@@ -285,7 +301,9 @@ class InferenceClientChatModel(BaseChatModel):
             additional_kwargs=additional_kwargs,
             tool_calls=tool_calls,
             invalid_tool_calls=invalid_tool_calls,
-            response_metadata={"finish_reason": finish_reason},
+            response_metadata={
+                "finish_reason": _normalize_finish_reason(finish_reason)
+            },
         )
 
     def _generate(
@@ -397,9 +415,10 @@ class InferenceClientChatModel(BaseChatModel):
                 )
 
             ai_message = self._parse_ai_message(response_message_obj, finish_reason)
+            normalized_finish = _normalize_finish_reason(finish_reason)
             generation = ChatGeneration(
                 message=ai_message,
-                generation_info={"finish_reason": finish_reason},
+                generation_info={"finish_reason": normalized_finish},
             )
             return ChatResult(generations=[generation])
 
@@ -478,12 +497,14 @@ class InferenceClientChatModel(BaseChatModel):
         self,
         text: str,
         *,
-        finish_reason: Optional[str] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
     ) -> ChatGenerationChunk:
+        # Never attach finish_reason here: LangChain merges generation_info into
+        # response_metadata, and AG-UI drops on_chat_model_stream events that
+        # carry a truthy finish_reason (including Together FinishReason enums).
         chunk = ChatGenerationChunk(
             message=AIMessageChunk(content=text),
-            generation_info={"finish_reason": finish_reason} if finish_reason else None,
+            generation_info=None,
         )
         if run_manager and text:
             run_manager.on_llm_new_token(text, chunk=chunk)
@@ -544,7 +565,7 @@ class InferenceClientChatModel(BaseChatModel):
                 if content:
                     yielded = True
                     yield self._yield_text_chunk(
-                        content, finish_reason=finish_reason, run_manager=run_manager
+                        content, run_manager=run_manager
                     )
                 elif finish_reason and not yielded:
                     # No content tokens; still surface finish for empty generations.
@@ -572,9 +593,8 @@ class InferenceClientChatModel(BaseChatModel):
             text = ai_message.content if isinstance(ai_message.content, str) else str(
                 ai_message.content or ""
             )
-            yield self._yield_text_chunk(
-                text, finish_reason=finish_reason, run_manager=run_manager
-            )
+            # Omit finish_reason on the streamed chunk so AG-UI paints the oneshot.
+            yield self._yield_text_chunk(text, run_manager=run_manager)
         except Exception as e:
             logger.error(
                 "Together stream and HF fallback both failed. Together error: %s; "
@@ -604,6 +624,25 @@ class InferenceClientChatModel(BaseChatModel):
             messages, stop=stop, run_manager=sync_manager, **kwargs
         ):
             yield chunk
+
+    def _get_ls_params(
+        self,
+        stop: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Report Together primary model/provider to LangSmith (not HF fallback).
+
+        BaseChatModel derives ls_model_name from self.model, which this wrapper
+        reserves for the HF fallback ID. Override so traces label the Together
+        primary path that is attempted first.
+        """
+        ls_params = dict(super()._get_ls_params(stop=stop, **kwargs))
+        ls_params["ls_provider"] = self.direct_provider or "together"
+        if "model" in kwargs and isinstance(kwargs["model"], str):
+            ls_params["ls_model_name"] = kwargs["model"]
+        else:
+            ls_params["ls_model_name"] = self.direct_model
+        return ls_params
 
     @property
     def _llm_type(self) -> str:
