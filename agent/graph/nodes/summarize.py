@@ -1,7 +1,8 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
 from agent.graph.state import GraphState
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import (
     cost_tracker,
 )
@@ -25,7 +26,7 @@ def simplify_messages(messages: list) -> list:
             simplified_messages.append({"role": "assistant", "content": message.content})
     return simplified_messages
 
-async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def summarize(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---SUMMARIZE---")
     # Emit state update for summarization
     query = state.get("query", "")
@@ -45,6 +46,15 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         await standard_sleep()
     messages = state.get("messages", [])
     messages = trim_messages(messages)
+
+    # Skip LLM summarization for short conversations.
+    if len(messages) < 8:
+        return {
+            "pass_summarize": True,
+            "summarized": False,
+            "current_node": "SUMMARIZE",
+        }
+
     messages = simplify_messages(messages)
 
     try:
@@ -80,20 +90,23 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         if rewritten_query == "":
             return {
                 "pass_summarize": True,
-                "summarized": True
+                "summarized": True,
+                "current_node": "SUMMARIZE",
             }
         else:
             return {
                 "rewritten_query": rewritten_query,
                 "pass_summarize": True,
-                "summarized": True
+                "summarized": True,
+                "current_node": "SUMMARIZE",
             }
     except asyncio.TimeoutError:
         logger.error("Summarization timed out")
         return {
             "error": "Summarization timed out",
             "pass_summarize": True,
-            "summarized": False
+            "summarized": False,
+            "current_node": "SUMMARIZE",
         }
     except Exception as e:
         import traceback
@@ -102,5 +115,6 @@ async def summarize(state: GraphState, config: Dict[str, Any] = None) -> Dict[st
         return {
             "error": str(e),
             "pass_summarize": True,
-            "summarized": False
+            "summarized": False,
+            "current_node": "SUMMARIZE",
         }

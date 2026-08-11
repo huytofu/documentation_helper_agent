@@ -1,9 +1,14 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Annotated
+
+from agent.graph.langgraph_compat import ensure_compiled_graph_alias
+
+ensure_compiled_graph_alias()
 from copilotkit import CopilotKitState
 import os
 import logging
 import shutil
 import fcntl
+from langgraph.graph.message import add_messages
 
 logger = logging.getLogger("graph.state")
 
@@ -172,6 +177,10 @@ class OutputGraphState(CopilotKitState):
     rewritten_query: str = ""
     retry_count: int = 0
     framework: str = ""
+    datasource: str = ""
+    intent: str = ""
+    kb_catalog: str = ""
+    retrieval_mode: str = "embedding_match"
 
 class GraphState(InputGraphState, OutputGraphState):
     """
@@ -188,4 +197,9 @@ class GraphState(InputGraphState, OutputGraphState):
     pass_summarize: bool = False
     summarized: bool = False
     documents: List[Any] = []
+    chub_messages: Annotated[list, add_messages]
+    chub_enrich_attempted: bool = False
+    chub_tool_rounds: int = 0
+    chub_consent: bool = False
+    pending_question: Optional[str] = None
 

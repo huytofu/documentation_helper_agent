@@ -1,16 +1,15 @@
 from langchain_ollama import ChatOllama
 from .config import get_model_config_for_component
 from .inference_client_wrapper import InferenceClientChatModel
-from langchain.chat_models.base import BaseChatModel
-from langchain.callbacks.manager import CallbackManagerForLLMRun
-from langchain.schema import (
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+from langchain_core.messages import (
     AIMessage,
     HumanMessage,
     SystemMessage,
     BaseMessage,
-    ChatResult,
-    ChatGeneration,
 )
+from langchain_core.outputs import ChatResult, ChatGeneration
 from typing import Any, List, Mapping, Optional, Iterator, Dict, Union, cast
 
 class RunPodChatModel(BaseChatModel):
@@ -110,13 +109,14 @@ config = get_model_config_for_component("generator")
 if config["provider"] == "inference_client":
     # Use InferenceClient with third-party provider
     llm = InferenceClientChatModel(
-        provider=config.get("provider_org", "together"),
+        provider=config["provider_org"],
         direct_provider=config.get("direct_provider_org", "together"),
         api_key=config["api_key"],
         direct_api_key=config["direct_api_key"],
         model=config["model"],
         temperature=0,
-        max_tokens=config["max_tokens"]
+        max_tokens=config["max_tokens"],
+        timeout=config.get("together_timeout", 15),
     )
 elif config["provider"] == "runpod":
     # Initialize the RunPod chat model with the client from config

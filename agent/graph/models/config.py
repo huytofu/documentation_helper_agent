@@ -6,10 +6,12 @@ including switching between Ollama, Hugging Face models, and third-party provide
 
 Environment Variables:
     USE_OLLAMA: Set to "true" to use Ollama models (default: false)
-    USE_INFERENCE_CLIENT: Set to "true" to use InferenceClient with third-party providers
+    USE_INFERENCE_CLIENT: Set to "true" to use Together-primary + HF-fallback inference
     USE_RUNPOD: Set to "true" to use RunPod for generator model
-    
-    INFERENCE_API_KEY: API key for the specified provider
+
+    INFERENCE_API_KEY: Hugging Face API key (used for HF fallback InferenceClient)
+    INFERENCE_DIRECT_API_KEY: Together API key (primary path)
+    TOGETHER_TIMEOUT_SECONDS: Together primary-path timeout in seconds (default: 15)
     RUNPOD_API_KEY: RunPod API key
     RUNPOD_ENDPOINT_ID: RunPod endpoint ID
 """
@@ -35,34 +37,55 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
     raise ValueError("USE_OLLAMA and USE_INFERENCE_CLIENT cannot be enabled simultaneously")
 
 # Model IDs
+# Format: [Together AI direct primary ID, HF Hub ID (routed via InferenceClient fallback)]
+# Primary path is always Together direct. HF fallback uses PROVIDER_IDS (never "together").
 MODEL_IDS = {
-    "embeddings": ["BAAI/bge-large-en-v1.5", "BAAI/bge-large-en-v1.5"],
-    "router": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "sentiment_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "answer_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    "retrieval_grader": ["mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.3"],
-    # "hallucinate_grader": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
-    # "summarizer": ["meta-llama/Meta-Llama-3.1-8B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"],
-    "hallucinate_grader": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    "summarizer": ["meta-llama/Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    # "router": ["meta-llama/Meta-Llama-3.3-70B-Instruct", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"],
-    "generator": ["deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", "arcee-ai/coder-large"]
+    "embeddings": ["intfloat/multilingual-e5-large-instruct", "intfloat/multilingual-e5-large-instruct"],
+    "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "retrieval_mode": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "answer_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "retrieval_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    # gpt-oss-120b on both paths (Together primary, HF provider fallback).
+    "complex_router": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    # "chub_expert": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
+    "chub_expert": ["MiniMaxAI/MiniMax-M3", "MiniMaxAI/MiniMax-M3"],
+    # "chub_expert": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    "chitchat": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
 }
-default_provider = os.getenv("INFERENCE_PROVIDER")
+
+# HF InferenceClient fallback providers only — never "together" (primary already failed).
+# Placeholder values (fireworks-ai / novita / hf-inference) may be revised later.
 PROVIDER_IDS = {
-    "embeddings": default_provider,
-    "sentiment_grader": default_provider,
-    "answer_grader": default_provider,
-    "retrieval_grader": default_provider,
-    "hallucinate_grader": default_provider,
-    "summarizer": default_provider,
-    "router": default_provider,
-    "generator": "nebius"
+    "embeddings": "hf-inference",
+    "sentiment_grader": "novita",
+    "answer_grader": "novita",
+    "retrieval_grader": "novita",
+    "router": "novita",
+    "retrieval_mode": "novita",
+    "chub_expert": "novita",
+    "hallucinate_grader": "fireworks-ai",
+    "summarizer": "fireworks-ai",
+    "chitchat": "fireworks-ai",
+    "complex_router": "fireworks-ai",
+    "generator": "nebius",
 }
+
+if any((p or "").lower() == "together" for p in PROVIDER_IDS.values()):
+    raise ValueError(
+        "PROVIDER_IDS must not include 'together'; HF fallback cannot use the primary path"
+    )
+
+TOGETHER_TIMEOUT_SECONDS = float(os.environ.get("TOGETHER_TIMEOUT_SECONDS", "15"))
 # Ollama model names
 OLLAMA_MODELS = {
     "embeddings": "qllama/bge-large-en-v1.5",
     "router": "mistral:latest",
+    "retrieval_mode": "mistral:latest",
+    "chub_expert": "mistral:latest",
     "sentiment_grader": "mistral:latest",
     "answer_grader": "mistral:latest",
     "retrieval_grader": "mistral:latest",
@@ -70,6 +93,8 @@ OLLAMA_MODELS = {
     # "summarizer": "llama3.1:latest",
     "hallucinate_grader": "llama3.3:latest",
     "summarizer": "llama3.3:latest",
+    "chitchat": "llama3.3:latest",
+    "complex_router": "llama3.3:latest",
     # "router": "llama3.3:latest",
     "generator": "deepseek-coder:33b"
 }
@@ -195,13 +220,16 @@ def get_model_config_for_component(component: str) -> Dict[str, Any]:
     elif provider == "inference_client":
         return {
             "provider": provider,
+            # HF InferenceClient fallback provider (never "together")
             "provider_org": PROVIDER_IDS[component],
-            "direct_provider_org": default_provider,
+            # Together is always the primary direct path
+            "direct_provider_org": "together",
             "model": MODEL_IDS[component],
             "api_key": os.getenv("INFERENCE_API_KEY"),
             "direct_api_key": os.getenv("INFERENCE_DIRECT_API_KEY"),
             "base_url": os.getenv("INFERENCE_BASE_URL", "https://api-inference.huggingface.co/models"),
-            "max_tokens": int(os.getenv("INFERENCE_MAX_TOKENS", "2048"))
+            "max_tokens": int(os.getenv("INFERENCE_MAX_TOKENS", "2048")),
+            "together_timeout": TOGETHER_TIMEOUT_SECONDS,
         }
     else:  # default to ollama
         return {

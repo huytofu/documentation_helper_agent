@@ -1,6 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import logging
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_community.tools.tavily_search import TavilySearchResults
 from agent.graph.state import GraphState
 from agent.graph.utils.timeout import timeout
@@ -11,7 +12,7 @@ from agent.graph.utils.api_utils import (
     APIResponse
 )
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state, copilotkit_emit_message
 from agent.graph.utils.api_utils import standard_sleep
 
 logger = logging.getLogger("graph.web_search")
@@ -37,7 +38,7 @@ async def perform_web_search(query: str) -> APIResponse:
             data=[]
         )
 
-async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def web_search(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     logger.info("---WEB SEARCH---")
     if config:
         generating_state = {
@@ -46,6 +47,7 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
+        await copilotkit_emit_message(config, "Please wait while I search the web for information.")
         await standard_sleep()
         
     query = state.get("query", "")
@@ -62,10 +64,25 @@ async def web_search(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
                 documents.append(web_results)
             else:
                 documents = [web_results]
-            return {"documents": documents, "retry_count": retry_count}
+            return {
+                "documents": documents,
+                "retry_count": retry_count,
+                "current_node": "WEBSEARCH",
+            }
         else:
             logger.error(f"Web search failed: {response.error}")
-            return {"documents": documents, "error": response.error, "retry_count": retry_count}
+            return {
+                "documents": documents,
+                "error": response.error,
+                "retry_count": retry_count,
+                "current_node": "WEBSEARCH",
+            }
     except Exception as e:
         logger.error(f"Unexpected error in web search: {str(e)}")
-        return {"documents": documents, "error": str(e), "retry_count": retry_count}
+        return {
+            "documents": documents,
+            "error": str(e),
+            "retry_count": retry_count,
+            "current_node": "WEBSEARCH",
+        }
+

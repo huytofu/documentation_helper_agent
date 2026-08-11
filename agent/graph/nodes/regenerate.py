@@ -1,23 +1,46 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 import asyncio
+import uuid
 
 from agent.graph.chains.regeneration import regeneration_chain
 from agent.graph.state import GraphState
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.utils.message_utils import get_content
-from copilotkit.langgraph import copilotkit_emit_state
-from agent.graph.utils.api_utils import (
-    GENERATION_TIMEOUT,
-    cost_tracker,
-)
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
+from agent.graph.utils.api_utils import cost_tracker
 from agent.graph.utils.message_utils import convert_to_raw_documents
 from agent.graph.utils.api_utils import standard_sleep
+from agent.graph.utils.stream_utils import astream_chain_text
 import logging
 logger = logging.getLogger(__name__)
 
 
-async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+def _assistant_message(content: str, *, message_id: Optional[str] = None) -> AIMessage:
+    return AIMessage(
+        id=message_id or str(uuid.uuid4()),
+        content=content,
+        additional_kwargs={
+            "display_in_chat": True,
+            "error_type": None,
+        },
+    )
+
+
+def _error_system_message(content: str, *, error_type: str, error_message: str) -> SystemMessage:
+    """Internal note — SystemMessage so CopilotChat does not render a bubble."""
+    return SystemMessage(
+        id=str(uuid.uuid4()),
+        content=content,
+        additional_kwargs={
+            "error_type": error_type,
+            "error_message": error_message,
+        },
+    )
+
+
+async def regenerate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---REGENERATE---")
     
     # Get state variables
@@ -42,6 +65,8 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         generation = ""
     elif last_message_type == "ai":
         generation = messages[-1].content
+    else:
+        generation = ""
         
     
     comments = state.get("comments", "")
@@ -54,19 +79,16 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
         extra_info = ""
 
     try:
-        # Use asyncio to handle concurrent generation requests
-        llm_generation = await asyncio.wait_for(
-            asyncio.to_thread(
-                regeneration_chain.invoke,
-                {
-                    "extra_info": extra_info,
-                    "documents": joined_documents,
-                    "query": rewritten_query,
-                    "generation": generation,
-                    "comments": comments
-                }
-            ),
-            timeout=GENERATION_TIMEOUT
+        llm_generation, stream_message_id = await astream_chain_text(
+            regeneration_chain,
+            {
+                "extra_info": extra_info,
+                "documents": joined_documents,
+                "query": rewritten_query,
+                "generation": generation,
+                "comments": comments,
+            },
+            config,
         )
         
         # Track API usage
@@ -76,48 +98,36 @@ async def regenerate(state: GraphState, config: Dict[str, Any] = None) -> Dict[s
             cost=0.0,  # Update cost based on actual pricing
             requests=1
         )
-        
-        messages.append(AIMessage(
-            content=llm_generation,
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": None
-            }
-        ))
 
+        # Return only the new message — GraphState.messages uses add_messages.
         return {
-            "messages": messages,
-            "documents": raw_documents
+            "messages": [_assistant_message(llm_generation, message_id=stream_message_id)],
+            "documents": raw_documents,
+            "current_node": "REGENERATE",
         }
     except asyncio.TimeoutError:
         logger.error("Generation timed out")
-        messages.append(AIMessage(
-            content="BACKEND AGENT DEAD! Please try again later.",
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "timeout",
-                "error_message": "Generation timed out"
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_error_system_message(
+                "BACKEND AGENT DEAD! Please try again later.",
+                error_type="timeout",
+                error_message="Generation timed out",
+            )],
             "documents": raw_documents,
-            "error": "Generation timed out"
+            "error": "Generation timed out",
+            "current_node": "REGENERATE",
         }
     except Exception as e:
         import traceback
         traceback.print_exc()
         logger.error(f"Error during generation: {str(e)}")
-        messages.append(AIMessage(
-            content="BACKENDS AGENT DEAD! Please try again later.",
-            additional_kwargs={
-                "display_in_chat": True,
-                "error_type": "internal",
-                "error_message": str(e)
-            }
-        ))
         return {
-            "messages": messages,
+            "messages": [_error_system_message(
+                "BACKEND AGENT DEAD! Please try again later.",
+                error_type="internal",
+                error_message=str(e),
+            )],
             "documents": raw_documents,
-            "error": str(e)
+            "error": str(e),
+            "current_node": "REGENERATE",
         }

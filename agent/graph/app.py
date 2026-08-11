@@ -11,11 +11,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
-from copilotkit.integrations.fastapi import add_fastapi_endpoint
-from copilotkit import CopilotKitRemoteEndpoint, LangGraphAgent
+
+from agent.graph.langgraph_compat import ensure_compiled_graph_alias
+
+ensure_compiled_graph_alias()
+from agent.graph.agui_endpoint import register_agui_endpoint
 from agent.graph.graph import app as agent_app
 from agent.graph.state import GraphState
 from agent.graph.models.config import with_concurrency_limit
@@ -45,8 +50,20 @@ logging.getLogger("copilotkit").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.info("Initializing FastAPI application for Vercel...")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Ensure Redis/InMemory long-term store indices are ready on startup."""
+    from agent.graph.stores import aensure_store_setup, get_store
+
+    store = get_store()
+    await aensure_store_setup(store)
+    logger.info("Long-term store ready: %s", store.__class__.__name__)
+    yield
+
+
 # Create FastAPI app
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Debug log the app instance
 logger.info(f"FastAPI app instance: {id(app)} at {app}")
@@ -54,11 +71,14 @@ logger.info(f"FastAPI app instance: {id(app)} at {app}")
 # Security Configuration
 MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE", "1048576"))  # 1MB
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
+# Model warm-up may wait on Together cold starts; do not use the short default.
+WARMUP_REQUEST_TIMEOUT = float(os.getenv("WARMUP_REQUEST_TIMEOUT", "90.0"))
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
 MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
 CIRCUIT_BREAKER_THRESHOLD = float(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "0.8"))  # 80% error rate
 CIRCUIT_BREAKER_RESET = int(os.getenv("CIRCUIT_BREAKER_RESET", "60"))
+REQUEST_TIMEOUT_EXEMPT_PATHS = frozenset({"/api/warmup-models"})
 
 # Enhanced Rate Limit Middleware
 class EnhancedRateLimitMiddleware(BaseHTTPMiddleware):
@@ -111,8 +131,12 @@ class EnhancedRateLimitMiddleware(BaseHTTPMiddleware):
             self.requests[client_ip].append(current_time)
 
         try:
-            # Add timeout to request handling
-            response = await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT)
+            timeout = (
+                WARMUP_REQUEST_TIMEOUT
+                if request.url.path in REQUEST_TIMEOUT_EXEMPT_PATHS
+                else REQUEST_TIMEOUT
+            )
+            response = await asyncio.wait_for(call_next(request), timeout=timeout)
             
             # Update circuit breaker on success
             async with self.lock:
@@ -200,26 +224,20 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-# Create SDK instance
-sdk = CopilotKitRemoteEndpoint(
-    agents=[
-        LangGraphAgent(
-            name="coding_agent",
-            description="Expert coding agent that assists users with answering coding-related questions, code documentation, code completion and implementation.",
-            graph=agent_app,
-            config={
-                "force_use": True,
-                "priority": 1,
-                "metadata": {
-                    "requires_langgraph": True,
-                    "timestamp": "auto"
-                },
-            }
-        )
-    ],
+# AG-UI stream endpoint (replaces retired CopilotKitRemoteEndpoint + execute())
+register_agui_endpoint(
+    app,
+    agent_app,
+    path="/api/copilotkitagent",
+    config={
+        "force_use": True,
+        "priority": 1,
+        "metadata": {
+            "requires_langgraph": True,
+            "timestamp": "auto",
+        },
+    },
 )
-
-add_fastapi_endpoint(app, sdk, "/api/copilotkitagent")
 
 # Store the last warm-up time in memory (will reset on cold start)
 last_warmup_time = 0
@@ -270,6 +288,18 @@ async def warmup():
         return {"status": "warmed_up", "timestamp": last_warmup_time}
     else:
         raise HTTPException(status_code=500, detail="Warm-up failed")
+
+
+@app.post("/api/warmup-models")
+async def warmup_models(api_key: str = Depends(verify_api_key)):
+    """Ping Together models (Ping/Pong) so serverless cold starts finish before chat."""
+    from agent.graph.utils.model_warmup import get_warmup_service
+
+    del api_key  # auth side-effect via Depends
+    result = await get_warmup_service().warmup()
+    if not result.get("ok"):
+        return JSONResponse(status_code=503, content=result)
+    return result
 
 # Health check endpoint for Vercel
 @app.get("/api/health")

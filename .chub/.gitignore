@@ -1,0 +1,3 @@
+# .chub/ is git-tracked
+# Runtime cache of docs fetched by the chub expert (not committed)
+fetched/

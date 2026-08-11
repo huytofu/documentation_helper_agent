@@ -1,19 +1,58 @@
 from langgraph.graph import END, StateGraph
 from langchain_core.documents import Document
-from agent.graph.chains.answer_grader import answer_grader, GradeAnswer, grade_answer
+from agent.graph.chains.answer_grader import GradeAnswer, grade_answer
 from agent.graph.chains.sentiment_grader import sentiment_grader, GradeSentiment
-from agent.graph.chains.hallucination_grader import hallucination_grader, GradeHallucinations, grade_hallucinations
-from agent.graph.chains.query_router import query_router, RouteQuery
+from agent.graph.chains.hallucination_grader import GradeHallucinations, grade_hallucinations
 from langchain_core.messages import AIMessage
-from agent.graph.consts import GENERATE, REGENERATE, GRADE_DOCUMENTS, RETRIEVE, WEBSEARCH, DECIDE_VECTORSTORE, HUMAN_IN_LOOP, INITIALIZE, DECIDE_LANGUAGE, PRE_HUMAN_IN_LOOP, POST_HUMAN_IN_LOOP, SUMMARIZE, IMMEDIATE_MESSAGE_ONE, IMMEDIATE_MESSAGE_TWO
+from agent.graph.consts import (
+    GENERATE,
+    REGENERATE,
+    GRADE_DOCUMENTS,
+    RETRIEVE,
+    WEBSEARCH,
+    ROUTE_AND_FRAMEWORK,
+    ASK_CHUB_PERMISSION,
+    CHUB_EXPERT,
+    CHUB_TOOLS,
+    HUMAN_IN_LOOP,
+    INITIALIZE,
+    CLASSIFY_INTENT,
+    CHITCHAT,
+    KB_META,
+    BROWSE_REFUSE,
+    PRE_HUMAN_IN_LOOP,
+    POST_HUMAN_IN_LOOP,
+    SUMMARIZE,
+    IMMEDIATE_MESSAGE_ONE,
+    IMMEDIATE_MESSAGE_TWO,
+)
 from agent.graph.nodes import (
-    generate, regenerate, grade_documents, retrieve, decide_vectorstore, 
-    decide_language, web_search, human_in_loop, initialize, pre_human_in_loop, 
-    post_human_in_loop, summarize, immediate_message_one, immediate_message_two
+    generate,
+    regenerate,
+    grade_documents,
+    retrieve,
+    route_and_framework,
+    ask_chub_permission,
+    chub_expert,
+    chub_tools,
+    classify_intent,
+    chitchat,
+    kb_meta,
+    browse_refuse,
+    web_search,
+    human_in_loop,
+    initialize,
+    pre_human_in_loop,
+    post_human_in_loop,
+    summarize,
+    immediate_message_one,
+    immediate_message_two,
 )
 from agent.graph.state import GraphState, InputGraphState, OutputGraphState, cleanup_resources
-from agent.graph.utils.flow_state import check_iteration_limit
-from concurrent.futures import TimeoutError
+from agent.graph.utils.flow_state import check_iteration_limit, reset_flow_state
+from agent.graph.utils.grade_routing import resolve_generation_grade_route
+from agent.graph.chains.chub_expert import MAX_CHUB_TOOL_ROUNDS
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from threading import Lock
 import logging
 logger = logging.getLogger("graph.real_flow")
@@ -43,15 +82,6 @@ def validate_state(state: GraphState) -> bool:
             "min_length": 0,
             "validate": lambda x: all(isinstance(doc, Document) for doc in x)
         },
-        # "current_node": {
-        #     "type": str,
-        #     "allowed_values": ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-        #                       "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-        #                       "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"],
-        #     "validate": lambda x: x in ["INITIALIZE", "DECIDE_LANGUAGE", "DECIDE_VECTORSTORE", 
-        #                               "RETRIEVE", "GRADE_DOCUMENTS", "GENERATE", "WEBSEARCH", 
-        #                               "HUMAN_IN_LOOP", "PRE_HUMAN_IN_LOOP", "POST_HUMAN_IN_LOOP"]
-        # },
         "language": {
             "type": str,
             "allowed_values": ["python", "javascript", "others", "none"],
@@ -107,7 +137,11 @@ def get_last_ai_message_content(messages):
     return ""
 
 def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
-    """Grade generation for hallucinations and query relevance.
+    """Grade generation for query relevance and (when docs exist) grounding.
+
+    Runs answer grading always. When documents are present, also runs
+    hallucination grading in parallel. Useful answers win even if ungrounded
+    (general knowledge). Empty-doc / ungrounded + not useful triggers web search.
     
     Args:
         state: Current graph state
@@ -115,7 +149,7 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
     Returns:
         str: Next node to execute
     """
-    logger.info("---CHECK HALLUCINATIONS---")
+    logger.info("---GRADE GENERATION (PARALLEL / EDGE CASES)---")
     
     # Validate state
     if not validate_state(state):
@@ -128,83 +162,162 @@ def grade_generation_grounded_in_documents_and_query(state: GraphState) -> str:
         return "end_misery"
     
     query = state.get("query", "")
-    documents = state.get("documents", [])
+    documents = state.get("documents", []) or []
     messages = state.get("messages", [])
     generation = get_last_ai_message_content(messages)
-    score = {}
+    has_documents = len(documents) > 0
 
-    hallucination_counter = 0
-    while not hasattr(score, "binary_score") and hallucination_counter < 1:
-        hallucination_counter += 1
-        try:
-            score: GradeHallucinations = grade_hallucinations(
-                documents="\n\n".join([doc.page_content[:500] for doc in documents]),
-                generation=generation
-            )
-        except TimeoutError:
-            logger.error("Hallucination grading timed out")
-            cleanup_resources(state)
-            return "end_misery"
-        except Exception as e:
-            logger.info(f"---ERROR: {e}---")
-            logger.info("---RETRYING HALLUCINATION GRADING---")
-            continue
+    answer_score: GradeAnswer | None = None
+    hallucination_score: GradeHallucinations | None = None
 
-    if score and score.binary_score:
-        logger.info("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
-        logger.info("---GRADE GENERATION vs query---")
-        
-        try:
-            score: GradeAnswer = grade_answer(query=query, answer=generation)
-        except TimeoutError:
-            logger.error("Answer grading timed out")
-            return "end_misery"
-        except Exception as e:
-            logger.error(f"Error during answer grading: {str(e)}")
-            return "end_misery"
-        
-        if score and score.binary_score:
-            logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
-            return "useful"
+    try:
+        if has_documents:
+            logger.info("---CHECK HALLUCINATIONS + ANSWER (PARALLEL)---")
+            docs_text = "\n\n".join([doc.page_content[:500] for doc in documents])
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                hallucination_future = executor.submit(
+                    grade_hallucinations,
+                    documents=docs_text,
+                    generation=generation,
+                )
+                answer_future = executor.submit(
+                    grade_answer,
+                    query=query,
+                    answer=generation,
+                )
+                hallucination_score = hallucination_future.result()
+                answer_score = answer_future.result()
         else:
-            logger.info("---DECISION: GENERATION DOES NOT ADDRESS QUERY, RE-TRY---")
-            return "not useful"
-    else:
-        logger.info("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
-        retry_count = state.get("retry_count", 0)
-        if retry_count < 1:
-            return "need search web"
-        logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
+            logger.info("---NO DOCUMENTS: ANSWER GRADING ONLY---")
+            answer_score = grade_answer(query=query, answer=generation)
+    except TimeoutError:
+        logger.error("Grading timed out")
+        cleanup_resources(state)
+        return "end_misery"
+    except Exception as e:
+        logger.error(f"Error during grading: {str(e)}")
         cleanup_resources(state)
         return "end_misery"
 
-def route_query(state: GraphState) -> str:
-    logger.info("---ROUTE QUERY---")
-    query = state.get("query", "")
-    source: RouteQuery = query_router.invoke({"query": query})
-    if source.datasource in ["websearch", None]:
-        logger.info("---ROUTE QUERY TO WEB SEARCH---")
-        return WEBSEARCH
-    elif source.datasource == "vectorstore":
-        language = state.get("language", "")
-        if language in ["python", "javascript"]:
-            logger.info("---ROUTE QUERY TO VECTORSTORE ROUTER---")
-            return DECIDE_VECTORSTORE
+    answer_useful = bool(answer_score and answer_score.binary_score)
+    grounded = (
+        bool(hallucination_score and hallucination_score.binary_score)
+        if has_documents
+        else None
+    )
+    route = resolve_generation_grade_route(
+        has_documents=has_documents,
+        answer_useful=answer_useful,
+        grounded=grounded,
+        retry_count=state.get("retry_count", 0),
+    )
+
+    if route == "useful":
+        if has_documents and grounded is False:
+            logger.info(
+                "---DECISION: GENERATION ADDRESSES QUERY (UNGROUNDED / GENERAL KNOWLEDGE)---"
+            )
         else:
-            logger.info("---ROUTE QUERY TO WEB SEARCH---")
-            return WEBSEARCH
-    else:
-        logger.info("---ROUTE QUERY TO NONE---")
+            logger.info("---DECISION: GENERATION ADDRESSES QUERY---")
+    elif route == "not useful":
+        logger.info("---GROUNDED BUT NOT USEFUL: RE-TRY VIA HITL---")
+    elif route == "need search web":
+        if not has_documents:
+            logger.info("---NO DOCUMENTS + NOT USEFUL: TRY WEB SEARCH---")
+        else:
+            logger.info("---NOT GROUNDED AND NOT USEFUL: TRY WEB SEARCH---")
+    elif route == "end_misery":
+        logger.info("---DECISION: TOO MANY RETRIES, I AM GONNA END THIS MISERY---")
+        cleanup_resources(state)
+
+    return route
+
+
+def after_classify_intent(state: GraphState) -> str:
+    """Branch after intent classification: chitchat vs programming pipeline."""
+    logger.info("---AFTER CLASSIFY INTENT---")
+    if state.get("intent") == "chitchat":
+        logger.info("---ROUTE TO CHITCHAT---")
+        return CHITCHAT
+    logger.info("---ROUTE TO SUMMARIZE---")
+    return SUMMARIZE
+
+
+def after_route_and_framework(state: GraphState) -> str:
+    """Branch after the merged router node (framework/language already on state)."""
+    logger.info("---AFTER ROUTE AND FRAMEWORK---")
+    datasource = state.get("datasource")
+    if datasource == "vectorstore":
+        logger.info("---ROUTE TO RETRIEVE---")
+        return RETRIEVE
+    if datasource == "direct":
+        logger.info("---ROUTE TO GENERATE (direct)---")
         return GENERATE
-        
-def to_search_web_or_not(state: GraphState) -> str:
-    logger.info("---TO SEARCH WEB OR NOT---")
-    documents = state.get("documents", [])
+    if datasource == "kb_meta":
+        logger.info("---ROUTE TO KB_META---")
+        return KB_META
+    if datasource == "chub":
+        logger.info("---ROUTE TO ASK CHUB PERMISSION---")
+        return ASK_CHUB_PERMISSION
+    logger.info("---ROUTE TO WEB SEARCH---")
+    return WEBSEARCH
+
+
+def after_retrieve(state: GraphState) -> str:
+    """Branch after retrieve: browse refuse, skip grade on direct dump, or grade."""
+    logger.info("---AFTER RETRIEVE---")
+    mode = state.get("retrieval_mode") or "embedding_match"
+    framework = state.get("framework")
+    if isinstance(mode, str) and mode.startswith("direct_") and framework != "chub":
+        logger.info("---ROUTE TO BROWSE_REFUSE---")
+        return BROWSE_REFUSE
+    if isinstance(mode, str) and mode.startswith("direct_"):
+        logger.info("---ROUTE TO GENERATE (direct topic dump)---")
+        return GENERATE
+    logger.info("---ROUTE TO GRADE_DOCUMENTS---")
+    return GRADE_DOCUMENTS
+
+
+def after_generate(state: GraphState) -> str:
+    """Skip graders/HITL for direct answers; otherwise run existing grading."""
+    if state.get("datasource") == "direct":
+        logger.info("---DIRECT GENERATE: END (skip graders/HITL)---")
+        reset_flow_state()
+        return "direct_end"
+    return grade_generation_grounded_in_documents_and_query(state)
+
+
+def after_grade(state: GraphState) -> str:
+    """After grading: generate, ask chub permission, or fall back to websearch."""
+    logger.info("---AFTER GRADE---")
+    documents = state.get("documents") or []
     if len(documents) > 0:
         return GENERATE
-    else:
+    if state.get("chub_enrich_attempted"):
+        logger.info("---CHUB ALREADY ATTEMPTED; WEB SEARCH---")
         return WEBSEARCH
-    
+    logger.info("---ROUTE TO ASK CHUB PERMISSION---")
+    return ASK_CHUB_PERMISSION
+
+
+def after_chub_expert(state: GraphState) -> str:
+    """Continue tool loop, or finish to GENERATE / WEBSEARCH."""
+    logger.info("---AFTER CHUB EXPERT---")
+    msgs = state.get("chub_messages") or []
+    last = msgs[-1] if msgs else None
+    tool_calls = getattr(last, "tool_calls", None) if last is not None else None
+    rounds = int(state.get("chub_tool_rounds") or 0)
+    if tool_calls and rounds < MAX_CHUB_TOOL_ROUNDS:
+        logger.info("---CHUB TOOLS (round %s)---", rounds + 1)
+        return CHUB_TOOLS
+    docs = state.get("documents") or []
+    if docs:
+        logger.info("---CHUB ENRICH PRODUCED DOCS; GENERATE---")
+        return GENERATE
+    logger.info("---CHUB ENRICH EMPTY; WEB SEARCH---")
+    return WEBSEARCH
+
+
 def determine_user_sentiment(state: GraphState) -> str:
     logger.info("---DETERMINE USER SENTIMENT---")
     try:
@@ -220,14 +333,6 @@ def determine_user_sentiment(state: GraphState) -> str:
         # Always clean up resources before ending
         cleanup_resources(state)
 
-# def skip_summarize_or_not(state: GraphState) -> str:
-#     logger.info("---SKIP SUMMARIZE OR NOT---")
-#     pass_summarize = state.get("pass_summarize", False)
-#     if not pass_summarize:
-#         return SUMMARIZE
-#     else:
-#         return GENERATE
-
 # Create the graph without executor parameter
 workflow = StateGraph(GraphState, input=InputGraphState, output=OutputGraphState)
 
@@ -236,10 +341,20 @@ workflow.add_node(INITIALIZE, initialize)
 # Add other 
 workflow.add_node(IMMEDIATE_MESSAGE_ONE, immediate_message_one)
 workflow.add_node(IMMEDIATE_MESSAGE_TWO, immediate_message_two)
-workflow.add_node(DECIDE_LANGUAGE, decide_language)
-workflow.add_node(DECIDE_VECTORSTORE, decide_vectorstore)
+workflow.add_node(CLASSIFY_INTENT, classify_intent)
+workflow.add_node(CHITCHAT, chitchat)
+workflow.add_node(KB_META, kb_meta)
+workflow.add_node(BROWSE_REFUSE, browse_refuse)
+workflow.add_node(ROUTE_AND_FRAMEWORK, route_and_framework)
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
+workflow.add_node(
+    ASK_CHUB_PERMISSION,
+    ask_chub_permission,
+    destinations=(ASK_CHUB_PERMISSION, CHUB_EXPERT, GENERATE),
+)
+workflow.add_node(CHUB_EXPERT, chub_expert)
+workflow.add_node(CHUB_TOOLS, chub_tools)
 workflow.add_node(GENERATE, generate)
 workflow.add_node(REGENERATE, regenerate)
 workflow.add_node(WEBSEARCH, web_search)
@@ -250,32 +365,66 @@ workflow.add_node(POST_HUMAN_IN_LOOP, post_human_in_loop)
 
 # Set the entry point to initialize
 workflow.set_entry_point(INITIALIZE)
-workflow.add_edge(INITIALIZE, DECIDE_LANGUAGE)
-workflow.add_edge(DECIDE_LANGUAGE, SUMMARIZE)
+workflow.add_edge(INITIALIZE, CLASSIFY_INTENT)
 workflow.add_conditional_edges(
-    SUMMARIZE,
-    route_query,
+    CLASSIFY_INTENT,
+    after_classify_intent,
+    {
+        CHITCHAT: CHITCHAT,
+        SUMMARIZE: SUMMARIZE,
+    },
+)
+workflow.add_edge(CHITCHAT, END)
+workflow.add_edge(KB_META, END)
+workflow.add_edge(BROWSE_REFUSE, END)
+workflow.add_edge(SUMMARIZE, ROUTE_AND_FRAMEWORK)
+workflow.add_conditional_edges(
+    ROUTE_AND_FRAMEWORK,
+    after_route_and_framework,
     {
         WEBSEARCH: WEBSEARCH,
-        DECIDE_VECTORSTORE: DECIDE_VECTORSTORE
+        RETRIEVE: RETRIEVE,
+        GENERATE: GENERATE,
+        KB_META: KB_META,
+        ASK_CHUB_PERMISSION: ASK_CHUB_PERMISSION,
     },
 )
 
-workflow.add_edge(DECIDE_VECTORSTORE, RETRIEVE)
-workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
+workflow.add_conditional_edges(
+    RETRIEVE,
+    after_retrieve,
+    {
+        GRADE_DOCUMENTS: GRADE_DOCUMENTS,
+        GENERATE: GENERATE,
+        BROWSE_REFUSE: BROWSE_REFUSE,
+    },
+)
 workflow.add_conditional_edges(
     GRADE_DOCUMENTS,
-    to_search_web_or_not,
+    after_grade,
     {
+        GENERATE: GENERATE,
+        ASK_CHUB_PERMISSION: ASK_CHUB_PERMISSION,
         WEBSEARCH: WEBSEARCH,
-        GENERATE: GENERATE
-    }
+    },
 )
+# ASK_CHUB_PERMISSION routes only via Command (no edges) — avoids parallel fan-out.
+workflow.add_conditional_edges(
+    CHUB_EXPERT,
+    after_chub_expert,
+    {
+        CHUB_TOOLS: CHUB_TOOLS,
+        GENERATE: GENERATE,
+        WEBSEARCH: WEBSEARCH,
+    },
+)
+workflow.add_edge(CHUB_TOOLS, CHUB_EXPERT)
 workflow.add_edge(WEBSEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
-    grade_generation_grounded_in_documents_and_query,
+    after_generate,
     {
+        "direct_end": END,
         "need search web": IMMEDIATE_MESSAGE_ONE,
         "end_misery": POST_HUMAN_IN_LOOP,
         "useful": POST_HUMAN_IN_LOOP,

@@ -1,22 +1,11 @@
-from dotenv import load_dotenv
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders.firecrawl import FireCrawlLoader
-from agent.graph.models.embeddings import embeddings
-from agent.graph.vector_stores import get_vector_store
-from firecrawl import FirecrawlApp
-from langchain_core.documents import Document
-import os
-import asyncio
-import time
-from itertools import islice
-load_dotenv()
+"""Hard-coded Firecrawl URL corpora by framework namespace."""
+
+from __future__ import annotations
 
 urls1 = [
-
 ]
 
 urls2 = [
-
 ]
 
 urls3 = [
@@ -140,7 +129,7 @@ urls3 = [
     "https://langchain-ai.github.io/langgraph/reference/constants/",
     "https://langchain-ai.github.io/langgraph/reference/pregel/",
     "https://langchain-ai.github.io/langgraph/reference/config/",
-    "https://langchain-ai.github.io/langgraph/reference/func/"
+    "https://langchain-ai.github.io/langgraph/reference/func/",
     "https://langchain-ai.github.io/langgraph/reference/functional/",
     "https://langchain-ai.github.io/langgraph/cloud/reference/api/api_ref/",
     "https://langchain-ai.github.io/langgraph/cloud/reference/sdk/python_sdk_ref/",
@@ -182,7 +171,7 @@ urls3 = [
     "https://langchain-ai.github.io/langgraph/cloud/how-tos/reject_concurrent/",
     "https://langchain-ai.github.io/langgraph/cloud/how-tos/enqueue_concurrent/",
     "https://langchain-ai.github.io/langgraph/cloud/how-tos/webhooks/",
-    "https://langchain-ai.github.io/langgraph/cloud/how-tos/cron_jobs/"
+    "https://langchain-ai.github.io/langgraph/cloud/how-tos/cron_jobs/",
 ]
 
 urls4 = [
@@ -198,7 +187,7 @@ urls4 = [
     "https://docs.copilotkit.ai/reference/hooks/useCopilotChatSuggestions",
     "https://docs.copilotkit.ai/reference/hooks/useCoAgent",
     "https://docs.copilotkit.ai/reference/hooks/useCoAgentStateRender",
-    "https://docs.copilotkit.ai/reference/hooks/useLangGraphInterrupt"
+    "https://docs.copilotkit.ai/reference/hooks/useLangGraphInterrupt",
     "https://docs.copilotkit.ai/reference/classes/CopilotTask",
     "https://docs.copilotkit.ai/reference/classes/CopilotRuntime",
     "https://docs.copilotkit.ai/reference/classes/llm-adapters/OpenAIAdapter",
@@ -263,75 +252,13 @@ urls4 = [
     "https://docs.copilotkit.ai/guides/self-hosting",
     "https://docs.copilotkit.ai/guides/messages-localstorage",
     "https://docs.copilotkit.ai/cookbook/state-machine",
-    "https://docs.copilotkit.ai/troubleshooting/common-issues"
+    "https://docs.copilotkit.ai/troubleshooting/common-issues",
 ]
 
-def ingest_documents(framework, docs_list):
-    """Ingest documents into the vector store."""
-    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=500, chunk_overlap=50
-    )
-    doc_splits = text_splitter.split_documents(docs_list)
+FRAMEWORK_URLS = {
+    "llamaindex": urls1,
+    "smolagents": urls2,
+    "langgraph": urls3,
+    "copilotkit": urls4,
+}
 
-    if len(doc_splits) > 0:
-        # Get the appropriate vector store based on environment
-        vector_store = get_vector_store(framework, embeddings)
-        
-        if vector_store:
-            # Add documents to the vector store
-            print(f"Adding {len(doc_splits)} documents to vector store for {framework}")
-            vector_store.add_documents(doc_splits)
-            return True
-        else:
-            print(f"Error: Could not create vector store for {framework}")
-            return False
-    else:
-        print("No documents to ingest")
-        return False
-
-for framework, urls in zip(
-        ["llamaindex", "smolagents", "langgraph", "copilotkit"], 
-        [urls1, urls2, urls3, urls4]
-    ):
-    print(f"\nProcessing {framework} documentation...")
-    docs_list = []
-    
-    app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
-    
-    # Process URLs in batches of 10
-    batch_size = 10
-    url_count = len(urls)
-    
-    for i in range(0, url_count, batch_size):
-        # Get the current batch (slice of 10 URLs or less for the last batch)
-        batch = urls[i:i+batch_size]
-        
-        print(f"Processing batch {i//batch_size + 1} of {(url_count + batch_size - 1)//batch_size} ({len(batch)} URLs)")
-        
-        for url in batch:
-            print(f"FireCrawling {url}")
-            try:
-                result = app.scrape_url(url, formats=["markdown"])
-
-                if result and result.success:
-                    content = result.markdown
-                    docs_list.append(Document(page_content=content, metadata={"source": url}))
-                
-                print(f"Successfully loaded documents from {url}")
-            except Exception as e:
-                print(f"Error loading {url}: {e}")
-        
-        # Wait for 1 minute between batches, but only if there are more URLs to process
-        if i + batch_size < url_count:
-            print(f"Waiting 60 seconds before processing the next batch...")
-            time.sleep(60)
-    
-    # Ingest documents for this framework
-    if docs_list:
-        if ingest_documents(framework, docs_list):
-            print(f"Successfully ingested {len(docs_list)} documents for {framework}")
-        else:
-            print(f"Error: Could not ingest documents for {framework}")
-    else:
-        print(f"No documents found for {framework}")
-    

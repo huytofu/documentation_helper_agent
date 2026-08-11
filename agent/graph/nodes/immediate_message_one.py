@@ -1,11 +1,12 @@
 from agent.graph.utils.message_utils import get_last_message_type
 from agent.graph.state import GraphState
-from typing import Dict, Any
-from langchain_core.messages import AIMessage
-from copilotkit.langgraph import copilotkit_emit_state, copilotkit_emit_message
+from typing import Dict, Any, Optional
+from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import SystemMessage
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 
-async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def immediate_message_one(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     print("---IMMEDIATE MESSAGE 1---")
     messages = state.get("messages", [])
 
@@ -18,7 +19,7 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         SYSTEM: Seems like answer not grounded in the documents.
         SYSTEM: Please regenerate.
         '''
-        messages.append(AIMessage(content=content))
+        messages.append(SystemMessage(content=content))
 
     if config:
         generating_state = {
@@ -27,8 +28,7 @@ async def immediate_message_one(state: GraphState, config: Dict[str, Any] = None
         }
         # print(f"Emitting generating state: {generating_state}")
         await copilotkit_emit_state(config, generating_state)
-        await copilotkit_emit_message(config, content)
         await standard_sleep()
         # await asyncio.sleep(10)
 
-    return {"messages": messages}
+    return {"messages": messages, "current_node": "IMMEDIATE_MESSAGE_1"}

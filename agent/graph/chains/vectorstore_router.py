@@ -7,7 +7,9 @@ from functools import lru_cache
 
 class VectorstoreRoute(BaseModel):
     """Route a query to the appropriate choice of vectorstore"""
-    datasource: Literal["llamaindex", "smolagents", "langgraph", "copilotkit", "others"] = Field(
+    datasource: Literal[
+        "langgraph", "copilotkit", "chub", "others"
+    ] = Field(
         ...,
         description="""Answer options for: choice of vectorstore""",
     )
@@ -18,12 +20,11 @@ parser = PydanticOutputParser(pydantic_object=VectorstoreRoute)
 # Create the prompt template
 system = """You are an expert at deciding the most appropriate vectorstore to use for a given query.
 
-You must choose between following five options. You must not select any option other than these five:
-- "llamaindex": ONLY for queries specifically about the LlamaIndex framework
-- "smolagents": ONLY for queries specifically about the SmolAgents framework
+You must choose between following three options. You must not select any option other than these three:
 - "langgraph": ONLY for queries specifically about the LangGraph framework
 - "copilotkit": ONLY for queries specifically about the CopilotKit framework and/or Coagents
-- "others": For all other queries
+- "chub": for library/SDK/API docs that are not framework-specific above — especially OpenAI, Pinecone, and other curated package guides from the chub knowledge base
+- "others": For queries that do not fit any documentation namespace above
 
 VERY IMPORTANT: You must answer in JSON format that strictly follows the following schema:
 

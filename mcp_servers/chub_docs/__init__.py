@@ -1,0 +1,1 @@
+"""Chub documentation MCP tools."""

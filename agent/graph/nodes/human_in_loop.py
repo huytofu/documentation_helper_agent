@@ -1,13 +1,14 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from langchain_core.runnables import RunnableConfig
 from agent.graph.state import GraphState
 from langgraph.types import interrupt
-from copilotkit.langgraph import copilotkit_emit_state
+from agent.graph.utils.copilotkit_emit import copilotkit_emit_state
 from agent.graph.utils.api_utils import standard_sleep
 import logging
 
 logger = logging.getLogger(__name__)
 
-async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dict[str, Any]:
+async def human_in_loop(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     logger.info("---HUMAN IN LOOP---")
     if config:
         generating_state = {
@@ -21,7 +22,9 @@ async def human_in_loop(state: GraphState, config: Dict[str, Any] = None) -> Dic
     # Create result state with current_node
     result_state = {
         "comments": "",  # Will be updated after interrupt
+        "current_node": "HUMAN_IN_LOOP",
     }
+
     
     human_in_loop = interrupt(
         "We have an answer to your question.\n" + 
