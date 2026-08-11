@@ -28,15 +28,69 @@ DEFAULT_MAX_TOKENS = 16
 _service: Optional["ModelWarmupService"] = None
 
 
+def _normalize_message_content(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: List[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+                continue
+            if isinstance(block, dict):
+                text = block.get("text") or block.get("content")
+                if text:
+                    parts.append(str(text))
+                continue
+            text = getattr(block, "text", None) or getattr(block, "content", None)
+            if text:
+                parts.append(str(text))
+        return "".join(parts)
+    return str(content)
+
+
 def _extract_content(response: Any) -> str:
     choices = getattr(response, "choices", None) or []
     if not choices:
         return ""
     message = getattr(choices[0], "message", None)
     content = getattr(message, "content", None) if message is not None else None
-    if content is None:
-        return ""
-    return content if isinstance(content, str) else str(content)
+    return _normalize_message_content(content)
+
+
+def _message_debug_snapshot(response: Any) -> Dict[str, Any]:
+    """Compact, log-safe view of the Together response for warm-up debugging."""
+    choices = getattr(response, "choices", None) or []
+    if not choices:
+        return {"choices": 0, "raw_type": type(response).__name__}
+    choice = choices[0]
+    message = getattr(choice, "message", None)
+    content = getattr(message, "content", None) if message is not None else None
+    snapshot: Dict[str, Any] = {
+        "choices": len(choices),
+        "finish_reason": repr(getattr(choice, "finish_reason", None)),
+        "message_type": type(message).__name__ if message is not None else None,
+        "content_type": type(content).__name__,
+        "content_repr": repr(content)[:1000],
+    }
+    # Reasoning / alternate fields some OSS models populate instead of content.
+    if message is not None:
+        for attr in ("reasoning", "reasoning_content", "refusal"):
+            if hasattr(message, attr):
+                snapshot[attr] = repr(getattr(message, attr))[:500]
+        try:
+            dump = (
+                message.model_dump()
+                if hasattr(message, "model_dump")
+                else getattr(message, "__dict__", None)
+            )
+            if isinstance(dump, dict):
+                snapshot["message_keys"] = list(dump.keys())
+        except Exception:  # noqa: BLE001 — debug-only
+            pass
+    return snapshot
 
 
 def _contains_pong(text: str) -> bool:
@@ -87,16 +141,30 @@ class ModelWarmupService:
             )
             reply = _extract_content(response)
             ok = _contains_pong(reply)
+            snapshot = _message_debug_snapshot(response)
+            logger.info(
+                "Warm-up response model=%s ok=%s extracted_reply=%r snapshot=%s",
+                model,
+                ok,
+                reply[:500],
+                snapshot,
+            )
             result: Dict[str, Any] = {
                 "ok": ok,
                 "model": model,
-                "reply": reply[:200],
+                "reply": reply[:500],
             }
             if not ok:
                 result["error"] = "Response did not contain 'Pong'"
+                result["debug"] = snapshot
             return result
         except Exception as exc:  # noqa: BLE001 — surface per-model failures
-            logger.warning("Warm-up failed for model %s: %s", model, exc)
+            logger.warning(
+                "Warm-up exception for model %s: %s",
+                model,
+                exc,
+                exc_info=True,
+            )
             return {
                 "ok": False,
                 "model": model,
@@ -129,6 +197,12 @@ class ModelWarmupService:
                 status = "warmed_up"
             else:
                 status = "failed"
+            logger.info(
+                "Warm-up finished status=%s ok=%s replies=%s",
+                status,
+                ok,
+                {m: models_map[m].get("reply") for m in models_map},
+            )
             return {
                 "ok": ok,
                 "status": status,
