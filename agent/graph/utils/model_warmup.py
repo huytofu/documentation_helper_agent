@@ -18,12 +18,15 @@ WARMUP_MODELS: List[str] = [
     "deepseek-ai/DeepSeek-V4-Flash-0731",
 ]
 
-WARMUP_PROMPT = "Ping. Say Pong"
+# Keep the prompt tiny; reasoning models still spend tokens before content.
+WARMUP_PROMPT = "Reply with exactly one word: Pong"
 DEFAULT_CACHE_TTL_SECONDS = float(os.environ.get("MODEL_WARMUP_CACHE_TTL_SECONDS", "300"))
 DEFAULT_PER_MODEL_TIMEOUT_SECONDS = float(
     os.environ.get("MODEL_WARMUP_TIMEOUT_SECONDS", "55")
 )
-DEFAULT_MAX_TOKENS = 16
+# gpt-oss / DeepSeek put early tokens in `reasoning`; 16 was finishing with
+# finish_reason=length and empty content. Allow enough for reasoning + "Pong".
+DEFAULT_MAX_TOKENS = int(os.environ.get("MODEL_WARMUP_MAX_TOKENS", "256"))
 
 _service: Optional["ModelWarmupService"] = None
 
@@ -58,6 +61,29 @@ def _extract_content(response: Any) -> str:
     message = getattr(choices[0], "message", None)
     content = getattr(message, "content", None) if message is not None else None
     return _normalize_message_content(content)
+
+
+def _extract_reasoning(response: Any) -> str:
+    choices = getattr(response, "choices", None) or []
+    if not choices:
+        return ""
+    message = getattr(choices[0], "message", None)
+    if message is None:
+        return ""
+    for attr in ("reasoning", "reasoning_content"):
+        value = getattr(message, attr, None)
+        text = _normalize_message_content(value)
+        if text:
+            return text
+    return ""
+
+
+def _extract_warmup_text(response: Any) -> str:
+    """Prefer assistant content; fall back to reasoning for OSS/DeepSeek models."""
+    content = _extract_content(response)
+    if content.strip():
+        return content
+    return _extract_reasoning(response)
 
 
 def _message_debug_snapshot(response: Any) -> Dict[str, Any]:
@@ -97,6 +123,20 @@ def _contains_pong(text: str) -> bool:
     return "pong" in (text or "").lower()
 
 
+def _reasoning_controls_for_model(model: str) -> Dict[str, Any]:
+    """Minimize thinking overhead on warm-up calls.
+
+    - gpt-oss: always-on reasoning; only ``reasoning_effort`` is supported.
+    - DeepSeek V4 family: hybrid on Together; try disable first.
+    """
+    model_l = (model or "").lower()
+    if "gpt-oss" in model_l:
+        return {"reasoning_effort": "low"}
+    if "deepseek" in model_l:
+        return {"reasoning": {"enabled": False}}
+    return {}
+
+
 class ModelWarmupService:
     """Ping configured Together models in parallel; cache successful warm-ups."""
 
@@ -133,29 +173,56 @@ class ModelWarmupService:
                 api_key=self.api_key,
                 timeout=self.per_model_timeout_seconds,
             )
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": WARMUP_PROMPT}],
-                max_tokens=DEFAULT_MAX_TOKENS,
-                temperature=0,
-            )
-            reply = _extract_content(response)
+            base_params: Dict[str, Any] = {
+                "model": model,
+                "messages": [{"role": "user", "content": WARMUP_PROMPT}],
+                "max_tokens": DEFAULT_MAX_TOKENS,
+                "temperature": 0,
+            }
+            reasoning_controls = _reasoning_controls_for_model(model)
+            try:
+                response = client.chat.completions.create(
+                    **base_params,
+                    **reasoning_controls,
+                )
+            except Exception as ctrl_exc:  # noqa: BLE001 — unsupported control → retry
+                if not reasoning_controls:
+                    raise
+                logger.warning(
+                    "Warm-up reasoning controls rejected for %s (%s); retrying without them",
+                    model,
+                    ctrl_exc,
+                )
+                response = client.chat.completions.create(**base_params)
+            content = _extract_content(response)
+            reasoning = _extract_reasoning(response)
+            reply = _extract_warmup_text(response)
             ok = _contains_pong(reply)
+            # Model answered at all ⇒ cold start finished (even if text is odd).
+            # Prefer Pong when present; otherwise accept non-empty content/reasoning
+            # with a completed choice so warm-up is not blocked by terse refusals.
+            choices = getattr(response, "choices", None) or []
+            if not ok and choices and (content.strip() or reasoning.strip()):
+                ok = True
             snapshot = _message_debug_snapshot(response)
             logger.info(
-                "Warm-up response model=%s ok=%s extracted_reply=%r snapshot=%s",
+                "Warm-up response model=%s ok=%s content=%r reasoning=%r "
+                "extracted_reply=%r snapshot=%s",
                 model,
                 ok,
+                content[:500],
+                reasoning[:500],
                 reply[:500],
                 snapshot,
             )
             result: Dict[str, Any] = {
                 "ok": ok,
                 "model": model,
-                "reply": reply[:500],
+                "reply": (content or reply)[:500],
+                "reasoning": reasoning[:500],
             }
             if not ok:
-                result["error"] = "Response did not contain 'Pong'"
+                result["error"] = "Empty warm-up response (no content/reasoning)"
                 result["debug"] = snapshot
             return result
         except Exception as exc:  # noqa: BLE001 — surface per-model failures
