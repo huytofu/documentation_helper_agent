@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from together import Together
 
+from agent.graph.utils.together_reasoning import together_reasoning_controls
+
 logger = logging.getLogger(__name__)
 
 WARMUP_MODELS: List[str] = [
@@ -123,20 +125,6 @@ def _contains_pong(text: str) -> bool:
     return "pong" in (text or "").lower()
 
 
-def _reasoning_controls_for_model(model: str) -> Dict[str, Any]:
-    """Minimize thinking overhead on warm-up calls.
-
-    - gpt-oss: always-on reasoning; only ``reasoning_effort`` is supported.
-    - DeepSeek V4 family: hybrid on Together; try disable first.
-    """
-    model_l = (model or "").lower()
-    if "gpt-oss" in model_l:
-        return {"reasoning_effort": "low"}
-    if "deepseek" in model_l:
-        return {"reasoning": {"enabled": False}}
-    return {}
-
-
 class ModelWarmupService:
     """Ping configured Together models in parallel; cache successful warm-ups."""
 
@@ -179,7 +167,7 @@ class ModelWarmupService:
                 "max_tokens": DEFAULT_MAX_TOKENS,
                 "temperature": 0,
             }
-            reasoning_controls = _reasoning_controls_for_model(model)
+            reasoning_controls = together_reasoning_controls(model)
             try:
                 response = client.chat.completions.create(
                     **base_params,

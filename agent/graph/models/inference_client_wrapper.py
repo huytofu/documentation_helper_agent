@@ -40,9 +40,13 @@ from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from together import Together
 
+from agent.graph.utils.together_reasoning import together_reasoning_controls
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOGETHER_TIMEOUT_SECONDS = 15.0
+
+_REASONING_CONTROL_KEYS = frozenset({"reasoning_effort", "reasoning"})
 
 
 def _normalize_finish_reason(finish_reason: Any) -> str:
@@ -306,6 +310,25 @@ class InferenceClientChatModel(BaseChatModel):
             },
         )
 
+    def _together_create(self, together_client: Together, together_params: Dict[str, Any]):
+        """Call Together chat completions; retry without reasoning controls if rejected."""
+        try:
+            return together_client.chat.completions.create(**together_params)
+        except Exception as ctrl_exc:  # noqa: BLE001
+            stripped = {
+                k: v
+                for k, v in together_params.items()
+                if k not in _REASONING_CONTROL_KEYS
+            }
+            if stripped == together_params:
+                raise
+            logger.warning(
+                "Together rejected reasoning controls for %s (%s); retrying without them",
+                together_params.get("model"),
+                ctrl_exc,
+            )
+            return together_client.chat.completions.create(**stripped)
+
     def _generate(
         self,
         messages: List[BaseMessage],
@@ -314,51 +337,9 @@ class InferenceClientChatModel(BaseChatModel):
         **kwargs: Any,
     ) -> ChatResult:
         """Generate via Together primary, then HF InferenceClient on failure/timeout."""
-        chat_messages = self._convert_messages_to_chat_format(messages)
-
-        max_tokens = kwargs.get("max_tokens", self.max_tokens)
-        temperature = kwargs.get("temperature", self.temperature)
-        top_p = kwargs.get("top_p", 0.9)
-        tools = kwargs.get("tools")
-        tool_choice = kwargs.get("tool_choice")
-
-        together_params: Dict[str, Any] = {
-            "model": self.direct_model,
-            "messages": chat_messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-            "stop": stop if stop else None,
-        }
-        if tools is not None:
-            together_params["tools"] = tools
-        if tool_choice is not None:
-            together_params["tool_choice"] = tool_choice
-
-        hf_params: Dict[str, Any] = {
-            "model": self.model,
-            "messages": chat_messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-        if tools is not None:
-            hf_params["tools"] = tools
-        if tool_choice is not None:
-            hf_params["tool_choice"] = tool_choice
-        if stop:
-            hf_params["stop"] = stop
-
-        skip_keys = {
-            "max_tokens",
-            "temperature",
-            "top_p",
-            "frequency_penalty",
-            "tools",
-            "tool_choice",
-        }
-        for k, v in kwargs.items():
-            if k not in hf_params and k not in skip_keys:
-                hf_params[k] = v
+        together_params, hf_params = self._build_request_params(
+            messages, stop=stop, **kwargs
+        )
 
         response_message_obj: Any = None
         finish_reason = "unknown"
@@ -376,7 +357,7 @@ class InferenceClientChatModel(BaseChatModel):
                     api_key=self.direct_api_key,
                     timeout=self.timeout,
                 )
-                response = together_client.chat.completions.create(**together_params)
+                response = self._together_create(together_client, together_params)
                 if not response.choices:
                     raise ValueError("No choices returned from Together API")
                 response_message_obj = response.choices[0].message
@@ -466,6 +447,10 @@ class InferenceClientChatModel(BaseChatModel):
         if tool_choice is not None:
             together_params["tool_choice"] = tool_choice
 
+        # Latency: low effort / disable reasoning on Together primary models.
+        for key, value in together_reasoning_controls(self.direct_model).items():
+            together_params.setdefault(key, value)
+
         hf_params: Dict[str, Any] = {
             "model": self.model,
             "messages": chat_messages,
@@ -486,6 +471,8 @@ class InferenceClientChatModel(BaseChatModel):
             "frequency_penalty",
             "tools",
             "tool_choice",
+            "reasoning_effort",
+            "reasoning",
         }
         for k, v in kwargs.items():
             if k not in hf_params and k not in skip_keys:
@@ -552,7 +539,7 @@ class InferenceClientChatModel(BaseChatModel):
                 api_key=self.direct_api_key,
                 timeout=self.timeout,
             )
-            stream = together_client.chat.completions.create(**together_params)
+            stream = self._together_create(together_client, together_params)
             yielded = False
             for raw_chunk in stream:
                 choices = getattr(raw_chunk, "choices", None) or []
