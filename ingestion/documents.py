@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import Iterable, Optional
 
 import tiktoken
@@ -16,29 +17,95 @@ logger = logging.getLogger(__name__)
 
 # Hard cap for embedding chunks (e5 / similar models). Soft splitter target is lower.
 MAX_EMBEDDING_TOKENS = 512
+# Matches MODEL_IDS["embeddings"]; Together enforces this model's 512 limit.
+EMBEDDING_TOKENIZER_REPO = "intfloat/multilingual-e5-large-instruct"
 DEFAULT_TIKTOKEN_ENCODING = "cl100k_base"
+# Fallback when the e5 tokenizer cannot be loaded (tiktoken undercounts vs e5).
+TIKTOKEN_SAFE_MAX_TOKENS = 450
+
+
+@lru_cache(maxsize=1)
+def _get_embedding_tokenizer():
+    """Load the e5 tokenizer used by Together/HF embeddings (includes specials)."""
+    from huggingface_hub import hf_hub_download
+    from tokenizers import Tokenizer
+
+    path = hf_hub_download(EMBEDDING_TOKENIZER_REPO, "tokenizer.json")
+    return Tokenizer.from_file(path)
+
+
+def _truncate_text_e5(text: str, max_tokens: int) -> tuple[str, int, bool]:
+    """Truncate with the e5 tokenizer. Returns (text, observed_len, truncated).
+
+    Uses a character-prefix search so the *re-encoded* text (including special
+    tokens) stays ≤ max_tokens — slicing token ids then decoding can still
+    exceed the limit after specials are re-applied.
+    """
+    tok = _get_embedding_tokenizer()
+    n = len(tok.encode(text).ids)
+    if n <= max_tokens:
+        return text, n, False
+
+    lo, hi = 0, len(text)
+    best = ""
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = text[:mid]
+        if len(tok.encode(candidate).ids) <= max_tokens:
+            best = candidate
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return best, n, True
+
+
+def _truncate_text_tiktoken_safe(
+    text: str,
+    max_tokens: int,
+    *,
+    encoding_name: str = DEFAULT_TIKTOKEN_ENCODING,
+) -> tuple[str, int, bool]:
+    """Conservative tiktoken fallback when the e5 tokenizer is unavailable."""
+    enc = tiktoken.get_encoding(encoding_name)
+    safe_max = min(max_tokens, TIKTOKEN_SAFE_MAX_TOKENS)
+    token_ids = enc.encode(text)
+    n = len(token_ids)
+    if n <= safe_max:
+        return text, n, False
+    return enc.decode(token_ids[:safe_max]), n, True
 
 
 def _truncate_docs_to_token_limit(
     docs: list[Document],
     *,
     max_tokens: int = MAX_EMBEDDING_TOKENS,
-    encoding_name: str = DEFAULT_TIKTOKEN_ENCODING,
 ) -> list[Document]:
-    """Return Document copies with page_content capped at max_tokens (tiktoken)."""
-    enc = tiktoken.get_encoding(encoding_name)
+    """Return Document copies with page_content capped at max_tokens (e5 tokenizer)."""
+    use_e5 = True
+    try:
+        _get_embedding_tokenizer()
+    except Exception:
+        use_e5 = False
+        logger.exception(
+            "Failed to load e5 tokenizer; falling back to tiktoken safe cap (%d)",
+            TIKTOKEN_SAFE_MAX_TOKENS,
+        )
+
     out: list[Document] = []
     truncated = 0
     max_observed = 0
 
     for doc in docs:
-        token_ids = enc.encode(doc.page_content or "")
-        n = len(token_ids)
+        content = doc.page_content or ""
+        if use_e5:
+            content, n, was_truncated = _truncate_text_e5(content, max_tokens)
+        else:
+            content, n, was_truncated = _truncate_text_tiktoken_safe(
+                content, max_tokens
+            )
         if n > max_observed:
             max_observed = n
-        content = doc.page_content or ""
-        if n > max_tokens:
-            content = enc.decode(token_ids[:max_tokens])
+        if was_truncated:
             truncated += 1
         out.append(
             Document(page_content=content, metadata=dict(doc.metadata or {}))
@@ -46,10 +113,12 @@ def _truncate_docs_to_token_limit(
 
     if truncated:
         logger.warning(
-            "Truncated %d chunk(s) to %d tokens (max observed before truncate: %d)",
+            "Truncated %d chunk(s) to %d embedding tokens "
+            "(max observed before truncate: %d, tokenizer=%s)",
             truncated,
             max_tokens,
             max_observed,
+            "e5" if use_e5 else "tiktoken-safe",
         )
     return out
 
