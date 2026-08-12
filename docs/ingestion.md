@@ -46,6 +46,9 @@ python ingest.py --source chub --verbose
 # Firecrawl URL lists (slow; rate-limits between batches)
 python -m ingestion --source firecrawl --framework langgraph
 
+# Force a fresh Firecrawl crawl (ignore on-disk cache)
+python -m ingestion --source firecrawl --framework langgraph --refresh
+
 # Both sources
 python -m ingestion --source all
 ```
@@ -53,6 +56,14 @@ python -m ingestion --source all
 `--framework` accepts `all` or a comma-separated list of known namespaces
 (`langgraph`, `llamaindex`, `smolagents`, `copilotkit`, `chub`). Example:
 `--framework langgraph,llamaindex`.
+
+### Firecrawl crawl cache
+
+Successful Firecrawl scrapes are saved under `.cache/firecrawl/{framework}.json`
+(gitignored). On the next run, ingest **auto-uses** that cache when the URL list
+for the framework is unchanged (SHA-256 of the ordered list). Use `--refresh` to
+force a re-crawl and overwrite the cache. Empty scrapes are not cached. Chub
+ingestion does not use this cache.
 
 ### Clear / rebuild (embedding model change)
 

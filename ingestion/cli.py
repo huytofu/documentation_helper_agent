@@ -44,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="For chub get: prefer versions matching installed deps (optional)",
     )
     parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Force Firecrawl re-crawl (ignore on-disk crawl cache)",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -120,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         source=args.source or "all",
         frameworks=frameworks,
         match_env=args.match_env,
+        refresh=args.refresh,
     )
 
     print("\nIngestion summary:")

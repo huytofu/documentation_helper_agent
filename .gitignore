@@ -3,6 +3,7 @@
 /.venv
 .env
 deployment_env/
+.cache/
 *.pyc
 *.cython
 
