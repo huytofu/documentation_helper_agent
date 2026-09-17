@@ -41,20 +41,20 @@ if USE_OLLAMA and USE_INFERENCE_CLIENT:
 # Primary path is always Together direct. HF fallback uses PROVIDER_IDS (never "together").
 MODEL_IDS = {
     "embeddings": ["intfloat/multilingual-e5-large-instruct", "intfloat/multilingual-e5-large-instruct"],
-    "router": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
-    "retrieval_mode": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
-    "sentiment_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
-    "answer_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
-    "retrieval_grader": ["openai/gpt-oss-20b", "openai/gpt-oss-20b"],
+    "router": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "retrieval_mode": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "sentiment_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "answer_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
+    "retrieval_grader": ["Qwen/Qwen3.5-9B", "Qwen/Qwen3.5-9B"],
     # gpt-oss-120b on both paths (Together primary, HF provider fallback).
     "complex_router": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "hallucinate_grader": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "summarizer": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     # "chub_expert": ["openai/gpt-oss-120b", "openai/gpt-oss-120b"],
     "chub_expert": ["MiniMaxAI/MiniMax-M3", "MiniMaxAI/MiniMax-M3"],
-    # "chub_expert": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
-    "chitchat": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
-    "generator": ["deepseek-ai/DeepSeek-V4-Flash-0731", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    # "chub_expert": ["deepseek-ai/DeepSeek-V4.1-Flash", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    "chitchat": ["deepseek-ai/DeepSeek-V4.1-Flash", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
+    "generator": ["deepseek-ai/DeepSeek-V4.1-Flash", "Qwen/Qwen3-235B-A22B-Instruct-2507"],
 }
 
 # HF InferenceClient fallback providers only — never "together" (primary already failed).
