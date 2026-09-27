@@ -60,7 +60,7 @@ MODEL_IDS = {
 # HF InferenceClient fallback providers only — never "together" (primary already failed).
 # Placeholder values (fireworks-ai / novita / hf-inference) may be revised later.
 PROVIDER_IDS = {
-    "embeddings": "hf-inference",
+    "embeddings": "auto",
     "sentiment_grader": "novita",
     "answer_grader": "novita",
     "retrieval_grader": "novita",
