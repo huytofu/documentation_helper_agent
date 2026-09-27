@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 WARMUP_MODELS: List[str] = [
     "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
+    "Qwen/Qwen3.5-9B",
     "MiniMaxAI/MiniMax-M3",
     "deepseek-ai/DeepSeek-V4-Flash-0731",
 ]
